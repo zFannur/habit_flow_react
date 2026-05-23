@@ -1,0 +1,1 @@
+export { bootstrapTelegram } from './bootstrap';
