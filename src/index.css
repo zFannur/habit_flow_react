@@ -1,6 +1,50 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-hf-bg-primary: var(--hf-bg-primary);
+  --color-hf-bg-secondary: var(--hf-bg-secondary);
+  --color-hf-bg-tertiary: var(--hf-bg-tertiary);
+  --color-hf-text-primary: var(--hf-text-primary);
+  --color-hf-text-secondary: var(--hf-text-secondary);
+  --color-hf-text-tertiary: var(--hf-text-tertiary);
+  --color-hf-border: var(--hf-border);
+  --color-hf-accent: var(--hf-accent);
+  --color-hf-accent-hover: var(--hf-accent-hover);
+  --color-hf-card: var(--hf-card);
+  --color-hf-shadow: var(--hf-shadow);
+  --color-hf-success: #22C55E;
+  --color-hf-warning: #F59E0B;
+  --color-hf-danger: #EF4444;
+  --color-hf-anti: #10B981;
+  --color-hf-premium: #A855F7;
+  --color-hf-chart-pink: #EC4899;
+  --color-hf-chart-teal: #06B6D4;
+
+  --radius-hf-sm: 8px;
+  --radius-hf-md: 12px;
+  --radius-hf-lg: 16px;
+  --radius-hf-xl: 24px;
+  --radius-hf-full: 999px;
+
+  --spacing-hf-4: 4px;
+  --spacing-hf-8: 8px;
+  --spacing-hf-12: 12px;
+  --spacing-hf-16: 16px;
+  --spacing-hf-20: 20px;
+  --spacing-hf-24: 24px;
+  --spacing-hf-32: 32px;
+  --spacing-hf-48: 48px;
+  --spacing-hf-64: 64px;
+
+  --shadow-hf-card: 0 2px 8px var(--hf-shadow);
+  --shadow-hf-toast: 0 4px 16px var(--hf-shadow);
+  --shadow-hf-bottom-nav: 0 -2px 20px var(--hf-shadow);
+  --shadow-hf-thumb: 0 1px 4px var(--hf-shadow);
+  --shadow-hf-toggle-thumb: 0 1px 4px rgba(0, 0, 0, 0.15);
+
+  --spacing-tg-safe-bottom: var(--tg-viewport-safe-area-inset-bottom, 0px);
+  --spacing-tg-safe-top: var(--tg-viewport-safe-area-inset-top, 0px);
+}
 
 :root {
   --hf-bg-primary: #FFFFFF;
@@ -53,13 +97,10 @@ html, body, #root {
   border-radius: 2px;
 }
 
+/* Shimmer skeleton animation */
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .shimmer {

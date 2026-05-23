@@ -53,7 +53,7 @@ function readInitData(): string {
 export default function SplashPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { state, login, restoreSession } = useSessionStore();
+  const { state, login, restoreSession, devLogin } = useSessionStore();
 
   const handleBootstrap = useCallback(async () => {
     const initData = readInitData();
@@ -106,7 +106,7 @@ export default function SplashPage() {
         <p className="text-[14px] text-hf-text-secondary text-center mt-3 leading-relaxed">
           {t('splashOutsideTelegramDesc')}
         </p>
-        <div className="mt-8 w-full max-w-xs flex justify-center">
+        <div className="mt-8 w-full max-w-xs flex flex-col gap-3 justify-center">
           <Button
             label={t('deviceLinkBtn')}
             icon={<LinkIcon className="w-4 h-4" />}
@@ -115,6 +115,13 @@ export default function SplashPage() {
               alert('Link device feature: to be implemented');
             }}
           />
+          {import.meta.env.DEV && (
+            <Button
+              label="Dev Bypass (Skip Auth)"
+              variant="secondary"
+              onClick={() => devLogin()}
+            />
+          )}
         </div>
       </div>
     );

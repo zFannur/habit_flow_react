@@ -8,6 +8,7 @@ interface SessionStore {
   login: (initData: string) => Promise<void>;
   logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
+  devLogin: () => Promise<void>;
 }
 
 const JWT_KEY = 'auth.jwt';
@@ -89,5 +90,15 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     } catch {
       get().logout();
     }
+  },
+
+  devLogin: async () => {
+    const fakeUser: AuthUser = {
+      id: 'dev-user-00000000-0000-0000-0000-000000000000',
+      first_name: 'Dev',
+      language: 'en',
+    };
+    const fakeJwt = 'dev-jwt-token';
+    set({ state: { status: 'authenticated', jwt: fakeJwt, user: fakeUser } });
   },
 }));
