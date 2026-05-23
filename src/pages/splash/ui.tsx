@@ -6,20 +6,57 @@ import { useSessionStore } from '@/entities/session';
 import { useTranslation } from '@/shared/lib/i18n';
 import { Button } from '@/shared/ui';
 
+/** Read Telegram initData from all available sources with fallbacks. */
+function readInitData(): string {
+  // Source 1: SDK retrieveLaunchParams (works after initSDK())
+  try {
+    const lp = retrieveLaunchParams();
+    const raw = (lp.initDataRaw as string | undefined) ?? '';
+    if (raw) {
+      console.log('[Splash] initData source: SDK retrieveLaunchParams ✅');
+      return raw;
+    }
+  } catch {
+    console.log('[Splash] SDK retrieveLaunchParams threw — trying fallbacks');
+  }
+
+  // Source 2: window.Telegram.WebApp.initData (always available inside TG WebView)
+  try {
+    const tg = (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram;
+    const raw = tg?.WebApp?.initData ?? '';
+    if (raw) {
+      console.log('[Splash] initData source: window.Telegram.WebApp ✅');
+      return raw;
+    }
+  } catch {
+    console.log('[Splash] window.Telegram.WebApp not available');
+  }
+
+  // Source 3: URL hash / search (debug / deep-link mode)
+  try {
+    const hash = window.location.hash.slice(1);
+    const params = new URLSearchParams(hash || window.location.search);
+    const raw = params.get('tgWebAppData') ?? '';
+    if (raw) {
+      console.log('[Splash] initData source: URL hash ✅');
+      return decodeURIComponent(raw);
+    }
+  } catch {
+    // ignore
+  }
+
+  console.log('[Splash] No initData found — not inside Telegram WebView');
+  return '';
+}
+
 export default function SplashPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { state, login, restoreSession } = useSessionStore();
 
   const handleBootstrap = useCallback(async () => {
-    let initData = '';
-    try {
-      // Get initData from launch params if inside Telegram
-      const lp = retrieveLaunchParams();
-      initData = (lp.initDataRaw as string | undefined) || '';
-    } catch {
-      // Not inside Telegram Webview
-    }
+    const initData = readInitData();
+    console.log('[Splash] initData length:', initData.length);
 
     if (!initData) {
       // Outside Telegram: try restoring session from local storage
