@@ -7,7 +7,7 @@ export default function AboutPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto pb-tg-safe-bottom">
       <HeaderBar title={t('aboutTitle')} onBack={() => navigate(-1)} />
 
       <div className="flex-1 p-4 flex flex-col gap-4 max-w-md mx-auto w-full items-center">

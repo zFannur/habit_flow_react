@@ -300,7 +300,7 @@ export default function HabitFormPage() {
   const units = GOAL_UNITS[habitType] || ['times'];
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-secondary">
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary pt-tg-safe-top pb-tg-safe-bottom">
       {/* Wizard Header */}
       <div className="shrink-0 bg-hf-bg-primary border-b border-hf-border pb-[10px]">
         <div className="flex items-center px-4 pt-[14px] pb-[10px]">
@@ -335,7 +335,7 @@ export default function HabitFormPage() {
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-tg-safe-bottom">
         <div className="px-4 pt-6 pb-4">
           {/* ── Step 1: Habit Type ── */}
           {step === 1 && (

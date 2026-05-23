@@ -98,7 +98,7 @@ export default function HabitsPage() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary p-4 pb-tg-safe-bottom">
+      <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary p-4 pb-tg-safe-bottom">
         <div className="h-6 w-32 bg-hf-bg-secondary animate-pulse rounded mb-4" />
         <div className="h-10 w-full bg-hf-bg-secondary animate-pulse rounded-hf-md mb-4" />
         <div className="flex gap-2 mb-6">
@@ -116,7 +116,7 @@ export default function HabitsPage() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       <div className="flex justify-between items-center bg-hf-bg-primary p-4 shrink-0">
         <h2 className="text-hf-headline-md text-hf-text-primary tracking-[-0.02em]">
           {t('habitsListTitle')}

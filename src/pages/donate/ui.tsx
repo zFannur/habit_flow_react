@@ -75,7 +75,7 @@ export default function DonatePage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary overflow-y-auto pb-tg-safe-bottom">
       <HeaderBar title={t('donateTitle')} onBack={() => navigate(-1)} />
 
       <div className="flex-1 p-4 flex flex-col gap-4 max-w-md mx-auto w-full">

@@ -85,7 +85,7 @@ export default function TodayPage() {
 
   if (session.status === 'loading' || isLoadingHabits || isLoadingLogs) {
     return (
-      <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary p-4 pb-tg-safe-bottom">
+      <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary p-4 pb-tg-safe-bottom">
         <div className="flex justify-between items-center border-b border-hf-border pb-4">
           <div className="flex flex-col gap-2">
             <div className="h-6 w-32 bg-hf-bg-secondary animate-pulse rounded" />
@@ -103,7 +103,7 @@ export default function TodayPage() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       <div className="flex justify-between items-center bg-hf-bg-secondary border-b border-hf-border p-4 shrink-0">
         <div>
           <h2 className="text-hf-headline-md text-hf-text-primary tracking-[-0.02em]">

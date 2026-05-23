@@ -139,7 +139,7 @@ export default function AiSettingsPage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto pb-tg-safe-bottom">
       <HeaderBar title={t('aiSettingsTitle')} onBack={() => navigate(-1)} />
 
       <div className="flex-1 p-4 flex flex-col gap-4 max-w-md mx-auto w-full">
@@ -253,7 +253,7 @@ export default function AiSettingsPage() {
           {filteredModels.length === 0 ? (
             <div className="py-8 text-center text-[13px] text-hf-text-tertiary">{t('aiSettingsModelsEmpty')}</div>
           ) : (
-            <div className="max-h-80 overflow-y-auto">
+            <div className="max-h-80 overflow-y-auto pb-tg-safe-bottom">
               {filteredModels.map((m, i) => (
                 <div key={m.id}>
                   <button

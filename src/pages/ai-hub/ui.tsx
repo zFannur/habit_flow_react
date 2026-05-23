@@ -310,7 +310,7 @@ export default function AiHubPage() {
   }, [messages]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary pb-tg-safe-bottom overflow-hidden">
       {/* ================================================================ */}
       {/* HEADER */}
       {/* ================================================================ */}

@@ -87,7 +87,7 @@ export default function SplashPage() {
   // Loading state
   if (state.status === 'loading' || state.status === 'authenticated') {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-hf-bg-primary text-hf-text-primary">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-hf-bg-primary text-hf-text-primary pt-tg-safe-top pb-tg-safe-bottom">
         <div className="animate-spin text-hf-accent">
           <RefreshCw className="w-8 h-8" />
         </div>
@@ -98,7 +98,7 @@ export default function SplashPage() {
   // Outside Telegram Stub
   if (state.status === 'unauthenticated') {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-hf-bg-primary text-hf-text-primary px-8">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-hf-bg-primary text-hf-text-primary pt-tg-safe-top pb-tg-safe-bottom px-8">
         <Send className="w-16 h-16 text-hf-accent transform rotate-45 mb-6" />
         <h2 className="text-xl font-bold text-center">
           {t('splashOutsideTelegramTitle')}

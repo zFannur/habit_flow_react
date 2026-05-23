@@ -101,7 +101,7 @@ export default function OnboardingPage() {
   const showSkip = step >= 1 && step <= 3;
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top">
       {/* Top Navigation Bar */}
       <div className="flex items-center px-5 pt-4 pb-3 shrink-0">
         <div className="w-9 h-9 shrink-0">
@@ -199,7 +199,7 @@ export default function OnboardingPage() {
 
         {/* ── Slide 1: Identity ── */}
         {step === 1 && (
-          <div className="flex-1 flex flex-col justify-between px-6 pt-2 pb-7 overflow-y-auto">
+          <div className="flex-1 flex flex-col justify-between px-6 pt-2 pb-7 overflow-y-auto pb-tg-safe-bottom">
             <div className="flex flex-col gap-5 flex-1 justify-center">
               {/* Concentric Circles */}
               <div className="flex justify-center pt-2">
@@ -387,7 +387,7 @@ export default function OnboardingPage() {
 
         {/* ── Slide 4: Notifications ── */}
         {step === 4 && (
-          <div className="flex-1 flex flex-col justify-between px-6 pb-7 overflow-y-auto">
+          <div className="flex-1 flex flex-col justify-between px-6 pb-7 overflow-y-auto pb-tg-safe-bottom">
             <div className="flex-1 flex flex-col justify-center gap-5">
               <div className="flex justify-center pt-2">
                 <div className="w-24 h-24 rounded-full bg-hf-accent/10 flex items-center justify-center shadow-inner">

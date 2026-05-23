@@ -390,7 +390,7 @@ export default function AnalyticsPage() {
   const TrendIcon = trendDelta > 0 ? TrendingUp : trendDelta < 0 ? TrendingDown : Minus;
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary overflow-hidden pb-tg-safe-bottom">
       <div className="shrink-0 border-b border-hf-border shadow-[0_1px_8px_var(--hf-shadow)] bg-hf-bg-primary">
         <div className="px-4 pt-3.5 pb-2.5 flex items-center">
           <h2 className="flex-1 text-[22px] font-bold tracking-[-0.02em] leading-tight text-hf-text-primary">
@@ -1164,7 +1164,7 @@ function TopHabitsCard({
                     {h.pct}%
                   </span>
                 </div>
-                <div className="h-1.5 rounded-hf-full bg-hf-bg-tertiary overflow-hidden">
+                <div className="h-1.5 rounded-hf-full bg-hf-bg-tertiary overflow-hidden pb-tg-safe-bottom">
                   <div
                     className="h-full rounded-hf-full transition-all"
                     style={{

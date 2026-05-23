@@ -59,7 +59,7 @@ export default function ReflectionTemplatePage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto pb-tg-safe-bottom">
       <HeaderBar
         title={t('reflectionTemplateTitle')}
         onBack={handleSave}

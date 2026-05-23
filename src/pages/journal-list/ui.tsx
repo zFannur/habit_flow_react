@@ -78,7 +78,7 @@ export default function JournalListPage() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary p-4 pb-tg-safe-bottom">
+      <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary p-4 pb-tg-safe-bottom">
         <div className="h-[28px] w-[100px] bg-hf-bg-secondary animate-pulse rounded mb-4" />
         <div className="flex gap-2 mb-6">
           {[1, 2, 3, 4].map((i) => (
@@ -95,7 +95,7 @@ export default function JournalListPage() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       <div className="p-4 bg-hf-bg-primary shrink-0">
         <h2 className="text-[22px] font-bold tracking-[-0.02em] text-hf-text-primary">
           {t('journalListTitle')}

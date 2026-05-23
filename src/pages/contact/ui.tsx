@@ -7,7 +7,7 @@ export default function ContactPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       {/* Header */}
       <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
         <button

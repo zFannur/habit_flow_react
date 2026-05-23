@@ -42,8 +42,8 @@
   --shadow-hf-thumb: 0 1px 4px var(--hf-shadow);
   --shadow-hf-toggle-thumb: 0 1px 4px rgba(0, 0, 0, 0.15);
 
-  --spacing-tg-safe-bottom: var(--tg-viewport-safe-area-inset-bottom, 0px);
-  --spacing-tg-safe-top: var(--tg-viewport-safe-area-inset-top, 0px);
+  --spacing-tg-safe-bottom: var(--tg-viewport-content-safe-area-inset-bottom, var(--tg-viewport-safe-area-inset-bottom, 0px));
+  --spacing-tg-safe-top: var(--tg-viewport-content-safe-area-inset-top, var(--tg-viewport-safe-area-inset-top, 0px));
 }
 
 :root {
