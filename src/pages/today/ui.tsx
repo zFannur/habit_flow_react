@@ -4,12 +4,10 @@ import { useSessionStore } from '@/entities/session';
 import {
   useHabitsQuery,
   useLogsQuery,
-  useHabitLogsQuery,
   useLogHabitMutation,
-  useUndoLogMutation,
   combineHabitsWithLogs,
-  dateOnly,
   currentStreak,
+  dateOnly,
 } from '@/entities/habit';
 import { useJournalEntryByDateQuery } from '@/entities/journal';
 import { JournalTodayCard } from '@/widgets/journal-today-card';
@@ -20,7 +18,23 @@ import {
   AntiHabitCard,
 } from '@/entities/habit';
 import { Button, EmptyState } from '@/shared/ui';
-import type { HabitWithLog, HabitLogStatus } from '@/entities/habit';
+import type { HabitWithLog, HabitLogStatus, HabitLogModel, HabitModel } from '@/entities/habit';
+
+function getDateDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return dateOnly(d);
+}
+
+function computeMaxStreak(logs: HabitLogModel[], habits: HabitModel[], today: string): number {
+  let max = 0;
+  for (const habit of habits) {
+    const habitLogs = logs.filter((l) => l.habit_id === habit.id);
+    const s = currentStreak({ habit, logs: habitLogs, today });
+    if (s > max) max = s;
+  }
+  return max;
+}
 
 export default function TodayPage() {
   const navigate = useNavigate();
@@ -29,15 +43,14 @@ export default function TodayPage() {
   const userId = session.status === 'authenticated' ? session.user.id : undefined;
 
   const todayStr = dateOnly(new Date());
+  const ninetyDaysAgo = getDateDaysAgo(90);
 
-  // Queries
   const { data: habits, isLoading: isLoadingHabits } = useHabitsQuery(userId);
   const { data: todayLogs, isLoading: isLoadingLogs } = useLogsQuery(userId, todayStr, todayStr);
+  const { data: allLogs } = useLogsQuery(userId, ninetyDaysAgo, todayStr);
   const { data: todayJournal } = useJournalEntryByDateQuery(userId, todayStr);
 
-  // Mutations
   const logMutation = useLogHabitMutation(userId || '');
-  const undoMutation = useUndoLogMutation(userId || '');
 
   const todayHabits = habits
     ? combineHabitsWithLogs({ habits, logsForDay: todayLogs || [], day: todayStr })
@@ -52,11 +65,6 @@ export default function TodayPage() {
     });
   };
 
-  const handleUndo = async (logId: string) => {
-    await undoMutation.mutateAsync(logId);
-  };
-
-  // Date Formatting
   const getFormattedDate = () => {
     try {
       return new Intl.DateTimeFormat(locale, {
@@ -69,26 +77,25 @@ export default function TodayPage() {
     }
   };
 
-  // Stats Calculations
   const doneCount = todayHabits.filter((h) => h.log?.status === 'done' || h.log?.status === 'partial').length;
   const totalCount = todayHabits.length;
+  const maxStreak = habits?.length && allLogs?.length
+    ? computeMaxStreak(allLogs, habits, todayStr)
+    : 0;
 
   if (session.status === 'loading' || isLoadingHabits || isLoadingLogs) {
     return (
-      <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text p-4 pb-tg-safe-bottom">
-        {/* Skeleton Header */}
-        <div className="flex justify-between items-center border-b border-tg-hint/10 pb-4">
+      <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary p-4 pb-tg-safe-bottom">
+        <div className="flex justify-between items-center border-b border-hf-border pb-4">
           <div className="flex flex-col gap-2">
-            <div className="h-6 w-32 bg-tg-secondary-bg animate-pulse rounded" />
-            <div className="h-4 w-48 bg-tg-secondary-bg animate-pulse rounded" />
+            <div className="h-6 w-32 bg-hf-bg-secondary animate-pulse rounded" />
+            <div className="h-4 w-48 bg-hf-bg-secondary animate-pulse rounded" />
           </div>
-          <div className="w-10 h-10 rounded-full bg-tg-secondary-bg animate-pulse" />
+          <div className="w-10 h-10 rounded-full bg-hf-bg-secondary animate-pulse" />
         </div>
-        
-        {/* Skeleton List */}
         <div className="flex flex-col gap-4 mt-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-[76px] bg-tg-secondary-bg animate-pulse rounded-2xl" />
+            <div key={i} className="h-[76px] bg-hf-bg-secondary animate-pulse rounded-hf-lg" />
           ))}
         </div>
       </div>
@@ -96,33 +103,29 @@ export default function TodayPage() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-y-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center bg-tg-secondary-bg border-b border-tg-hint/10 p-4 shrink-0">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
+      <div className="flex justify-between items-center bg-hf-bg-secondary border-b border-hf-border p-4 shrink-0">
         <div>
-          <h2 className="text-[22px] font-bold tracking-tight text-tg-text">
+          <h2 className="text-hf-headline-md text-hf-text-primary tracking-[-0.02em]">
             {getFormattedDate()}
           </h2>
-          <p className="text-[12px] text-tg-hint mt-1 flex items-center gap-1">
+          <p className="text-hf-body-sm text-hf-text-secondary mt-1">
             {t('todayHeaderStats', {
               done: doneCount,
               total: totalCount,
-              streak: 0, // Placeholder, streak will show in cards
+              streak: maxStreak,
             })}
-            <span>🔥</span>
           </p>
         </div>
-        {/* Avatar */}
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-tg-accent to-purple-600 shadow-md flex items-center justify-center text-white font-extrabold text-[16px] shrink-0 select-none">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-hf-accent to-[#7C3AED] shadow-md flex items-center justify-center text-white font-extrabold text-[16px] shrink-0 select-none">
           {session.status === 'authenticated'
             ? (session.user.first_name || 'U').charAt(0).toUpperCase()
             : 'U'}
         </div>
       </div>
 
-      {/* Main List */}
       <div className="flex-1 p-4 flex flex-col gap-3">
-        <h3 className="text-lg font-bold text-tg-text mb-1">
+        <h3 className="text-hf-headline-sm text-hf-text-primary mb-1">
           {t('navToday')}
         </h3>
 
@@ -146,24 +149,21 @@ export default function TodayPage() {
               key={item.habit.id}
               item={item}
               todayStr={todayStr}
-              userId={userId || ''}
+              allLogs={allLogs || []}
               onLog={handleLog}
-              onUndo={handleUndo}
             />
           ))
         )}
 
-        {/* Add Habit Ghost Button */}
         <button
           type="button"
           onClick={() => navigate('/habits/new')}
-          className="w-full py-4 border border-dashed border-tg-hint/25 rounded-2xl flex items-center justify-center gap-2 hover:bg-tg-secondary-bg active:scale-[0.99] transition-all text-tg-hint text-[14px] font-medium"
+          className="w-full py-4 border border-dashed border-hf-border/25 rounded-hf-lg flex items-center justify-center gap-2 hover:bg-hf-bg-secondary active:scale-[0.99] transition-all text-hf-text-secondary text-hf-body-md"
         >
           <span>➕</span>
           <span>{t('todayAddHabit')}</span>
         </button>
 
-        {/* Journal Today Card */}
         {!todayJournal && (
           <div className="mt-2">
             <JournalTodayCard
@@ -177,26 +177,25 @@ export default function TodayPage() {
   );
 }
 
-// Sub-component to fetch and manage individual streak for the cards
 interface HabitCardRowProps {
   item: HabitWithLog;
   todayStr: string;
-  userId: string;
+  allLogs: HabitLogModel[];
   onLog: (habitId: string, status: HabitLogStatus, value?: number) => Promise<void>;
-  onUndo: (logId: string) => Promise<void>;
 }
 
-const HabitCardRow = ({ item, todayStr, userId, onLog, onUndo }: HabitCardRowProps) => {
-  const { data: logs } = useHabitLogsQuery(userId, item.habit.id);
-  const streak = logs ? currentStreak({ habit: item.habit, logs, today: todayStr }) : 0;
+const HabitCardRow = ({ item, todayStr, allLogs, onLog }: HabitCardRowProps) => {
+  const streak = allLogs.length
+    ? currentStreak({ habit: item.habit, logs: allLogs, today: todayStr })
+    : 0;
 
   const isDone = item.log?.status === 'done' || item.log?.status === 'partial';
 
   const handleToggleBinary = async (done: boolean) => {
     if (done) {
       await onLog(item.habit.id, 'done');
-    } else if (item.log?.id) {
-      await onUndo(item.log.id);
+    } else {
+      await onLog(item.habit.id, 'missed');
     }
   };
 
@@ -229,8 +228,8 @@ const HabitCardRow = ({ item, todayStr, userId, onLog, onUndo }: HabitCardRowPro
           streak={streak > 0 ? streak : undefined}
           initialDone={isDone}
           twoMinuteVersion={item.habit.two_minute_version}
-          stackAfterEmoji={item.habit.stack_after_habit_id ? '⚓' : undefined} // Stub for stack anchor emoji
-          stackAfterName={item.habit.stack_after_habit_id} // ID of anchor habit
+          stackAfterEmoji={item.habit.stack_after_habit_id ? '⚓' : undefined}
+          stackAfterName={item.habit.stack_after_habit_id}
           implementationWhen={item.habit.implementation_when}
           implementationWhere={item.habit.implementation_where}
           onToggle={handleToggleBinary}
@@ -273,7 +272,6 @@ const HabitCardRow = ({ item, todayStr, userId, onLog, onUndo }: HabitCardRowPro
           initialHeld={isDone}
           onHeld={handleHeldAnti}
           onMore={() => {
-            // Stub for anti-habit menu sheet
             alert('Anti-habit details stub');
           }}
         />

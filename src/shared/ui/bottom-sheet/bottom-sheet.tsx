@@ -34,17 +34,17 @@ export const BottomSheet = ({ isOpen, onClose, title, children }: BottomSheetPro
       
       {/* Sheet Container */}
       <div
-        className="relative w-full max-w-md bg-tg-bg rounded-t-2xl shadow-xl flex flex-col p-4 pb-[calc(16px+var(--tg-viewport-safe-area-inset-bottom,0px))] transition-transform duration-300 transform translate-y-0"
+        className="relative w-full max-w-md bg-hf-bg-primary rounded-t-2xl shadow-xl flex flex-col p-4 pb-[calc(16px+var(--tg-viewport-safe-area-inset-bottom,0px))] transition-transform duration-300 transform translate-y-0"
         style={{
-          borderTop: '1px solid var(--tg-theme-secondary-bg-color, rgba(0, 0, 0, 0.08))',
+          borderTop: '1px solid var(--hf-bg-secondary, rgba(0, 0, 0, 0.08))',
         }}
       >
         {/* Drag Handle */}
-        <div className="w-10 h-1 bg-tg-hint/20 rounded-full mx-auto mb-4" />
+        <div className="w-10 h-1 bg-hf-text-secondary/20 rounded-full mx-auto mb-4" />
         
         {/* Title */}
         {title && (
-          <h3 className="text-lg font-bold text-tg-text mb-4 px-1">
+          <h3 className="text-lg font-bold text-hf-text-primary mb-4 px-1">
             {title}
           </h3>
         )}

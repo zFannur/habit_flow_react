@@ -65,15 +65,15 @@ export default function AiSettingsPage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b border-tg-hint/10 shrink-0">
+      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-tg-secondary-bg hover:opacity-90 active:scale-[0.95] transition-all"
+          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
         >
-          <ArrowLeft className="w-5 h-5 text-tg-text" />
+          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
         </button>
         <h2 className="text-[17px] font-bold">
           {t('profileMenuAiSettings')}
@@ -83,16 +83,16 @@ export default function AiSettingsPage() {
 
       <div className="flex-1 p-4 flex flex-col gap-6 max-w-md mx-auto w-full">
         {/* Intro */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 flex gap-3 items-start shadow-sm">
-          <Key className="w-5 h-5 text-tg-accent shrink-0 mt-0.5" />
-          <p className="text-[13px] leading-relaxed text-tg-hint">
+        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex gap-3 items-start shadow-sm">
+          <Key className="w-5 h-5 text-hf-accent shrink-0 mt-0.5" />
+          <p className="text-[13px] leading-relaxed text-hf-text-secondary">
             {t('aiChatDisclaimerText')}
           </p>
         </div>
 
         {/* API Key Input */}
         <div className="flex flex-col gap-2">
-          <label className="text-[13px] font-semibold text-tg-hint">OpenRouter API Key</label>
+          <label className="text-[13px] font-semibold text-hf-text-secondary">OpenRouter API Key</label>
           <div className="relative">
             <input
               type={showKey ? 'text' : 'password'}
@@ -102,12 +102,12 @@ export default function AiSettingsPage() {
                 setApiKey(e.target.value);
                 setStatus('unchecked');
               }}
-              className="w-full bg-tg-secondary-bg border border-tg-hint/15 rounded-xl px-4 py-3.5 pr-11 text-[14px] text-tg-text placeholder-tg-hint outline-none focus:border-tg-accent transition-all"
+              className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl px-4 py-3.5 pr-11 text-[14px] text-hf-text-primary placeholder:text-hf-text-tertiary outline-none focus:border-hf-accent transition-all"
             />
             <button
               type="button"
               onClick={() => setShowKey(!showKey)}
-              className="absolute right-3.5 top-1/2 transform -translate-y-1/2 text-tg-hint hover:text-tg-text transition-all"
+              className="absolute right-3.5 top-1/2 transform -translate-y-1/2 text-hf-text-secondary hover:text-hf-text-primary transition-all"
             >
               {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -115,17 +115,17 @@ export default function AiSettingsPage() {
         </div>
 
         {/* Status Indicator & Test Button */}
-        <div className="flex items-center justify-between bg-tg-secondary-bg/30 border border-tg-hint/10 rounded-xl p-3 text-[13px]">
+        <div className="flex items-center justify-between bg-hf-bg-secondary/30 border border-hf-border/10 rounded-xl p-3 text-[13px]">
           <div className="flex items-center gap-1.5 font-semibold">
-            {status === 'unchecked' && <span className="text-tg-hint">Unchecked</span>}
+            {status === 'unchecked' && <span className="text-hf-text-secondary">Unchecked</span>}
             {status === 'checking' && (
-              <span className="text-tg-accent flex items-center gap-1">
+              <span className="text-hf-accent flex items-center gap-1">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                 Checking...
               </span>
             )}
             {status === 'ok' && (
-              <span className="text-tg-success flex items-center gap-1">
+              <span className="text-hf-success flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Active & Verified
               </span>
@@ -141,7 +141,7 @@ export default function AiSettingsPage() {
             type="button"
             onClick={handleTestKey}
             disabled={status === 'checking' || !apiKey.trim()}
-            className="text-[12px] font-bold text-tg-accent hover:underline disabled:opacity-50"
+            className="text-[12px] font-bold text-hf-accent hover:underline disabled:opacity-50"
           >
             Verify Key
           </button>
@@ -149,11 +149,11 @@ export default function AiSettingsPage() {
 
         {/* Model Selector */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-semibold text-tg-hint">Preferred LLM Model</label>
+          <label className="text-[13px] font-semibold text-hf-text-secondary">Preferred LLM Model</label>
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full bg-tg-secondary-bg border border-tg-hint/15 rounded-xl p-3.5 text-[14px] text-tg-text outline-none focus:border-tg-accent transition-all"
+            className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3.5 text-[14px] text-hf-text-primary outline-none focus:border-hf-accent transition-all"
           >
             <option value="google/gemini-2.5-flash">Google Gemini 2.5 Flash (Recommended)</option>
             <option value="meta-llama/llama-3-8b-instruct:free">Meta Llama 3 8B Instruct (Free)</option>

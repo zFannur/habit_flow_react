@@ -10,7 +10,7 @@ interface SkeletonProps {
 export const Skeleton: React.FC<SkeletonProps> = ({
   width = '100%',
   height = '1rem',
-  radius = 'rounded-xl',
+  radius = 'rounded-hf-md',
   className = '',
 }) => {
   const styles: React.CSSProperties = {

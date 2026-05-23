@@ -176,17 +176,17 @@ export default function HabitFormPage() {
   const otherHabits = habits?.filter((h) => h.id !== id && !h.is_archived) || [];
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       {/* Top Header */}
-      <div className="flex justify-between items-center p-4 border-b border-tg-hint/10 shrink-0">
+      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
         <button
           type="button"
           onClick={step > 1 ? handleBack : () => navigate(-1)}
-          className="p-2 rounded-xl bg-tg-secondary-bg hover:opacity-90 active:scale-[0.95] transition-all"
+          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
         >
-          <ArrowLeft className="w-5 h-5 text-tg-text" />
+          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
         </button>
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wider text-tg-hint">
+        <h2 className="text-[15px] font-extrabold uppercase tracking-wider text-hf-text-secondary">
           {t('habitCreateStepCounter', { step, total: 4 })}
         </h2>
         <div className="w-9" />
@@ -198,7 +198,7 @@ export default function HabitFormPage() {
           <div className="flex flex-col gap-4">
             <div>
               <h3 className="text-xl font-bold">{t('habitCreateStep1Title')}</h3>
-              <p className="text-tg-hint text-[13px] mt-1">{t('habitCreateStep1Subtitle')}</p>
+              <p className="text-hf-text-secondary text-[13px] mt-1">{t('habitCreateStep1Subtitle')}</p>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -214,14 +214,14 @@ export default function HabitFormPage() {
                   onClick={() => setHabitType(item.type)}
                   className={`w-full text-left p-4 rounded-2xl border transition-all flex gap-3.5 items-start ${
                     habitType === item.type
-                      ? 'border-tg-accent bg-tg-accent/8 ring-1 ring-tg-accent'
-                      : 'border-tg-hint/15 bg-tg-secondary-bg/50 hover:bg-tg-secondary-bg'
+                      ? 'border-hf-accent bg-hf-accent/8 ring-1 ring-hf-accent'
+                      : 'border-hf-border/15 bg-hf-bg-secondary/50 hover:bg-hf-bg-secondary'
                   }`}
                 >
                   <span className="text-2xl mt-0.5">{item.emoji}</span>
                   <div>
                     <h4 className="font-bold text-[15px]">{item.label}</h4>
-                    <p className="text-[12px] text-tg-hint mt-0.5">{item.desc}</p>
+                    <p className="text-[12px] text-hf-text-secondary mt-0.5">{item.desc}</p>
                   </div>
                 </button>
               ))}
@@ -234,13 +234,13 @@ export default function HabitFormPage() {
           <div className="flex flex-col gap-5">
             <div>
               <h3 className="text-xl font-bold">{t('habitCreateStep2Title')}</h3>
-              <p className="text-tg-hint text-[13px] mt-1">{t('habitCreateStep2Subtitle')}</p>
+              <p className="text-hf-text-secondary text-[13px] mt-1">{t('habitCreateStep2Subtitle')}</p>
             </div>
 
             <div className="flex flex-col gap-4">
               {/* Name */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-tg-hint">{t('commonNameLabel')}</label>
+                <label className="text-[13px] font-semibold text-hf-text-secondary">{t('commonNameLabel')}</label>
                 <Input
                   placeholder={t('habitCreateStep2NameHint')}
                   value={name}
@@ -250,7 +250,7 @@ export default function HabitFormPage() {
 
               {/* Category */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-tg-hint">{t('commonCategoryLabel')}</label>
+                <label className="text-[13px] font-semibold text-hf-text-secondary">{t('commonCategoryLabel')}</label>
                 <Input
                   placeholder="E.g. Health, Work, Mind"
                   value={category}
@@ -260,8 +260,8 @@ export default function HabitFormPage() {
 
               {/* Emoji Icon picker */}
               <div className="flex flex-col gap-2">
-                <label className="text-[13px] font-semibold text-tg-hint">{t('habitCreateStep2IconLabel')}</label>
-                <div className="flex gap-2.5 flex-wrap bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-3.5">
+                <label className="text-[13px] font-semibold text-hf-text-secondary">{t('habitCreateStep2IconLabel')}</label>
+                <div className="flex gap-2.5 flex-wrap bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-3.5">
                   {['🧘', '💧', '🏃', '📚', '🍎', '🚭', '💻', '⏰', '💪', '🧠', '✍️', '🥦'].map((emoji) => (
                     <button
                       key={emoji}
@@ -269,8 +269,8 @@ export default function HabitFormPage() {
                       onClick={() => setIconEmoji(emoji)}
                       className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
                         iconEmoji === emoji
-                          ? 'bg-tg-accent text-white scale-110 shadow'
-                          : 'bg-tg-secondary-bg hover:opacity-90'
+                          ? 'bg-hf-accent text-white scale-110 shadow'
+                          : 'bg-hf-bg-secondary hover:opacity-90'
                       }`}
                     >
                       {emoji}
@@ -287,17 +287,17 @@ export default function HabitFormPage() {
           <div className="flex flex-col gap-5">
             <div>
               <h3 className="text-xl font-bold">{t('habitCreateStep3Title')}</h3>
-              <p className="text-tg-hint text-[13px] mt-1">{t('habitCreateStep3Subtitle')}</p>
+              <p className="text-hf-text-secondary text-[13px] mt-1">{t('habitCreateStep3Subtitle')}</p>
             </div>
 
             <div className="flex flex-col gap-4">
               {/* Type-Specific goals */}
               {habitType === 'countable' && (
-                <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 flex flex-col gap-4">
-                  <h4 className="text-[13px] font-bold text-tg-hint uppercase tracking-wider">{t('habitCreateStep3GoalLabel')}</h4>
+                <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex flex-col gap-4">
+                  <h4 className="text-[13px] font-bold text-hf-text-secondary uppercase tracking-wider">{t('habitCreateStep3GoalLabel')}</h4>
                   <div className="flex gap-3">
                     <div className="flex-1 flex flex-col gap-1.5">
-                      <label className="text-[12px] font-medium text-tg-hint">Value</label>
+                      <label className="text-[12px] font-medium text-hf-text-secondary">Value</label>
                       <Input
                         type="number"
                         min="1"
@@ -306,7 +306,7 @@ export default function HabitFormPage() {
                       />
                     </div>
                     <div className="flex-1 flex flex-col gap-1.5">
-                      <label className="text-[12px] font-medium text-tg-hint">Unit</label>
+                      <label className="text-[12px] font-medium text-hf-text-secondary">Unit</label>
                       <Input
                         placeholder="e.g. glass, page"
                         value={targetUnit}
@@ -318,9 +318,9 @@ export default function HabitFormPage() {
               )}
 
               {habitType === 'timed' && (
-                <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 flex flex-col gap-2.5">
-                  <h4 className="text-[13px] font-bold text-tg-hint uppercase tracking-wider">{t('habitCreateStep3GoalLabel')}</h4>
-                  <label className="text-[12px] font-medium text-tg-hint">Duration (Minutes)</label>
+                <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex flex-col gap-2.5">
+                  <h4 className="text-[13px] font-bold text-hf-text-secondary uppercase tracking-wider">{t('habitCreateStep3GoalLabel')}</h4>
+                  <label className="text-[12px] font-medium text-hf-text-secondary">Duration (Minutes)</label>
                   <Input
                     type="number"
                     min="1"
@@ -332,11 +332,11 @@ export default function HabitFormPage() {
 
               {/* Schedule Repeat Type */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-tg-hint">{t('habitCreateStep3RepeatTypeLabel')}</label>
+                <label className="text-[13px] font-semibold text-hf-text-secondary">{t('habitCreateStep3RepeatTypeLabel')}</label>
                 <select
                   value={scheduleType}
                   onChange={(e) => setScheduleType(e.target.value as ScheduleType)}
-                  className="w-full bg-tg-secondary-bg border border-tg-hint/15 rounded-xl p-3.5 text-[14px] text-tg-text outline-none focus:border-tg-accent transition-all"
+                  className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3.5 text-[14px] text-hf-text-primary outline-none focus:border-hf-accent transition-all"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekdays">Selected Weekdays</option>
@@ -348,8 +348,8 @@ export default function HabitFormPage() {
               {/* Conditional schedule options */}
               {scheduleType === 'weekdays' && (
                 <div className="flex flex-col gap-2">
-                  <label className="text-[13px] font-semibold text-tg-hint">Select days</label>
-                  <div className="flex justify-between bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-2.5">
+                  <label className="text-[13px] font-semibold text-hf-text-secondary">Select days</label>
+                  <div className="flex justify-between bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-2.5">
                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
                       const dayVal = idx + 1;
                       const active = weekdays.includes(dayVal);
@@ -360,8 +360,8 @@ export default function HabitFormPage() {
                           onClick={() => toggleWeekday(dayVal)}
                           className={`w-9 h-9 rounded-full font-bold text-[13px] flex items-center justify-center transition-all ${
                             active
-                              ? 'bg-tg-accent text-white scale-105'
-                              : 'bg-tg-secondary-bg text-tg-text hover:opacity-90'
+                              ? 'bg-hf-accent text-white scale-105'
+                              : 'bg-hf-bg-secondary text-hf-text-primary hover:opacity-90'
                           }`}
                         >
                           {day}
@@ -374,7 +374,7 @@ export default function HabitFormPage() {
 
               {scheduleType === 'every_n_days' && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-tg-hint">Every N days</label>
+                  <label className="text-[13px] font-semibold text-hf-text-secondary">Every N days</label>
                   <Input
                     type="number"
                     min="1"
@@ -386,8 +386,8 @@ export default function HabitFormPage() {
 
               {scheduleType === 'monthly_dates' && (
                 <div className="flex flex-col gap-2">
-                  <label className="text-[13px] font-semibold text-tg-hint">Select dates of month</label>
-                  <div className="grid grid-cols-7 gap-1.5 bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-3 max-h-[160px] overflow-y-auto">
+                  <label className="text-[13px] font-semibold text-hf-text-secondary">Select dates of month</label>
+                  <div className="grid grid-cols-7 gap-1.5 bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-3 max-h-[160px] overflow-y-auto">
                     {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => {
                       const active = monthlyDates.includes(date);
                       return (
@@ -397,8 +397,8 @@ export default function HabitFormPage() {
                           onClick={() => toggleMonthlyDate(date)}
                           className={`h-8 rounded-lg font-bold text-[12px] flex items-center justify-center transition-all ${
                             active
-                              ? 'bg-tg-accent text-white'
-                              : 'bg-tg-secondary-bg text-tg-text'
+                              ? 'bg-hf-accent text-white'
+                              : 'bg-hf-bg-secondary text-hf-text-primary'
                           }`}
                         >
                           {date}
@@ -410,19 +410,19 @@ export default function HabitFormPage() {
               )}
 
               {/* Reminders list */}
-              <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 flex flex-col gap-3">
-                <label className="text-[13px] font-bold text-tg-hint uppercase tracking-wider">{t('habitCreateStep3RemindersLabel')}</label>
+              <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex flex-col gap-3">
+                <label className="text-[13px] font-bold text-hf-text-secondary uppercase tracking-wider">{t('habitCreateStep3RemindersLabel')}</label>
                 <div className="flex gap-2">
                   <input
                     type="time"
                     value={newReminderTime}
                     onChange={(e) => setNewReminderTime(e.target.value)}
-                    className="flex-1 bg-tg-secondary-bg border border-tg-hint/15 rounded-xl p-2.5 text-[14px] text-tg-text outline-none"
+                    className="flex-1 bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-2.5 text-[14px] text-hf-text-primary outline-none"
                   />
                   <button
                     type="button"
                     onClick={addReminderTime}
-                    className="px-4 bg-tg-accent text-white font-bold rounded-xl text-[14px] flex items-center justify-center"
+                    className="px-4 bg-hf-accent text-white font-bold rounded-xl text-[14px] flex items-center justify-center"
                   >
                     Add
                   </button>
@@ -432,7 +432,7 @@ export default function HabitFormPage() {
                   {reminderTimes.map((time) => (
                     <span
                       key={time}
-                      className="bg-tg-secondary-bg border border-tg-hint/15 text-tg-text text-[13px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
+                      className="bg-hf-bg-secondary border border-hf-border/15 text-hf-text-primary text-[13px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
                     >
                       {time}
                       <button
@@ -455,18 +455,18 @@ export default function HabitFormPage() {
           <div className="flex flex-col gap-5">
             <div>
               <h3 className="text-xl font-bold">{t('habitCreateStep4Title')}</h3>
-              <p className="text-tg-hint text-[13px] mt-1">{t('habitCreateStep4Subtitle')}</p>
+              <p className="text-hf-text-secondary text-[13px] mt-1">{t('habitCreateStep4Subtitle')}</p>
             </div>
 
             <div className="flex flex-col gap-4">
               {/* Habit Stacking */}
               {otherHabits.length > 0 && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-tg-hint">Habit Stacking (After which habit?)</label>
+                  <label className="text-[13px] font-semibold text-hf-text-secondary">Habit Stacking (After which habit?)</label>
                   <select
                     value={stackAfterHabitId}
                     onChange={(e) => setStackAfterHabitId(e.target.value)}
-                    className="w-full bg-tg-secondary-bg border border-tg-hint/15 rounded-xl p-3.5 text-[14px] text-tg-text outline-none"
+                    className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3.5 text-[14px] text-hf-text-primary outline-none"
                   >
                     <option value="">None</option>
                     {otherHabits.map((h) => (
@@ -480,7 +480,7 @@ export default function HabitFormPage() {
 
               {/* Intentions: When / Where */}
               <div className="flex flex-col gap-2">
-                <label className="text-[13px] font-semibold text-tg-hint">Implementation Intention</label>
+                <label className="text-[13px] font-semibold text-hf-text-secondary">Implementation Intention</label>
                 <div className="flex gap-3">
                   <Input
                     placeholder="When (e.g. after morning shower)"
@@ -497,7 +497,7 @@ export default function HabitFormPage() {
 
               {/* Identity statement */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-tg-hint">Identity ("I am a person who...")</label>
+                <label className="text-[13px] font-semibold text-hf-text-secondary">Identity ("I am a person who...")</label>
                 <Input
                   placeholder="e.g. cares for my physical health"
                   value={identityStatement}
@@ -507,7 +507,7 @@ export default function HabitFormPage() {
 
               {/* 2 Minute Version */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-tg-hint">2-Minute Version (Fallback for hard days)</label>
+                <label className="text-[13px] font-semibold text-hf-text-secondary">2-Minute Version (Fallback for hard days)</label>
                 <Input
                   placeholder="e.g. drink one sip of water instead of whole glass"
                   value={twoMinuteVersion}
@@ -517,7 +517,7 @@ export default function HabitFormPage() {
 
               {/* Reward */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-tg-hint">Reward</label>
+                <label className="text-[13px] font-semibold text-hf-text-secondary">Reward</label>
                 <Input
                   placeholder="e.g. a cup of good espresso after"
                   value={reward}
@@ -534,7 +534,7 @@ export default function HabitFormPage() {
             <button
               type="button"
               onClick={handleBack}
-              className="flex-1 py-3.5 rounded-xl border border-tg-hint/20 font-semibold text-[14px] text-tg-text hover:bg-tg-secondary-bg active:scale-[0.98] transition-all"
+              className="flex-1 py-3.5 rounded-xl border border-hf-border/20 font-semibold text-[14px] text-hf-text-primary hover:bg-hf-bg-secondary active:scale-[0.98] transition-all"
             >
               Back
             </button>
@@ -544,7 +544,7 @@ export default function HabitFormPage() {
             <button
               type="button"
               onClick={handleNext}
-              className="flex-1 py-3.5 rounded-xl bg-tg-accent text-white font-semibold text-[14px] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
+              className="flex-1 py-3.5 rounded-xl bg-hf-accent text-white font-semibold text-[14px] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
             >
               Next
               <ArrowRight className="w-4 h-4" />
@@ -554,7 +554,7 @@ export default function HabitFormPage() {
               type="button"
               onClick={handleSubmit}
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="flex-1 py-3.5 rounded-xl bg-tg-accent text-white font-semibold text-[14px] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
+              className="flex-1 py-3.5 rounded-xl bg-hf-accent text-white font-semibold text-[14px] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
             >
               <Check className="w-4 h-4 stroke-[2.5]" />
               {isEditMode ? t('habitEditSubmit') : t('habitCreateSubmit')}

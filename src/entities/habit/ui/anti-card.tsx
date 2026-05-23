@@ -47,29 +47,33 @@ export const AntiHabitCard = ({
 
   return (
     <div
-      className="flex items-center gap-3 bg-tg-anti/6 border border-tg-anti/25 rounded-2xl p-4 shadow-sm"
+      className="flex items-center gap-3 border rounded-hf-lg p-4 shadow-hf-card"
+      style={{
+        backgroundColor: 'rgba(16, 185, 129, 0.06)',
+        borderColor: 'rgba(16, 185, 129, 0.25)',
+      }}
     >
       {/* Left Days Box */}
-      <div className="w-16 h-16 rounded-2xl bg-tg-anti/12 flex flex-col items-center justify-center shrink-0">
-        <span className="text-[24px] font-bold text-tg-anti leading-none">
+      <div className="w-16 h-16 rounded-hf-lg flex flex-col items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)' }}>
+        <span className="text-hf-headline-lg text-hf-anti leading-none">
           {days}
         </span>
-        <span className="text-[9px] font-bold text-tg-anti tracking-wider mt-1 uppercase">
+        <span className="text-[9px] font-bold text-hf-anti tracking-wider mt-[1px] uppercase">
           {t('habitAntiDays')}
         </span>
       </div>
 
       {/* Middle Text Content */}
       <div className="flex-1 min-w-0">
-        <span className="text-[12px] font-medium text-tg-anti leading-none block">
+        <span className="text-hf-label-md text-hf-anti block">
           {emoji} без
         </span>
-        <h4 className="text-[16px] font-bold text-tg-text leading-tight mt-1 truncate">
+        <h4 className="text-hf-body-lg font-bold text-hf-text-primary mt-0.5 truncate">
           {name}
         </h4>
         
         {held ? (
-          <span className="text-[12px] text-tg-anti font-medium mt-1.5 block">
+          <span className="text-hf-label-md text-hf-anti mt-1.5 block">
             {t('habitAntiMarkedToday')}
           </span>
         ) : (
@@ -77,7 +81,7 @@ export const AntiHabitCard = ({
             <button
               type="button"
               onClick={handleHeld}
-              className="bg-tg-anti hover:opacity-90 active:scale-[0.95] text-white font-semibold text-[13px] px-3.5 py-1.5 rounded-full transition-all shrink-0"
+              className="bg-hf-anti hover:opacity-90 active:scale-[0.95] text-white font-semibold text-hf-label-md px-[14px] py-[6px] rounded-hf-full transition-all shrink-0"
             >
               {t('habitAntiHeld')}
             </button>
@@ -85,7 +89,7 @@ export const AntiHabitCard = ({
             <button
               type="button"
               onClick={handleMore}
-              className="text-[20px] text-tg-hint leading-none hover:bg-tg-secondary-bg active:scale-[0.95] px-2 py-0.5 rounded-lg transition-all"
+              className="text-[20px] text-hf-text-secondary leading-none hover:bg-hf-bg-secondary active:scale-[0.95] px-2 py-0.5 rounded-lg transition-all"
             >
               ⋯
             </button>

@@ -1,107 +1,61 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
-import { Button } from '@/shared/ui';
-import { ArrowLeft, Moon, Sun, Monitor, Languages, Palette } from 'lucide-react';
+import { useTheme, type ThemeMode, type AccentColor } from '@/shared/lib/theme';
+import { HeaderBar } from '@/shared/ui';
+import { Moon, Sun, Monitor, Languages, Palette } from 'lucide-react';
 
 export default function AppearanceSettingsPage() {
   const navigate = useNavigate();
   const { t, locale, setLocale } = useTranslation();
+  const { mode, setMode, accent, setAccent } = useTheme();
 
-  // Local Appearance states
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
-  const [accent, setAccent] = useState<string>('default');
+  const themeOptions: { type: ThemeMode; label: string; Icon: typeof Sun }[] = [
+    { type: 'light', label: t('themeLight'), Icon: Sun },
+    { type: 'dark', label: t('themeDark'), Icon: Moon },
+    { type: 'auto', label: t('themeSystem'), Icon: Monitor },
+  ];
 
-  // Load Saved States
-  useEffect(() => {
-    const savedTheme = (localStorage.getItem('appearance.theme') as 'light' | 'dark' | 'system') || 'system';
-    setTheme(savedTheme);
-    
-    const savedAccent = localStorage.getItem('appearance.accent') || 'default';
-    setAccent(savedAccent);
-  }, []);
-
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
-    setTheme(newTheme);
-    localStorage.setItem('appearance.theme', newTheme);
-    
-    // Apply styling class to root document
-    const root = document.documentElement;
-    if (newTheme === 'dark' || (newTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  };
-
-  const handleAccentChange = (newAccent: string) => {
-    setAccent(newAccent);
-    localStorage.setItem('appearance.accent', newAccent);
-    
-    // Apply theme variables globally
-    const root = document.documentElement;
-    if (newAccent === 'orange') {
-      root.style.setProperty('--tg-theme-accent-color', '#f97316');
-    } else if (newAccent === 'purple') {
-      root.style.setProperty('--tg-theme-accent-color', '#a855f7');
-    } else if (newAccent === 'green') {
-      root.style.setProperty('--tg-theme-accent-color', '#10b981');
-    } else {
-      // Default Telegram blue
-      root.style.setProperty('--tg-theme-accent-color', '#2481cc');
-    }
-  };
-
-  const handleLanguageChange = (lang: 'en' | 'ru') => {
-    setLocale(lang);
-  };
-
-  const handleSave = () => {
-    alert('Appearance settings saved!');
-    navigate(-1);
-  };
+  const accentOptions: { id: AccentColor; color: string; name: string }[] = [
+    { id: 'blue', color: '#3B82F6', name: 'Blue' },
+    { id: 'green', color: '#22C55E', name: 'Green' },
+    { id: 'amber', color: '#F59E0B', name: 'Amber' },
+    { id: 'red', color: '#EF4444', name: 'Red' },
+    { id: 'violet', color: '#A855F7', name: 'Violet' },
+    { id: 'pink', color: '#EC4899', name: 'Pink' },
+    { id: 'teal', color: '#06B6D4', name: 'Teal' },
+    { id: 'gray', color: '#6B7785', name: 'Gray' },
+  ];
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-y-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b border-tg-hint/10 shrink-0">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-tg-secondary-bg hover:opacity-90 active:scale-[0.95] transition-all"
-        >
-          <ArrowLeft className="w-5 h-5 text-tg-text" />
-        </button>
-        <h2 className="text-[17px] font-bold">
-          {t('profileMenuAppearance')}
-        </h2>
-        <div className="w-9" />
-      </div>
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
+      <HeaderBar
+        title={t('profileMenuAppearance')}
+        onBack={() => navigate(-1)}
+      />
 
       <div className="flex-1 p-4 flex flex-col gap-6 max-w-md mx-auto w-full">
-        {/* Language Selection */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
-          <h3 className="text-sm font-bold flex items-center gap-1.5 text-tg-text">
-            <Languages className="w-4 h-4 text-tg-accent" />
-            Language
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg p-4 shadow-hf-card flex flex-col gap-3">
+          <h3 className="text-hf-title-sm flex items-center gap-1.5 text-hf-text-primary">
+            <Languages className="w-4 h-4 text-hf-accent" />
+            {t('profileSectionLanguage')}
           </h3>
           <div className="flex gap-3 mt-1">
             <button
-              onClick={() => handleLanguageChange('en')}
-              className={`flex-1 py-3 rounded-xl font-bold text-[13px] border transition-all ${
+              onClick={() => setLocale('en')}
+              className={`flex-1 py-3 rounded-hf-md text-hf-label-sm border transition-all ${
                 locale === 'en'
-                  ? 'border-tg-accent bg-tg-accent/8 text-tg-accent font-extrabold'
-                  : 'border-tg-hint/10 bg-tg-secondary-bg text-tg-text'
+                  ? 'border-hf-accent bg-hf-accent/8 text-hf-accent'
+                  : 'border-hf-border bg-hf-bg-secondary text-hf-text-secondary'
               }`}
             >
               {t('langEn')}
             </button>
             <button
-              onClick={() => handleLanguageChange('ru')}
-              className={`flex-1 py-3 rounded-xl font-bold text-[13px] border transition-all ${
+              onClick={() => setLocale('ru')}
+              className={`flex-1 py-3 rounded-hf-md text-hf-label-sm border transition-all ${
                 locale === 'ru'
-                  ? 'border-tg-accent bg-tg-accent/8 text-tg-accent font-extrabold'
-                  : 'border-tg-hint/10 bg-tg-secondary-bg text-tg-text'
+                  ? 'border-hf-accent bg-hf-accent/8 text-hf-accent'
+                  : 'border-hf-border bg-hf-bg-secondary text-hf-text-secondary'
               }`}
             >
               {t('langRu')}
@@ -109,27 +63,22 @@ export default function AppearanceSettingsPage() {
           </div>
         </div>
 
-        {/* Theme Selection */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
-          <h3 className="text-sm font-bold flex items-center gap-1.5 text-tg-text">
-            <Moon className="w-4 h-4 text-tg-accent" />
-            Theme Mode
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg p-4 shadow-hf-card flex flex-col gap-3">
+          <h3 className="text-hf-title-sm flex items-center gap-1.5 text-hf-text-primary">
+            <Moon className="w-4 h-4 text-hf-accent" />
+            {t('themeLabel')}
           </h3>
           <div className="grid grid-cols-3 gap-2.5 mt-1">
-            {[
-              { type: 'light' as const, label: 'Light', icon: Sun },
-              { type: 'dark' as const, label: 'Dark', icon: Moon },
-              { type: 'system' as const, label: 'System', icon: Monitor },
-            ].map((item) => {
-              const Icon = item.icon;
+            {themeOptions.map((item) => {
+              const { Icon } = item;
               return (
                 <button
                   key={item.type}
-                  onClick={() => handleThemeChange(item.type)}
-                  className={`py-3 px-2.5 rounded-xl font-semibold text-[12px] border flex flex-col items-center justify-center gap-1.5 transition-all ${
-                    theme === item.type
-                      ? 'border-tg-accent bg-tg-accent/8 text-tg-accent font-extrabold'
-                      : 'border-tg-hint/10 bg-tg-secondary-bg text-tg-text'
+                  onClick={() => setMode(item.type)}
+                  className={`py-3 px-2.5 rounded-hf-md text-hf-label-sm border flex flex-col items-center justify-center gap-1.5 transition-all ${
+                    mode === item.type
+                      ? 'border-hf-accent bg-hf-accent/8 text-hf-accent'
+                      : 'border-hf-border bg-hf-bg-secondary text-hf-text-secondary'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -140,24 +89,18 @@ export default function AppearanceSettingsPage() {
           </div>
         </div>
 
-        {/* Accent Color Selection */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
-          <h3 className="text-sm font-bold flex items-center gap-1.5 text-tg-text">
-            <Palette className="w-4 h-4 text-tg-accent" />
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg p-4 shadow-hf-card flex flex-col gap-3">
+          <h3 className="text-hf-title-sm flex items-center gap-1.5 text-hf-text-primary">
+            <Palette className="w-4 h-4 text-hf-accent" />
             {t('habitCreateStep2AccentColorLabel')}
           </h3>
-          <div className="flex gap-3 justify-between mt-1">
-            {[
-              { id: 'default', color: '#2481cc', name: 'Blue' },
-              { id: 'orange', color: '#f97316', name: 'Orange' },
-              { id: 'purple', color: '#a855f7', name: 'Purple' },
-              { id: 'green', color: '#10b981', name: 'Green' },
-            ].map((item) => (
+          <div className="flex gap-3 justify-between mt-1 flex-wrap">
+            {accentOptions.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleAccentChange(item.id)}
+                onClick={() => setAccent(item.id)}
                 className={`w-11 h-11 rounded-full relative transition-all border flex items-center justify-center ${
-                  accent === item.id ? 'scale-110 shadow border-tg-text' : 'border-transparent opacity-85'
+                  accent === item.id ? 'scale-110 shadow border-hf-text-primary border-2' : 'border-transparent opacity-85'
                 }`}
                 style={{ backgroundColor: item.color }}
                 title={item.name}
@@ -166,15 +109,6 @@ export default function AppearanceSettingsPage() {
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="mt-auto shrink-0 pb-6">
-          <Button
-            label={t('commonSave')}
-            onClick={handleSave}
-            className="w-full"
-          />
         </div>
       </div>
     </div>

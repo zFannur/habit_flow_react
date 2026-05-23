@@ -15,9 +15,9 @@ export const Card: React.FC<CardProps> = ({
   children,
   onTap,
   padding = 'p-4',
-  borderColor = 'border-tg-hint/10',
+  borderColor = 'border-hf-border',
   borderWidth = 1,
-  background = 'bg-tg-bg',
+  background = 'bg-hf-card',
   opacity = 1,
   className = '',
   style,
@@ -30,7 +30,7 @@ export const Card: React.FC<CardProps> = ({
     }
   };
 
-  const cardStyles = `rounded-2xl shadow-sm transition-all duration-150 ${padding} ${background} ${className}`;
+  const cardStyles = `rounded-hf-lg shadow-hf-card transition-all duration-150 ${padding} ${background} ${className}`;
   const clickableStyles = onTap ? 'cursor-pointer active:scale-[0.99] active:opacity-90' : '';
 
   return (

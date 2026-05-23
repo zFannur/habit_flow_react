@@ -95,22 +95,22 @@ export const BinaryHabitCard = ({
   return (
     <>
       <div
-        className={`flex items-center gap-3 bg-tg-section border border-tg-hint/10 rounded-2xl p-4 shadow-sm transition-opacity duration-200 ${
+        className={`flex items-center gap-3 bg-hf-card border border-hf-border rounded-hf-lg p-4 shadow-hf-card transition-opacity duration-200 ${
           done ? 'opacity-[0.62]' : 'opacity-100'
         }`}
       >
         <EmojiIcon
           emoji={emoji}
           iconTelegramFileId={iconTelegramFileId}
-          className={done ? 'bg-tg-accent/8' : undefined}
+          className={done ? 'bg-hf-accent/8' : undefined}
         />
         
         <div className="flex-1 min-w-0">
-          <h4 className="text-[16px] font-semibold text-tg-text leading-tight truncate">
+          <h4 className="text-hf-title-md text-hf-text-primary truncate">
             {name}
           </h4>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-[12px] text-tg-hint leading-none">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className="text-hf-body-sm text-hf-text-tertiary" style={{ fontSize: '12px' }}>
               {subtitle}
             </span>
             {streak !== undefined && streak > 0 && (
@@ -118,7 +118,7 @@ export const BinaryHabitCard = ({
             )}
           </div>
           {behaviourLine && (
-            <p className="text-[11px] text-tg-hint italic leading-tight mt-1 truncate">
+            <p className="text-hf-label-sm text-hf-text-tertiary italic mt-1 truncate">
               {behaviourLine}
             </p>
           )}
@@ -135,12 +135,12 @@ export const BinaryHabitCard = ({
         <button
           type="button"
           onClick={() => handleSelectOption('done')}
-          className="w-full text-left bg-tg-secondary-bg hover:opacity-90 active:scale-[0.99] transition-all p-4 rounded-xl flex flex-col"
+          className="w-full text-left bg-hf-bg-secondary hover:opacity-90 active:scale-[0.99] transition-all p-4 rounded-xl flex flex-col"
         >
-          <span className="text-[14px] font-semibold text-tg-text">
+          <span className="text-[14px] font-semibold text-hf-text-primary">
             {t('habitCardLogSheetFull')}
           </span>
-          <span className="text-[12px] text-tg-hint mt-1">
+          <span className="text-[12px] text-hf-text-secondary mt-1">
             {t('habitCardLogSheetFullSub')}
           </span>
         </button>
@@ -148,12 +148,12 @@ export const BinaryHabitCard = ({
         <button
           type="button"
           onClick={() => handleSelectOption('partial')}
-          className="w-full text-left bg-tg-secondary-bg hover:opacity-90 active:scale-[0.99] transition-all p-4 rounded-xl flex flex-col mt-2"
+          className="w-full text-left bg-hf-bg-secondary hover:opacity-90 active:scale-[0.99] transition-all p-4 rounded-xl flex flex-col mt-2"
         >
-          <span className="text-[14px] font-semibold text-tg-text">
+          <span className="text-[14px] font-semibold text-hf-text-primary">
             {t('habitCardLogSheetMin')}
           </span>
-          <span className="text-[12px] text-tg-hint mt-1">
+          <span className="text-[12px] text-hf-text-secondary mt-1">
             {t('habitCardLogSheetMinSub', { version: twoMinuteVersion || '' })}
           </span>
         </button>

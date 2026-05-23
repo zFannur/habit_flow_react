@@ -34,23 +34,23 @@ export const Slider: React.FC<SliderProps> = ({
         step={step}
         value={value}
         onChange={handleChange}
-        className="w-full h-[4px] bg-tg-secondary-bg rounded-lg appearance-none cursor-pointer outline-none
-          accent-tg-accent
+        className="w-full h-[4px] bg-hf-bg-tertiary rounded-lg appearance-none cursor-pointer outline-none
+          accent-hf-accent
           [&::-webkit-slider-thumb]:w-5
           [&::-webkit-slider-thumb]:h-5
           [&::-webkit-slider-thumb]:rounded-full
-          [&::-webkit-slider-thumb]:bg-tg-accent
+          [&::-webkit-slider-thumb]:bg-hf-accent
           [&::-webkit-slider-thumb]:border-[3px]
-          [&::-webkit-slider-thumb]:border-tg-bg
-          [&::-webkit-slider-thumb]:shadow-md
+          [&::-webkit-slider-thumb]:border-hf-card
+          [&::-webkit-slider-thumb]:shadow-hf-thumb
           [&::-webkit-slider-thumb]:appearance-none
           [&::-moz-range-thumb]:w-5
           [&::-moz-range-thumb]:h-5
           [&::-moz-range-thumb]:rounded-full
-          [&::-moz-range-thumb]:bg-tg-accent
+          [&::-moz-range-thumb]:bg-hf-accent
           [&::-moz-range-thumb]:border-[3px]
-          [&::-moz-range-thumb]:border-tg-bg
-          [&::-moz-range-thumb]:shadow-md
+          [&::-moz-range-thumb]:border-hf-card
+          [&::-moz-range-thumb]:shadow-hf-thumb
           [&::-moz-range-thumb]:border-none"
       />
     </div>

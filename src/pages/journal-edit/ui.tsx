@@ -114,24 +114,24 @@ export default function JournalEditPage() {
 
   if (isLoadingEntry) {
     return (
-      <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text p-4 pb-tg-safe-bottom">
-        <div className="h-6 w-32 bg-tg-secondary-bg animate-pulse rounded mb-4" />
-        <div className="h-[200px] w-full bg-tg-secondary-bg animate-pulse rounded-2xl mb-4" />
-        <div className="h-10 w-full bg-tg-secondary-bg animate-pulse rounded-xl" />
+      <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary p-4 pb-tg-safe-bottom">
+        <div className="h-6 w-32 bg-hf-bg-secondary animate-pulse rounded mb-4" />
+        <div className="h-[200px] w-full bg-hf-bg-secondary animate-pulse rounded-2xl mb-4" />
+        <div className="h-10 w-full bg-hf-bg-secondary animate-pulse rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       {/* Top Header */}
-      <div className="flex justify-between items-center p-4 border-b border-tg-hint/10 shrink-0">
+      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-tg-secondary-bg hover:opacity-90 active:scale-[0.95] transition-all"
+          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
         >
-          <ArrowLeft className="w-5 h-5 text-tg-text" />
+          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
         </button>
         <h2 className="text-lg font-bold">
           {entryDate === todayStr ? t('journalEditHeaderToday') : entryDate}
@@ -140,7 +140,7 @@ export default function JournalEditPage() {
           <button
             type="button"
             onClick={handleDelete}
-            className="p-2 rounded-xl bg-tg-secondary-bg hover:bg-red-500/10 text-red-500 active:scale-[0.95] transition-all"
+            className="p-2 rounded-xl bg-hf-bg-secondary hover:bg-red-500/10 text-red-500 active:scale-[0.95] transition-all"
           >
             <Trash2 className="w-5 h-5" />
           </button>
@@ -151,15 +151,15 @@ export default function JournalEditPage() {
 
       <div className="flex-1 p-4 flex flex-col gap-6 max-w-md mx-auto w-full">
         {/* Sliders Container */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 flex flex-col gap-5">
+        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex flex-col gap-5">
           {/* Mood Slider */}
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center text-[14px]">
               <span className="font-semibold flex items-center gap-1.5">
-                <Smile className="w-4 h-4 text-tg-accent" />
+                <Smile className="w-4 h-4 text-hf-accent" />
                 {t('journalEditMoodLabel')}
               </span>
-              <span className="font-bold text-tg-accent text-lg">
+              <span className="font-bold text-hf-accent text-lg">
                 {mood} {mood <= 3 ? '😢' : mood <= 5 ? '😐' : mood <= 7 ? '🙂' : mood <= 9 ? '😊' : '🤩'}
               </span>
             </div>
@@ -169,7 +169,7 @@ export default function JournalEditPage() {
               max="10"
               value={mood}
               onChange={(e) => setMood(parseInt(e.target.value))}
-              className="w-full accent-tg-accent cursor-pointer"
+              className="w-full accent-hf-accent cursor-pointer"
             />
           </div>
 
@@ -200,9 +200,9 @@ export default function JournalEditPage() {
           <button
             type="button"
             onClick={() => setShowQuestions(!showQuestions)}
-            className="flex justify-between items-center bg-tg-secondary-bg p-3.5 rounded-xl hover:opacity-95 text-left"
+            className="flex justify-between items-center bg-hf-bg-secondary p-3.5 rounded-xl hover:opacity-95 text-left"
           >
-            <span className="text-[14px] font-semibold text-tg-text">
+            <span className="text-[14px] font-semibold text-hf-text-primary">
               {showQuestions ? t('journalEditQuestionsHide') : t('journalEditQuestionsShow')}
             </span>
             {showQuestions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -213,13 +213,13 @@ export default function JournalEditPage() {
             <div className="flex flex-col gap-4">
               {templateQuestions.map((q, idx) => (
                 <div key={idx} className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-medium text-tg-hint">{q}</label>
+                  <label className="text-[13px] font-medium text-hf-text-secondary">{q}</label>
                   <textarea
                     placeholder={t('journalEditQuestionPlaceholder')}
                     value={answers[q] || ''}
                     onChange={(e) => handleAnswerChange(q, e.target.value)}
                     rows={2}
-                    className="w-full bg-tg-secondary-bg border border-tg-hint/15 rounded-xl p-3 text-[14px] text-tg-text placeholder-tg-hint outline-none focus:border-tg-accent focus:ring-1 focus:ring-tg-accent resize-none transition-all"
+                    className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3 text-[14px] text-hf-text-primary placeholder:text-hf-text-tertiary outline-none focus:border-hf-accent focus:ring-1 focus:ring-hf-accent resize-none transition-all"
                   />
                 </div>
               ))}
@@ -229,7 +229,7 @@ export default function JournalEditPage() {
 
         {/* Free Text / General Notes */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-medium text-tg-hint flex items-center gap-1.5">
+          <label className="text-[13px] font-medium text-hf-text-secondary flex items-center gap-1.5">
             <FileText className="w-4 h-4" />
             {showQuestions ? 'Notes / Free form' : t('journalEditEntryLabel')}
           </label>
@@ -238,9 +238,9 @@ export default function JournalEditPage() {
             value={freeText}
             onChange={(e) => setFreeText(e.target.value)}
             rows={5}
-            className="w-full bg-tg-secondary-bg border border-tg-hint/15 rounded-xl p-3 text-[14px] text-tg-text placeholder-tg-hint outline-none focus:border-tg-accent focus:ring-1 focus:ring-tg-accent transition-all"
+            className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3 text-[14px] text-hf-text-primary placeholder:text-hf-text-tertiary outline-none focus:border-hf-accent focus:ring-1 focus:ring-hf-accent transition-all"
           />
-          <div className="text-right text-[11px] text-tg-hint">
+          <div className="text-right text-[11px] text-hf-text-secondary">
             {t('journalEditCharCount', { count: freeText.length })}
           </div>
         </div>
@@ -249,7 +249,7 @@ export default function JournalEditPage() {
         <button
           type="button"
           onClick={() => navigate('/profile/reflection-template')}
-          className="text-tg-accent text-center text-[13px] font-medium hover:underline self-center"
+          className="text-hf-accent text-center text-[13px] font-medium hover:underline self-center"
         >
           {t('journalEditChangeTemplate')}
         </button>

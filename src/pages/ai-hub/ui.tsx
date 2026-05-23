@@ -279,13 +279,13 @@ export default function AiHubPage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-hidden">
       {/* Tabs Header */}
-      <div className="flex bg-tg-secondary-bg border-b border-tg-hint/10 p-2 shrink-0">
+      <div className="flex bg-hf-bg-secondary border-b border-hf-border/10 p-2 shrink-0">
         <button
           onClick={() => setActiveTab('chat')}
           className={`flex-1 py-2 text-[13px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-            activeTab === 'chat' ? 'bg-tg-bg text-tg-accent shadow-sm' : 'text-tg-hint'
+            activeTab === 'chat' ? 'bg-hf-bg-primary text-hf-accent shadow-sm' : 'text-hf-text-secondary'
           }`}
         >
           <MessageSquare className="w-4 h-4" />
@@ -294,7 +294,7 @@ export default function AiHubPage() {
         <button
           onClick={() => setActiveTab('summaries')}
           className={`flex-1 py-2 text-[13px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-            activeTab === 'summaries' ? 'bg-tg-bg text-tg-accent shadow-sm' : 'text-tg-hint'
+            activeTab === 'summaries' ? 'bg-hf-bg-primary text-hf-accent shadow-sm' : 'text-hf-text-secondary'
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -303,7 +303,7 @@ export default function AiHubPage() {
         <button
           onClick={() => setActiveTab('prompts')}
           className={`flex-1 py-2 text-[13px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-            activeTab === 'prompts' ? 'bg-tg-bg text-tg-accent shadow-sm' : 'text-tg-hint'
+            activeTab === 'prompts' ? 'bg-hf-bg-primary text-hf-accent shadow-sm' : 'text-hf-text-secondary'
           }`}
         >
           <Sparkles className="w-4 h-4" />
@@ -333,10 +333,10 @@ export default function AiHubPage() {
             )}
 
             {/* Chat List Top Bar selector */}
-            <div className="p-3 bg-tg-secondary-bg/30 border-b border-tg-hint/10 flex justify-between items-center gap-2 shrink-0">
+            <div className="p-3 bg-hf-bg-secondary/30 border-b border-hf-border/10 flex justify-between items-center gap-2 shrink-0">
               <button
                 onClick={() => setIsManageChatsOpen(true)}
-                className="bg-tg-secondary-bg hover:opacity-95 px-3 py-1.5 rounded-xl text-[13px] font-semibold text-tg-text truncate max-w-[65%]"
+                className="bg-hf-bg-secondary hover:opacity-95 px-3 py-1.5 rounded-xl text-[13px] font-semibold text-hf-text-primary truncate max-w-[65%]"
               >
                 💬 {activeChat?.title || 'Select Chat'}
               </button>
@@ -348,14 +348,14 @@ export default function AiHubPage() {
                         setChatRenameTitle(activeChat?.title || '');
                         setIsRenameOpen(true);
                       }}
-                      className="p-2 bg-tg-secondary-bg hover:opacity-90 rounded-xl text-tg-hint"
+                      className="p-2 bg-hf-bg-secondary hover:opacity-90 rounded-xl text-hf-text-secondary"
                       title={t('aiChatRename')}
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteChat(selectedChatId)}
-                      className="p-2 bg-tg-secondary-bg hover:bg-red-500/10 rounded-xl text-red-500"
+                      className="p-2 bg-hf-bg-secondary hover:bg-red-500/10 rounded-xl text-red-500"
                       title={t('aiChatDelete')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -364,7 +364,7 @@ export default function AiHubPage() {
                 )}
                 <button
                   onClick={() => handleCreateChat()}
-                  className="p-2 bg-tg-accent hover:opacity-90 rounded-xl text-white"
+                  className="p-2 bg-hf-accent hover:opacity-90 rounded-xl text-white"
                   title={t('aiChatNew')}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -373,8 +373,8 @@ export default function AiHubPage() {
             </div>
 
             {/* AI Style Coach Selector */}
-            <div className="px-4 py-2 border-b border-tg-hint/5 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
-              <span className="text-[11px] font-bold text-tg-hint uppercase shrink-0">AI Coach:</span>
+            <div className="px-4 py-2 border-b border-hf-border/5 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+              <span className="text-[11px] font-bold text-hf-text-secondary uppercase shrink-0">AI Coach:</span>
               {[
                 { type: 'coach' as AiStyleType, label: t('aiStyleCoachName') },
                 { type: 'sergeant' as AiStyleType, label: t('aiStyleSergeantName') },
@@ -387,8 +387,8 @@ export default function AiHubPage() {
                   onClick={() => handleStyleChange(style.type)}
                   className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
                     aiStyle === style.type
-                      ? 'bg-tg-accent text-white'
-                      : 'bg-tg-secondary-bg text-tg-text'
+                      ? 'bg-hf-accent text-white'
+                      : 'bg-hf-bg-secondary text-hf-text-primary'
                   }`}
                 >
                   {style.label}
@@ -400,19 +400,19 @@ export default function AiHubPage() {
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
               {messages.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-4">
-                  <div className="w-16 h-16 rounded-full bg-tg-accent/8 flex items-center justify-center text-tg-accent text-3xl">
+                  <div className="w-16 h-16 rounded-full bg-hf-accent/8 flex items-center justify-center text-hf-accent text-3xl">
                     🧠
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">HabitFlow AI Hub</h3>
-                    <p className="text-[13px] text-tg-hint mt-1.5 max-w-[240px]">
+                    <p className="text-[13px] text-hf-text-secondary mt-1.5 max-w-[240px]">
                       {t('aiChatDisclaimerText')}
                     </p>
                   </div>
 
                   {/* Suggestions Chips */}
                   <div className="flex flex-col gap-2 w-full max-w-sm mt-4">
-                    <span className="text-[11px] font-bold text-tg-hint uppercase tracking-wider mb-1">
+                    <span className="text-[11px] font-bold text-hf-text-secondary uppercase tracking-wider mb-1">
                       Suggestions
                     </span>
                     {[
@@ -424,7 +424,7 @@ export default function AiHubPage() {
                       <button
                         key={i}
                         onClick={() => handleSend(s)}
-                        className="w-full text-left p-3 bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-xl text-[13px] font-semibold hover:bg-tg-secondary-bg active:scale-[0.99] transition-all"
+                        className="w-full text-left p-3 bg-hf-bg-secondary/50 border border-hf-border/10 rounded-xl text-[13px] font-semibold hover:bg-hf-bg-secondary active:scale-[0.99] transition-all"
                       >
                         {s}
                       </button>
@@ -442,13 +442,13 @@ export default function AiHubPage() {
                       <div
                         className={`p-3.5 rounded-2xl text-[14px] leading-relaxed whitespace-pre-wrap ${
                           isUser
-                            ? 'bg-tg-accent text-white rounded-tr-none'
-                            : 'bg-tg-secondary-bg border border-tg-hint/10 text-tg-text rounded-tl-none'
+                            ? 'bg-hf-accent text-white rounded-tr-none'
+                            : 'bg-hf-bg-secondary border border-hf-border/10 text-hf-text-primary rounded-tl-none'
                         }`}
                       >
                         {m.content}
                       </div>
-                      <span className="text-[10px] text-tg-hint mt-1 mx-1.5">
+                      <span className="text-[10px] text-hf-text-secondary mt-1 mx-1.5">
                         {isUser ? 'You' : `${t('aiStyleCoachName')} (${aiStyle})`}
                       </span>
                     </div>
@@ -459,7 +459,7 @@ export default function AiHubPage() {
             </div>
 
             {/* Input Footer */}
-            <div className="p-3 border-t border-tg-hint/10 bg-tg-bg flex items-center gap-2 shrink-0">
+            <div className="p-3 border-t border-hf-border/10 bg-hf-bg-primary flex items-center gap-2 shrink-0">
               <input
                 type="text"
                 placeholder={isStreaming ? 'Streaming...' : t('aiChatInputPlaceholder')}
@@ -467,13 +467,13 @@ export default function AiHubPage() {
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 disabled={isStreaming || !selectedChatId}
-                className="flex-1 bg-tg-secondary-bg border border-tg-hint/15 rounded-xl px-4 py-3 text-[14px] outline-none text-tg-text placeholder-tg-hint disabled:opacity-50"
+                className="flex-1 bg-hf-bg-secondary border border-hf-border/15 rounded-xl px-4 py-3 text-[14px] outline-none text-hf-text-primary placeholder:text-hf-text-tertiary disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => handleSend()}
                 disabled={isStreaming || !inputText.trim() || !selectedChatId}
-                className="w-12 h-12 rounded-xl bg-tg-accent text-white flex items-center justify-center hover:opacity-90 active:scale-[0.95] transition-all disabled:opacity-40"
+                className="w-12 h-12 rounded-xl bg-hf-accent text-white flex items-center justify-center hover:opacity-90 active:scale-[0.95] transition-all disabled:opacity-40"
               >
                 <Send className="w-5 h-5" />
               </button>
@@ -485,9 +485,9 @@ export default function AiHubPage() {
         {activeTab === 'summaries' && (
           <div className="p-4 flex flex-col gap-4">
             {/* Info Banner */}
-            <div className="bg-tg-secondary-bg border border-tg-hint/15 rounded-2xl p-4 flex gap-3 items-start">
-              <Sparkles className="w-5 h-5 text-tg-accent shrink-0 mt-0.5" />
-              <p className="text-[13px] leading-relaxed text-tg-hint">
+            <div className="bg-hf-bg-secondary border border-hf-border/15 rounded-2xl p-4 flex gap-3 items-start">
+              <Sparkles className="w-5 h-5 text-hf-accent shrink-0 mt-0.5" />
+              <p className="text-[13px] leading-relaxed text-hf-text-secondary">
                 {t('aiSummariesInfoBanner', {
                   interval: 30,
                   count: journalCount,
@@ -498,7 +498,7 @@ export default function AiHubPage() {
 
             {/* Summaries list */}
             {isLoadingSummaries ? (
-              <div className="h-20 bg-tg-secondary-bg animate-pulse rounded-2xl" />
+              <div className="h-20 bg-hf-bg-secondary animate-pulse rounded-2xl" />
             ) : !summaries || summaries.length === 0 ? (
               <div className="py-12">
                 <EmptyState
@@ -519,22 +519,22 @@ export default function AiHubPage() {
                   <div
                     key={summary.id}
                     onClick={() => navigate(`/summary/${summary.id}`)}
-                    className="bg-tg-section border border-tg-hint/10 rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer hover:opacity-[0.98] active:scale-[0.99] transition-all"
+                    className="bg-hf-card border border-hf-border/10 rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer hover:opacity-[0.98] active:scale-[0.99] transition-all"
                   >
                     <div className="flex flex-col gap-1.5 min-w-0 flex-1 mr-3">
-                      <span className="text-[14px] font-bold leading-snug truncate text-tg-text">
+                      <span className="text-[14px] font-bold leading-snug truncate text-hf-text-primary">
                         {t('aiSummaryTitle', {
                           from: summary.range_start_date,
                           to: summary.range_end_date,
                         })}
                       </span>
-                      <span className="text-[11px] text-tg-hint">
+                      <span className="text-[11px] text-hf-text-secondary">
                         Entries range: {summary.range_start_n} - {summary.range_end_n} · Model: {summary.model_used}
                       </span>
                     </div>
                     <button
                       onClick={(e) => handleDeleteSummary(e, summary.id)}
-                      className="p-2 text-tg-hint hover:text-red-500 transition-all shrink-0"
+                      className="p-2 text-hf-text-secondary hover:text-red-500 transition-all shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -548,7 +548,7 @@ export default function AiHubPage() {
         {/* PROMPTS TAB */}
         {activeTab === 'prompts' && (
           <div className="p-4 flex flex-col gap-4">
-            <p className="text-[13px] text-tg-hint ml-1">
+            <p className="text-[13px] text-hf-text-secondary ml-1">
               {t('aiPromptsIntro')}
             </p>
 
@@ -557,12 +557,12 @@ export default function AiHubPage() {
                 <button
                   key={idx}
                   onClick={() => handlePromptClick(p.title, p.desc)}
-                  className="w-full text-left p-4 bg-tg-section border border-tg-hint/10 rounded-2xl flex gap-3.5 items-start hover:bg-tg-secondary-bg/30 active:scale-[0.99] transition-all shadow-sm"
+                  className="w-full text-left p-4 bg-hf-card border border-hf-border/10 rounded-2xl flex gap-3.5 items-start hover:bg-hf-bg-secondary/30 active:scale-[0.99] transition-all shadow-sm"
                 >
                   <span className="text-2xl mt-0.5 shrink-0">{p.emoji}</span>
                   <div>
-                    <h4 className="font-bold text-[14px] text-tg-text">{p.title}</h4>
-                    <p className="text-[12px] text-tg-hint mt-1.5 leading-relaxed">{p.desc}</p>
+                    <h4 className="font-bold text-[14px] text-hf-text-primary">{p.title}</h4>
+                    <p className="text-[12px] text-hf-text-secondary mt-1.5 leading-relaxed">{p.desc}</p>
                   </div>
                 </button>
               ))}
@@ -582,7 +582,7 @@ export default function AiHubPage() {
             <div
               key={c.id}
               className={`w-full flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${
-                selectedChatId === c.id ? 'bg-tg-accent/8 border border-tg-accent/20' : 'bg-tg-secondary-bg hover:opacity-95'
+                selectedChatId === c.id ? 'bg-hf-accent/8 border border-hf-accent/20' : 'bg-hf-bg-secondary hover:opacity-95'
               }`}
               onClick={() => {
                 setSelectedChatId(c.id);
@@ -590,7 +590,7 @@ export default function AiHubPage() {
               }}
             >
               <span className={`text-[14px] font-semibold truncate max-w-[70%] ${
-                selectedChatId === c.id ? 'text-tg-accent' : 'text-tg-text'
+                selectedChatId === c.id ? 'text-hf-accent' : 'text-hf-text-primary'
               }`}>
                 💬 {c.title}
               </span>
@@ -600,7 +600,7 @@ export default function AiHubPage() {
                   e.stopPropagation();
                   handleDeleteChat(c.id);
                 }}
-                className="p-1 text-tg-hint hover:text-red-500 rounded-lg"
+                className="p-1 text-hf-text-secondary hover:text-red-500 rounded-lg"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -610,7 +610,7 @@ export default function AiHubPage() {
         <button
           type="button"
           onClick={() => handleCreateChat()}
-          className="w-full mt-4 py-3.5 rounded-xl bg-tg-accent text-white font-bold text-[14px] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
+          className="w-full mt-4 py-3.5 rounded-xl bg-hf-accent text-white font-bold text-[14px] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
         >
           <Plus className="w-4 h-4" />
           {t('aiChatNew')}
@@ -632,13 +632,13 @@ export default function AiHubPage() {
           <div className="flex gap-3">
             <button
               onClick={() => setIsRenameOpen(false)}
-              className="flex-1 py-3 rounded-xl bg-tg-secondary-bg font-semibold text-[14px]"
+              className="flex-1 py-3 rounded-xl bg-hf-bg-secondary font-semibold text-[14px]"
             >
               {t('commonCancel')}
             </button>
             <button
               onClick={handleRenameChat}
-              className="flex-1 py-3 rounded-xl bg-tg-accent text-white font-semibold text-[14px]"
+              className="flex-1 py-3 rounded-xl bg-hf-accent text-white font-semibold text-[14px]"
             >
               {t('commonSave')}
             </button>

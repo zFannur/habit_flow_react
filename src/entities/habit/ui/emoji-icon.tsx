@@ -23,11 +23,11 @@ export const EmojiIcon = ({
 
   return (
     <div
-      className={`rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${className}`}
+      className={`rounded-hf-md flex items-center justify-center shrink-0 overflow-hidden ${className}`}
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        backgroundColor: tint || 'var(--tg-theme-secondary-bg-color, #f4f4f5)',
+        backgroundColor: tint || 'var(--hf-bg-secondary)',
       }}
     >
       {imageUrl ? (

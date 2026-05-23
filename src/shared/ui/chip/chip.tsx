@@ -23,10 +23,10 @@ export const Chip: React.FC<ChipProps> = ({
     }
   };
 
-  const containerStyles = `inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border-[1.5px] transition-all duration-150 select-none ${
+  const containerStyles = `inline-flex items-center gap-[5px] px-3.5 py-1.5 rounded-hf-full border-[1.5px] transition-all duration-150 select-none ${
     selected
-      ? 'bg-tg-accent/10 border-tg-accent text-tg-accent font-semibold'
-      : 'bg-tg-bg border-tg-hint/15 text-tg-hint'
+      ? 'bg-hf-accent/10 border-hf-accent text-hf-accent font-semibold'
+      : 'bg-hf-card border-hf-border text-hf-text-secondary'
   }`;
 
   const clickableStyles = onTap ? 'cursor-pointer active:scale-95' : '';
@@ -36,11 +36,11 @@ export const Chip: React.FC<ChipProps> = ({
       onClick={onTap ? handleClick : undefined}
       className={`${containerStyles} ${clickableStyles} ${className}`}
     >
-      <span className="text-[13px] leading-tight">{label}</span>
+      <span className="text-hf-body-sm leading-tight">{label}</span>
       {count !== undefined && (
         <span
-          className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-            selected ? 'bg-tg-accent text-white' : 'bg-tg-secondary-bg text-tg-hint'
+          className={`inline-flex items-center justify-center px-[6px] py-[1px] rounded-hf-full text-hf-label-sm ${
+            selected ? 'bg-hf-accent text-white' : 'bg-hf-bg-tertiary text-hf-text-tertiary'
           }`}
         >
           {count}

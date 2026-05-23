@@ -75,15 +75,15 @@ export default function DonatePage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b border-tg-hint/10 shrink-0">
+      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-tg-secondary-bg hover:opacity-90 active:scale-[0.95] transition-all"
+          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
         >
-          <ArrowLeft className="w-5 h-5 text-tg-text" />
+          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
         </button>
         <h2 className="text-[17px] font-bold">
           {t('profileMenuDonate')}
@@ -93,13 +93,13 @@ export default function DonatePage() {
 
       <div className="flex-1 p-4 flex flex-col gap-6 max-w-md mx-auto w-full">
         {/* Support Call-to-action */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-5 text-center flex flex-col items-center gap-3.5 shadow-sm">
+        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-5 text-center flex flex-col items-center gap-3.5 shadow-sm">
           <div className="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500 text-3xl">
             💎
           </div>
           <div>
-            <h3 className="text-[17px] font-extrabold text-tg-text">Become a Supporter</h3>
-            <p className="text-[12.5px] text-tg-hint mt-2 leading-relaxed">
+            <h3 className="text-[17px] font-extrabold text-hf-text-primary">Become a Supporter</h3>
+            <p className="text-[12.5px] text-hf-text-secondary mt-2 leading-relaxed">
               Support the development of HabitFlow. In return, you'll unlock the exclusive **Poet AI style coach** and a supporter badge 💎 on your profile.
             </p>
           </div>
@@ -107,7 +107,7 @@ export default function DonatePage() {
 
         {/* Stars Chips Selection */}
         <div className="flex flex-col gap-2.5">
-          <label className="text-[13px] font-bold text-tg-hint uppercase tracking-wider ml-1">Select donation amount</label>
+          <label className="text-[13px] font-bold text-hf-text-secondary uppercase tracking-wider ml-1">Select donation amount</label>
           <div className="grid grid-cols-2 gap-3">
             {[50, 100, 250, 500].map((val) => (
               <button
@@ -115,8 +115,8 @@ export default function DonatePage() {
                 onClick={() => setStars(val)}
                 className={`py-4 rounded-2xl border font-extrabold text-[15px] flex flex-col items-center justify-center gap-1.5 transition-all ${
                   stars === val
-                    ? 'border-tg-accent bg-tg-accent/8 text-tg-accent shadow'
-                    : 'border-tg-hint/10 bg-tg-secondary-bg text-tg-text'
+                    ? 'border-hf-accent bg-hf-accent/8 text-hf-accent shadow'
+                    : 'border-hf-border/10 bg-hf-bg-secondary text-hf-text-primary'
                 }`}
               >
                 <span className="text-xl">⭐️</span>
@@ -134,7 +134,7 @@ export default function DonatePage() {
             disabled={loading}
             className="w-full"
           />
-          <span className="text-[10px] text-tg-hint text-center font-medium leading-normal">
+          <span className="text-[10px] text-hf-text-secondary text-center font-medium leading-normal">
             Transactions are processed securely by Telegram.<br />No card details are stored by HabitFlow.
           </span>
         </div>

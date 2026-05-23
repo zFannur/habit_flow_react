@@ -21,23 +21,21 @@ export const Toggle: React.FC<ToggleProps> = ({
 
   return (
     <div className={`flex items-center gap-3 select-none ${className}`}>
-      {/* Toggle Track */}
       <div
         onClick={handleToggle}
         className={`w-12 h-7 rounded-full transition-all duration-200 cursor-pointer relative ${
-          value ? 'bg-tg-accent' : 'bg-tg-secondary-bg'
+          value ? 'bg-hf-accent' : 'bg-hf-bg-tertiary'
         }`}
       >
-        {/* Toggle Thumb */}
         <div
-          className={`w-5.5 h-5.5 rounded-full transition-all duration-200 shadow-sm absolute top-0.5 ${
+          className={`w-[22px] h-[22px] rounded-full transition-all duration-200 shadow-hf-toggle-thumb absolute top-[3px] ${
             value
-              ? 'left-[26px] bg-white'
-              : 'left-0.5 bg-tg-hint'
+              ? 'left-[23px] bg-white'
+              : 'left-[3px] bg-hf-text-tertiary'
           }`}
         />
       </div>
-      {label && <span className="text-[15px] text-tg-text leading-tight">{label}</span>}
+      {label && <span className="text-hf-body-md text-hf-text-primary">{label}</span>}
     </div>
   );
 };

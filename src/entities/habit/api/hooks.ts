@@ -152,8 +152,9 @@ export function useLogHabitMutation(userId: string) {
       value?: number;
       comment?: string;
     }) => upsertLog(userId, habitId, dateStr, status, value, comment),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['logs', userId] });
+      queryClient.invalidateQueries({ queryKey: ['habit_logs', userId, variables.habitId] });
     },
   });
 }

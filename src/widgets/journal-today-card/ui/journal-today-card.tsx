@@ -27,7 +27,7 @@ export const JournalTodayCard = ({
 
   return (
     <div
-      className="relative min-h-[110px] rounded-[20px] overflow-hidden shadow-md border border-tg-hint/10 p-5 flex items-center gap-3.5 select-none"
+      className="relative min-h-[110px] rounded-[20px] overflow-hidden shadow-md border border-hf-border/10 p-5 flex items-center gap-3.5 select-none"
       style={{
         background: 'linear-gradient(135deg, #1A1A4E 0%, #2D1B69 40%, #0F3460 100%)',
       }}

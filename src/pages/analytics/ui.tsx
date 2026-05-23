@@ -165,20 +165,20 @@ export default function AnalyticsPage() {
   }, [journalEntries, periodTab, today, locale]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       {/* Header */}
-      <div className="p-4 bg-tg-bg shrink-0">
-        <h2 className="text-[22px] font-bold tracking-tight text-tg-text">
+      <div className="p-4 bg-hf-bg-primary shrink-0">
+        <h2 className="text-[22px] font-bold tracking-tight text-hf-text-primary">
           {t('analyticsTitle')}
         </h2>
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-tg-secondary-bg border-b border-tg-hint/10 p-2 shrink-0">
+      <div className="flex bg-hf-bg-secondary border-b border-hf-border/10 p-2 shrink-0">
         <button
           onClick={() => setPeriodTab('week')}
           className={`flex-1 py-2 text-[13px] font-bold rounded-xl transition-all ${
-            periodTab === 'week' ? 'bg-tg-bg text-tg-accent shadow-sm' : 'text-tg-hint'
+            periodTab === 'week' ? 'bg-hf-bg-primary text-hf-accent shadow-sm' : 'text-hf-text-secondary'
           }`}
         >
           {t('analyticsWeekTab')}
@@ -186,7 +186,7 @@ export default function AnalyticsPage() {
         <button
           onClick={() => setPeriodTab('month')}
           className={`flex-1 py-2 text-[13px] font-bold rounded-xl transition-all ${
-            periodTab === 'month' ? 'bg-tg-bg text-tg-accent shadow-sm' : 'text-tg-hint'
+            periodTab === 'month' ? 'bg-hf-bg-primary text-hf-accent shadow-sm' : 'text-hf-text-secondary'
           }`}
         >
           {t('analyticsMonthTab')}
@@ -195,20 +195,20 @@ export default function AnalyticsPage() {
 
       <div className="p-4 flex flex-col gap-5 max-w-md mx-auto w-full">
         {/* Stats Overview */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
+        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-tg-hint font-bold uppercase tracking-wider">
+            <span className="text-[10px] text-hf-text-secondary font-bold uppercase tracking-wider">
               {t('analyticsSummaryLabel')}
             </span>
-            <span className="text-3xl font-extrabold text-tg-accent">
+            <span className="text-3xl font-extrabold text-hf-accent">
               {stats.rate}%
             </span>
-            <span className="text-[11px] text-tg-hint mt-1">
+            <span className="text-[11px] text-hf-text-secondary mt-1">
               {stats.completed} {t('analyticsMetricCompleted')} · {stats.missed} {t('analyticsMetricSkipped')}
             </span>
           </div>
 
-          <div className="flex items-center gap-1 bg-tg-accent/8 border border-tg-accent/15 px-3 py-1.5 rounded-full text-tg-accent text-[12px] font-bold">
+          <div className="flex items-center gap-1 bg-hf-accent/8 border border-hf-accent/15 px-3 py-1.5 rounded-full text-hf-accent text-[12px] font-bold">
             <TrendingUp className="w-3.5 h-3.5" />
             <span>
               {periodTab === 'week' ? t('analyticsTrendUpWeek', { percent: 0 }) : t('analyticsTrendUpMonth', { percent: 0 })}
@@ -217,23 +217,23 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Completion Bar Chart (Custom SVG) */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
-            <BarChart3 className="w-4 h-4 text-tg-accent" />
+            <BarChart3 className="w-4 h-4 text-hf-accent" />
             {t('analyticsBarChartTitle')}
           </h3>
 
           <div className="w-full h-44 flex items-end justify-between gap-1.5 pt-4">
             {barChartData.map((d, i) => {
-              let barColor = 'bg-tg-danger';
-              if (d.rate >= 70) barColor = 'bg-tg-success';
-              else if (d.rate >= 40) barColor = 'bg-tg-warning';
+              let barColor = 'bg-hf-danger';
+              if (d.rate >= 70) barColor = 'bg-hf-success';
+              else if (d.rate >= 40) barColor = 'bg-hf-warning';
 
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
                   <div className="w-full relative group flex flex-col justify-end h-full">
                     {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 hidden group-hover:block bg-tg-secondary-bg text-[10px] font-bold px-2 py-0.5 rounded border border-tg-hint/20 shadow z-10">
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 hidden group-hover:block bg-hf-bg-secondary text-[10px] font-bold px-2 py-0.5 rounded border border-hf-border/20 shadow z-10">
                       {d.rate}%
                     </div>
                     {/* Bar */}
@@ -243,7 +243,7 @@ export default function AnalyticsPage() {
                     />
                   </div>
                   {periodTab === 'week' && (
-                    <span className="text-[9px] font-semibold text-tg-hint">
+                    <span className="text-[9px] font-semibold text-hf-text-secondary">
                       {d.label.substring(0, 3)}
                     </span>
                   )}
@@ -252,24 +252,24 @@ export default function AnalyticsPage() {
             })}
           </div>
 
-          <div className="flex gap-4 justify-center text-[10px] text-tg-hint font-medium border-t border-tg-hint/10 pt-3 mt-1">
+          <div className="flex gap-4 justify-center text-[10px] text-hf-text-secondary font-medium border-t border-hf-border/10 pt-3 mt-1">
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-tg-success inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-hf-success inline-block" />
               {t('analyticsLegendHigh')}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-tg-warning inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-hf-warning inline-block" />
               {t('analyticsLegendMedium')}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-tg-danger inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-hf-danger inline-block" />
               {t('analyticsLegendLow')}
             </span>
           </div>
         </div>
 
         {/* Mood & Energy Line Chart (Custom SVG) */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
             <LineChart className="w-4 h-4 text-orange-500" />
             {t('analyticsMoodLineTitle')}
@@ -279,9 +279,9 @@ export default function AnalyticsPage() {
             {/* Custom SVG line plot */}
             <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
               {/* Grid Lines */}
-              <line x1="0" y1="20" x2="100" y2="20" stroke="var(--tg-theme-hint-color, rgba(0,0,0,0.05))" strokeWidth="0.5" strokeDasharray="2" />
-              <line x1="0" y1="50" x2="100" y2="50" stroke="var(--tg-theme-hint-color, rgba(0,0,0,0.05))" strokeWidth="0.5" strokeDasharray="2" />
-              <line x1="0" y1="80" x2="100" y2="80" stroke="var(--tg-theme-hint-color, rgba(0,0,0,0.05))" strokeWidth="0.5" strokeDasharray="2" />
+              <line x1="0" y1="20" x2="100" y2="20" stroke="var(--hf-text-secondary, rgba(0,0,0,0.05))" strokeWidth="0.5" strokeDasharray="2" />
+              <line x1="0" y1="50" x2="100" y2="50" stroke="var(--hf-text-secondary, rgba(0,0,0,0.05))" strokeWidth="0.5" strokeDasharray="2" />
+              <line x1="0" y1="80" x2="100" y2="80" stroke="var(--hf-text-secondary, rgba(0,0,0,0.05))" strokeWidth="0.5" strokeDasharray="2" />
 
               {/* Mood Line */}
               {lineChartData.length > 1 && (
@@ -295,7 +295,7 @@ export default function AnalyticsPage() {
                     })
                     .join(' ')}
                   fill="none"
-                  stroke="var(--tg-theme-accent-color, #2481cc)"
+                  stroke="var(--hf-accent, #2481cc)"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -322,9 +322,9 @@ export default function AnalyticsPage() {
             </svg>
           </div>
 
-          <div className="flex gap-4 justify-center text-[10px] text-tg-hint font-medium border-t border-tg-hint/10 pt-3">
+          <div className="flex gap-4 justify-center text-[10px] text-hf-text-secondary font-medium border-t border-hf-border/10 pt-3">
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-tg-accent inline-block" />
+              <span className="w-2.5 h-2.5 rounded bg-hf-accent inline-block" />
               {t('analyticsMoodLine')}
             </span>
             <span className="flex items-center gap-1">
@@ -335,25 +335,25 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Category Breakdown list */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
-            <PieChart className="w-4 h-4 text-tg-success" />
+            <PieChart className="w-4 h-4 text-hf-success" />
             {t('analyticsPieTitle')}
           </h3>
 
           <div className="flex flex-col gap-3 mt-1">
             {categoryData.length === 0 ? (
-              <span className="text-[12px] text-tg-hint italic">No data yet</span>
+              <span className="text-[12px] text-hf-text-secondary italic">No data yet</span>
             ) : (
               categoryData.map((cat, idx) => (
                 <div key={idx} className="flex flex-col gap-1 text-[13px]">
                   <div className="flex justify-between font-semibold">
                     <span>{cat.name}</span>
-                    <span className="text-tg-accent">{cat.rate}%</span>
+                    <span className="text-hf-accent">{cat.rate}%</span>
                   </div>
-                  <div className="w-full h-2 bg-tg-secondary-bg rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-hf-bg-secondary rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-tg-success rounded-full transition-all duration-500"
+                      className="h-full bg-hf-success rounded-full transition-all duration-500"
                       style={{ width: `${cat.rate}%` }}
                     />
                   </div>
@@ -364,13 +364,13 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Weekly Review Checklist (collapsible or card) */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3.5">
+        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 shadow-sm flex flex-col gap-3.5">
           <div>
-            <h3 className="text-sm font-bold flex items-center gap-1.5 text-tg-text">
-              <CheckCircle2 className="w-4.5 h-4.5 text-tg-accent" />
+            <h3 className="text-sm font-bold flex items-center gap-1.5 text-hf-text-primary">
+              <CheckCircle2 className="w-4.5 h-4.5 text-hf-accent" />
               {t('weeklyReviewTitle')}
             </h3>
-            <p className="text-[11px] text-tg-hint mt-1 leading-snug">
+            <p className="text-[11px] text-hf-text-secondary mt-1 leading-snug">
               {t('weeklyReviewSubtitle')}
             </p>
           </div>
@@ -381,14 +381,14 @@ export default function AnalyticsPage() {
               { checked: reviewCorrelations, setChecked: setReviewCorrelations, label: t('weeklyReviewItemCorrelations') },
               { checked: reviewGoals, setChecked: setReviewGoals, label: t('weeklyReviewItemGoals') },
             ].map((item, idx) => (
-              <label key={idx} className="flex items-center gap-3 cursor-pointer text-[13px] font-medium text-tg-text">
+              <label key={idx} className="flex items-center gap-3 cursor-pointer text-[13px] font-medium text-hf-text-primary">
                 <input
                   type="checkbox"
                   checked={item.checked}
                   onChange={(e) => item.setChecked(e.target.checked)}
-                  className="w-4 h-4 rounded border-tg-hint/25 accent-tg-accent cursor-pointer"
+                  className="w-4 h-4 rounded border-hf-border/25 accent-hf-accent cursor-pointer"
                 />
-                <span className={item.checked ? 'line-through text-tg-hint' : ''}>
+                <span className={item.checked ? 'line-through text-hf-text-secondary' : ''}>
                   {item.label}
                 </span>
               </label>

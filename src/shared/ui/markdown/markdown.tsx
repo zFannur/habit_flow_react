@@ -10,13 +10,13 @@ export const Markdown: React.FC<MarkdownProps> = ({ content, className = '' }) =
     const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-bold text-tg-text">{part.slice(2, -2)}</strong>;
+        return <strong key={i} className="font-bold text-hf-text-primary">{part.slice(2, -2)}</strong>;
       }
       if (part.startsWith('*') && part.endsWith('*')) {
         return <em key={i} className="italic">{part.slice(1, -1)}</em>;
       }
       if (part.startsWith('`') && part.endsWith('`')) {
-        return <code key={i} className="font-mono text-tg-accent bg-tg-secondary-bg px-1 rounded text-[13px]">{part.slice(1, -1)}</code>;
+        return <code key={i} className="font-mono text-hf-accent bg-hf-bg-secondary px-1 rounded text-[13px]">{part.slice(1, -1)}</code>;
       }
       return part;
     });
@@ -44,13 +44,13 @@ export const Markdown: React.FC<MarkdownProps> = ({ content, className = '' }) =
         const text = headingMatch[2].trim();
         if (level <= 2) {
           blocks.push(
-            <h2 key={i} className="w-full text-[15px] font-bold text-tg-text border-b border-tg-hint/10 pb-1 mt-5 mb-2 leading-snug">
+            <h2 key={i} className="w-full text-[15px] font-bold text-hf-text-primary border-b border-hf-border/10 pb-1 mt-5 mb-2 leading-snug">
               {text}
             </h2>
           );
         } else {
           blocks.push(
-            <h4 key={i} className="text-[13px] font-bold text-tg-text mt-3 mb-1.5 leading-snug">
+            <h4 key={i} className="text-[13px] font-bold text-hf-text-primary mt-3 mb-1.5 leading-snug">
               {text}
             </h4>
           );
@@ -76,8 +76,8 @@ export const Markdown: React.FC<MarkdownProps> = ({ content, className = '' }) =
         blocks.push(
           <ul key={i} className="flex flex-col gap-1.5 mb-2 pl-1.5">
             {items.map((item, idx) => (
-              <li key={idx} className="flex items-start text-[14px] leading-relaxed text-tg-hint">
-                <span className="w-1.5 h-1.5 rounded-full bg-tg-accent shrink-0 mt-2 mr-2" />
+              <li key={idx} className="flex items-start text-[14px] leading-relaxed text-hf-text-secondary">
+                <span className="w-1.5 h-1.5 rounded-full bg-hf-accent shrink-0 mt-2 mr-2" />
                 <span className="flex-1">{parseInline(item)}</span>
               </li>
             ))}
@@ -105,8 +105,8 @@ export const Markdown: React.FC<MarkdownProps> = ({ content, className = '' }) =
         blocks.push(
           <ol key={i} className="flex flex-col gap-1.5 mb-2 pl-1.5">
             {items.map((item, idx) => (
-              <li key={idx} className="flex items-start text-[14px] leading-relaxed text-tg-hint">
-                <span className="w-5 h-5 rounded-full bg-tg-accent/12 text-tg-accent font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5 mr-2">
+              <li key={idx} className="flex items-start text-[14px] leading-relaxed text-hf-text-secondary">
+                <span className="w-5 h-5 rounded-full bg-hf-accent/12 text-hf-accent font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5 mr-2">
                   {idx + 1}
                 </span>
                 <span className="flex-1">{parseInline(item)}</span>
@@ -138,7 +138,7 @@ export const Markdown: React.FC<MarkdownProps> = ({ content, className = '' }) =
         i++;
       }
       blocks.push(
-        <p key={i} className="text-[14px] leading-relaxed text-tg-hint mb-2">
+        <p key={i} className="text-[14px] leading-relaxed text-hf-text-secondary mb-2">
           {parseInline(pLines.join(' '))}
         </p>
       );

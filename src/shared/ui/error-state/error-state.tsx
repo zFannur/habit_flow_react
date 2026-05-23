@@ -64,7 +64,7 @@ export const ErrorState = ({
       case 'network':
         return {
           Icon: WifiOff,
-          colorClass: 'text-tg-hint bg-tg-hint/10',
+          colorClass: 'text-hf-text-secondary bg-hf-text-secondary/10',
           title: t('errorNetworkTitle'),
           desc: t('errorNetworkDesc'),
           primaryLabel: t('errorRetry'),
@@ -97,7 +97,7 @@ export const ErrorState = ({
       case 'server':
         return {
           Icon: AlertTriangle,
-          colorClass: 'text-tg-destructive bg-tg-destructive/10',
+          colorClass: 'text-hf-danger bg-hf-danger/10',
           title: t('errorServerTitle'),
           desc: t('errorServerDesc'),
           primaryLabel: t('errorRetry'),
@@ -108,7 +108,7 @@ export const ErrorState = ({
       case 'validation':
         return {
           Icon: Pencil,
-          colorClass: 'text-tg-accent bg-tg-accent/10',
+          colorClass: 'text-hf-accent bg-hf-accent/10',
           title: t('errorValidationTitle'),
           desc: t('errorValidationDesc'),
           primaryLabel: null,
@@ -119,7 +119,7 @@ export const ErrorState = ({
       default:
         return {
           Icon: AlertTriangle,
-          colorClass: 'text-tg-hint bg-tg-hint/10',
+          colorClass: 'text-hf-text-secondary bg-hf-text-secondary/10',
           title: t('errorGenericTitle'),
           desc: t('errorGenericDesc'),
           primaryLabel: t('errorRetry'),
@@ -144,10 +144,10 @@ export const ErrorState = ({
         <Icon className="w-7 h-7" />
       </div>
 
-      <h3 className="text-[18px] font-bold text-tg-text leading-tight mt-5 tracking-[-0.01em]">
+      <h3 className="text-[18px] font-bold text-hf-text-primary leading-tight mt-5 tracking-[-0.01em]">
         {details.title}
       </h3>
-      <p className="text-[14px] text-tg-hint leading-relaxed mt-2.5 max-w-xs">
+      <p className="text-[14px] text-hf-text-secondary leading-relaxed mt-2.5 max-w-xs">
         {details.desc}
       </p>
 

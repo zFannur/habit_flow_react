@@ -28,13 +28,13 @@ export const Checkbox: React.FC<CheckboxProps> = ({
       <div
         className={`w-[22px] h-[22px] rounded-md transition-all duration-150 flex items-center justify-center ${
           value
-            ? 'bg-tg-accent text-white active:scale-95'
-            : 'bg-tg-bg border-[1.5px] border-tg-hint/25 active:scale-95'
+            ? 'bg-hf-accent text-white active:scale-95'
+            : 'bg-hf-card border-[1.5px] border-hf-border active:scale-95'
         }`}
       >
-        {value && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
+        {value && <Check className="w-3.5 h-3.5 stroke-[2.2]" />}
       </div>
-      {label && <span className="text-[15px] text-tg-text leading-tight">{label}</span>}
+      {label && <span className="text-hf-body-md text-hf-text-primary">{label}</span>}
     </div>
   );
 };

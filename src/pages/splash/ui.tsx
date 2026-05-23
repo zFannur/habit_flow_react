@@ -87,8 +87,8 @@ export default function SplashPage() {
   // Loading state
   if (state.status === 'loading' || state.status === 'authenticated') {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-tg-bg text-tg-text">
-        <div className="animate-spin text-tg-accent">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-hf-bg-primary text-hf-text-primary">
+        <div className="animate-spin text-hf-accent">
           <RefreshCw className="w-8 h-8" />
         </div>
       </div>
@@ -98,12 +98,12 @@ export default function SplashPage() {
   // Outside Telegram Stub
   if (state.status === 'unauthenticated') {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-tg-bg text-tg-text px-8">
-        <Send className="w-16 h-16 text-tg-accent transform rotate-45 mb-6" />
+      <div className="w-full h-full flex flex-col items-center justify-center bg-hf-bg-primary text-hf-text-primary px-8">
+        <Send className="w-16 h-16 text-hf-accent transform rotate-45 mb-6" />
         <h2 className="text-xl font-bold text-center">
           {t('splashOutsideTelegramTitle')}
         </h2>
-        <p className="text-[14px] text-tg-hint text-center mt-3 leading-relaxed">
+        <p className="text-[14px] text-hf-text-secondary text-center mt-3 leading-relaxed">
           {t('splashOutsideTelegramDesc')}
         </p>
         <div className="mt-8 w-full max-w-xs flex justify-center">
@@ -122,12 +122,12 @@ export default function SplashPage() {
 
   // Failed state
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-tg-bg text-tg-text px-8">
-      <AlertCircle className="w-16 h-16 text-tg-destructive mb-6 animate-pulse" />
+    <div className="w-full h-full flex flex-col items-center justify-center bg-hf-bg-primary text-hf-text-primary px-8">
+      <AlertCircle className="w-16 h-16 text-hf-danger mb-6 animate-pulse" />
       <h2 className="text-xl font-bold text-center">
         {t('splashAuthErrorTitle')}
       </h2>
-      <p className="text-[14px] text-tg-hint text-center mt-3 leading-relaxed">
+      <p className="text-[14px] text-hf-text-secondary text-center mt-3 leading-relaxed">
         {t('splashAuthErrorDesc')}
       </p>
       <div className="mt-8 w-full max-w-xs flex justify-center">

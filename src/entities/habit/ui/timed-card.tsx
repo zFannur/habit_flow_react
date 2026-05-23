@@ -65,27 +65,27 @@ export const TimedHabitCard = ({
 
   return (
     <div
-      className={`flex items-center gap-3 bg-tg-section border border-tg-hint/10 rounded-2xl p-4 shadow-sm transition-opacity duration-200 ${
+      className={`flex items-center gap-3 bg-hf-card border border-hf-border rounded-hf-lg p-4 shadow-hf-card transition-opacity duration-200 ${
         initialDone ? 'opacity-[0.62]' : 'opacity-100'
       }`}
     >
       <EmojiIcon
         emoji={emoji}
         iconTelegramFileId={iconTelegramFileId}
-        className="bg-tg-warning/10"
+        className="bg-hf-warning/10"
       />
 
       <div className="flex-1 min-w-0">
-        <h4 className="text-[16px] font-semibold text-tg-text leading-tight truncate">
+        <h4 className="text-hf-title-md text-hf-text-primary truncate">
           {name}
         </h4>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-0.5">
           {running ? (
-            <span className="text-[12px] font-semibold text-tg-accent font-mono leading-none">
+            <span className="text-hf-label-md text-hf-accent font-mono">
               {formatTime(elapsed)}
             </span>
           ) : (
-            <span className="text-[12px] text-tg-hint leading-none">
+            <span className="text-hf-body-sm text-hf-text-tertiary" style={{ fontSize: '12px' }}>
               {subtitle}
             </span>
           )}
@@ -98,7 +98,7 @@ export const TimedHabitCard = ({
       <button
         type="button"
         onClick={toggleTimer}
-        className="px-3.5 py-1.5 rounded-full border-1.5 border-tg-accent text-tg-accent font-semibold text-[13px] hover:bg-tg-accent/5 active:scale-[0.95] transition-all shrink-0"
+        className="px-[14px] py-[7px] rounded-hf-full border-[1.5px] border-hf-accent text-hf-title-sm text-hf-accent hover:bg-hf-accent/5 active:scale-[0.95] transition-all shrink-0"
       >
         {running ? t('habitTimerPause') : t('habitTimerStart')}
       </button>

@@ -30,15 +30,15 @@ export const Input: React.FC<InputProps> = ({
     if (onValueChange) onValueChange(e.target.value);
   };
 
-  const containerStyles = `w-full rounded-xl bg-tg-bg border-[1.5px] transition-all duration-150 py-3 px-4 flex items-center ${
-    isFocused || hasValue ? 'border-tg-accent' : 'border-tg-hint/15'
+  const containerStyles = `w-full rounded-hf-md bg-hf-card border-[1.5px] transition-all duration-150 py-[11px] px-[14px] flex items-center ${
+    isFocused || hasValue ? 'border-hf-accent' : 'border-hf-border'
   }`;
 
-  const inputStyles = `w-full bg-transparent text-tg-text text-[15px] leading-relaxed outline-none placeholder:text-tg-hint/55 resize-none`;
+  const inputStyles = `w-full bg-transparent text-hf-text-primary text-hf-body-md outline-none placeholder:text-hf-text-tertiary resize-none`;
 
   return (
     <div className={`flex flex-col w-full gap-1.5 ${className}`}>
-      {label && <span className="text-[13px] text-tg-hint font-medium leading-none">{label}</span>}
+      {label && <span className="text-hf-label-md text-hf-text-secondary leading-none">{label}</span>}
       <div className={containerStyles}>
         {isMultiline ? (
           <textarea

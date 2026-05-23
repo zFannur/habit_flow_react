@@ -61,15 +61,15 @@ export default function ReflectionTemplatePage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b border-tg-hint/10 shrink-0">
+      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-tg-secondary-bg hover:opacity-90 active:scale-[0.95] transition-all"
+          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
         >
-          <ArrowLeft className="w-5 h-5 text-tg-text" />
+          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
         </button>
         <h2 className="text-[17px] font-bold">
           {t('reflectionTemplateTitle')}
@@ -77,7 +77,7 @@ export default function ReflectionTemplatePage() {
         <button
           type="button"
           onClick={handleReset}
-          className="p-2 rounded-xl bg-tg-secondary-bg hover:bg-orange-500/10 text-orange-500 active:scale-[0.95] transition-all"
+          className="p-2 rounded-xl bg-hf-bg-secondary hover:bg-orange-500/10 text-orange-500 active:scale-[0.95] transition-all"
           title={t('reflectionTemplateResetButton')}
         >
           <RotateCcw className="w-4 h-4" />
@@ -86,7 +86,7 @@ export default function ReflectionTemplatePage() {
 
       <div className="flex-1 p-4 flex flex-col gap-5 max-w-md mx-auto w-full">
         <div>
-          <p className="text-tg-hint text-[13px] leading-relaxed">
+          <p className="text-hf-text-secondary text-[13px] leading-relaxed">
             {t('reflectionTemplateDesc')}
           </p>
         </div>
@@ -95,7 +95,7 @@ export default function ReflectionTemplatePage() {
         <div className="flex flex-col gap-3.5">
           {questions.map((q, idx) => (
             <div key={idx} className="flex gap-2 items-center">
-              <span className="text-[14px] font-bold text-tg-hint w-6 text-center">
+              <span className="text-[14px] font-bold text-hf-text-secondary w-6 text-center">
                 {idx + 1}
               </span>
               <div className="flex-1">
@@ -108,7 +108,7 @@ export default function ReflectionTemplatePage() {
               <button
                 type="button"
                 onClick={() => handleRemoveQuestion(idx)}
-                className="p-3 bg-tg-secondary-bg/50 border border-tg-hint/10 hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all"
+                className="p-3 bg-hf-bg-secondary/50 border border-hf-border/10 hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -120,7 +120,7 @@ export default function ReflectionTemplatePage() {
         <button
           type="button"
           onClick={handleAddQuestion}
-          className="w-full py-3.5 border border-dashed border-tg-hint/25 rounded-xl flex items-center justify-center gap-2 hover:bg-tg-secondary-bg transition-all text-tg-accent text-[14px] font-semibold"
+          className="w-full py-3.5 border border-dashed border-hf-border/25 rounded-xl flex items-center justify-center gap-2 hover:bg-hf-bg-secondary transition-all text-hf-accent text-[14px] font-semibold"
         >
           <Plus className="w-4 h-4" />
           <span>{t('reflectionTemplateAddButton')}</span>

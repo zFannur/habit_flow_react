@@ -30,9 +30,8 @@ export async function bootstrapTelegram(debug = false): Promise<void> {
       await themeParams.mount();
     }
 
-    // 5. Bind CSS variables — these power --tg-theme-* and --tg-viewport-* in CSS
+    // 5. Bind CSS variables — only viewport safe-area; HFColors theme is used for colors
     miniApp.bindCssVars();
-    themeParams.bindCssVars();
 
     // 6. Mount viewport (async; safe to fire-and-forget with error handling)
     if (viewport.mount.isAvailable()) {

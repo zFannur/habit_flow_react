@@ -20,13 +20,13 @@ export const CircleCheck = ({ done, onTap }: CircleCheckProps) => {
       onClick={handleClick}
       className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 border-2 shrink-0 ${
         done
-          ? 'bg-tg-accent border-tg-accent text-white'
-          : 'bg-tg-bg border-tg-border'
+          ? 'bg-hf-accent border-hf-accent text-white'
+          : 'bg-hf-card border-hf-border'
       }`}
     >
       {done && (
         <svg
-          className="w-3.5 h-3.5 stroke-[2.5]"
+          className="w-[15px] h-3 stroke-[2.2]"
           viewBox="0 0 15 12"
           fill="none"
           stroke="currentColor"

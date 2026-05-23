@@ -14,15 +14,15 @@ export const ToastContainer: React.FC = () => {
         const { id, title, message, variant = 'info', icon } = toast;
 
         const borderLeftColor = {
-          success: 'border-l-emerald-500',
-          warning: 'border-l-amber-500',
-          info: 'border-l-tg-accent',
+          success: 'border-l-hf-success',
+          warning: 'border-l-hf-warning',
+          info: 'border-l-hf-accent',
         }[variant];
 
         const iconColors = {
-          success: 'text-emerald-600 bg-emerald-500/10',
-          warning: 'text-amber-600 bg-amber-500/10',
-          info: 'text-tg-accent bg-tg-accent/10',
+          success: 'text-hf-success bg-hf-success/10',
+          warning: 'text-hf-warning bg-hf-warning/10',
+          info: 'text-hf-accent bg-hf-accent/8',
         }[variant];
 
         const defaultIcon = {
@@ -34,7 +34,7 @@ export const ToastContainer: React.FC = () => {
         return (
           <div
             key={id}
-            className={`w-full max-w-sm bg-tg-bg border border-tg-hint/15 border-l-4 ${borderLeftColor} rounded-2xl shadow-lg p-3.5 flex gap-3 pointer-events-auto transition-all animate-pulse-once`}
+            className={`w-full max-w-sm bg-hf-card border border-hf-border border-l-4 ${borderLeftColor} rounded-[14px] shadow-hf-toast p-3.5 flex gap-3 pointer-events-auto transition-all`}
           >
             {/* Icon Tinted Box */}
             <div
@@ -45,10 +45,10 @@ export const ToastContainer: React.FC = () => {
 
             {/* Content */}
             <div className="flex-1 flex flex-col justify-center min-w-0">
-              <h4 className="text-[14px] font-bold text-tg-text leading-tight truncate">
+              <h4 className="text-[14px] font-bold text-hf-text-primary leading-tight truncate">
                 {title}
               </h4>
-              <p className="text-[12px] text-tg-hint leading-snug mt-0.5">
+              <p className="text-[12px] text-hf-text-secondary leading-snug mt-0.5">
                 {message}
               </p>
             </div>
@@ -59,7 +59,7 @@ export const ToastContainer: React.FC = () => {
                 hapticFeedback.impactOccurred.ifAvailable('light');
                 hideToast(id);
               }}
-              className="text-tg-hint hover:text-tg-text p-1 shrink-0 self-start"
+              className="text-hf-text-secondary hover:text-hf-text-primary p-1 shrink-0 self-start"
             >
               <X className="w-4 h-4" />
             </button>

@@ -31,15 +31,14 @@ export const Radio = <T,>({
       {/* Outer Circle */}
       <div
         className={`w-[22px] h-[22px] rounded-full transition-all duration-150 flex items-center justify-center ${
-          selected ? 'border-2 border-tg-accent' : 'border-[1.5px] border-tg-hint/25'
+          selected ? 'border-2 border-hf-accent' : 'border-[1.5px] border-hf-border'
         }`}
       >
-        {/* Inner Circle (dot) */}
         {selected && (
-          <div className="w-2.5 h-2.5 rounded-full bg-tg-accent" />
+          <div className="w-[10px] h-[10px] rounded-full bg-hf-accent" />
         )}
       </div>
-      {label && <span className="text-[15px] text-tg-text leading-tight">{label}</span>}
+      {label && <span className="text-hf-body-md text-hf-text-primary">{label}</span>}
     </div>
   );
 };

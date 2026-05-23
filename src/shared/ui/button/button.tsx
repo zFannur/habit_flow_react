@@ -31,16 +31,16 @@ export const Button: React.FC<ButtonProps> = ({
     if (onClick) onClick(e);
   };
 
-  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 active:scale-[0.98] outline-none';
+  const baseStyles = 'inline-flex items-center justify-center rounded-hf-md transition-all duration-150 active:scale-[0.98] outline-none';
   const sizeStyles = size === 'sm'
-    ? 'px-4 py-2 text-[13px] gap-1'
-    : 'px-6 py-3 text-[15px] gap-1.5';
+    ? 'px-4 py-2 text-hf-label-md gap-1'
+    : 'px-6 py-3 text-hf-label-lg gap-1.5';
   
   const variantStyles = {
-    primary: 'bg-tg-accent text-white active:bg-tg-accent/90',
-    secondary: 'bg-transparent text-tg-accent border-2 border-tg-accent active:bg-tg-accent/10',
-    ghost: 'bg-transparent text-tg-hint active:bg-tg-hint/10',
-    danger: 'bg-tg-destructive text-white active:bg-tg-destructive/90',
+    primary: 'bg-hf-accent text-white font-semibold active:bg-hf-accent/90',
+    secondary: 'bg-transparent text-hf-accent border-[1.5px] border-hf-accent font-semibold active:bg-hf-accent/10',
+    ghost: 'bg-transparent text-hf-text-secondary font-semibold active:bg-hf-text-secondary/10',
+    danger: 'bg-hf-danger text-white font-semibold active:bg-hf-danger/90',
   }[variant];
 
   const widthStyles = fullWidth ? 'w-full' : 'w-auto';

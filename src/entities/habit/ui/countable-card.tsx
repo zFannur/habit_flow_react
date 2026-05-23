@@ -45,7 +45,7 @@ export const CountableHabitCard = ({
 
   return (
     <div
-      className={`flex flex-col bg-tg-section border border-tg-hint/10 rounded-2xl p-4 shadow-sm transition-opacity duration-200 ${
+      className={`flex flex-col bg-hf-card border border-hf-border rounded-hf-lg p-4 shadow-hf-card transition-opacity duration-200 ${
         done ? 'opacity-[0.62]' : 'opacity-100'
       }`}
     >
@@ -53,33 +53,33 @@ export const CountableHabitCard = ({
         <EmojiIcon
           emoji={emoji}
           iconTelegramFileId={iconTelegramFileId}
-          className="bg-tg-accent/8"
+          className="bg-hf-accent/8"
         />
 
         <div className="flex-1 min-w-0">
-          <h4 className="text-[16px] font-semibold text-tg-text leading-tight truncate">
+          <h4 className="text-hf-title-md text-hf-text-primary truncate">
             {name}
           </h4>
-          <div className="mt-1 flex items-baseline gap-1 text-[12px] leading-none">
-            <span className="font-bold text-tg-accent">{current}</span>
-            <span className="text-tg-hint">/ {total} {unit}</span>
+          <div className="mt-0.5 flex items-baseline gap-1 text-hf-body-sm">
+            <span className="font-semibold text-hf-accent">{current}</span>
+            <span className="text-hf-text-tertiary">/ {total} {unit}</span>
           </div>
         </div>
 
         <button
           type="button"
           onClick={handlePlus}
-          className="w-9 h-9 rounded-full bg-tg-accent/10 hover:bg-tg-accent/15 active:scale-[0.95] flex items-center justify-center text-tg-accent transition-all shrink-0"
+          className="w-9 h-9 rounded-full bg-hf-accent/10 hover:bg-hf-accent/15 active:scale-[0.95] flex items-center justify-center text-hf-accent transition-all shrink-0"
         >
-          <Plus className="w-5 h-5 stroke-[2.5]" />
+          <Plus className="w-5 h-5" />
         </button>
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full bg-tg-secondary-bg rounded-full h-1 mt-3.5 overflow-hidden">
+      <div className="w-full bg-hf-bg-secondary rounded-full h-1 mt-3.5 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-300 ${
-            done ? 'bg-tg-success' : 'bg-tg-accent'
+            done ? 'bg-hf-success' : 'bg-hf-accent'
           }`}
           style={{ width: `${pct}%` }}
         />

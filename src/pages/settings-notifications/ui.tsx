@@ -28,15 +28,15 @@ export default function NotificationsSettingsPage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-tg-bg text-tg-text pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
       {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b border-tg-hint/10 shrink-0">
+      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-tg-secondary-bg hover:opacity-90 active:scale-[0.95] transition-all"
+          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
         >
-          <ArrowLeft className="w-5 h-5 text-tg-text" />
+          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
         </button>
         <h2 className="text-[17px] font-bold">
           {t('profileMenuNotifications')}
@@ -46,55 +46,55 @@ export default function NotificationsSettingsPage() {
 
       <div className="flex-1 p-4 flex flex-col gap-5 max-w-md mx-auto w-full">
         {/* Toggle cards */}
-        <div className="bg-tg-secondary-bg/50 border border-tg-hint/10 rounded-2xl p-4 flex flex-col gap-4 shadow-sm">
+        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex flex-col gap-4 shadow-sm">
           {/* Reminders Toggle */}
           <div className="flex items-center justify-between">
             <div className="flex gap-3 items-center">
-              {reminders ? <Bell className="w-5 h-5 text-tg-accent" /> : <BellOff className="w-5 h-5 text-tg-hint" />}
+              {reminders ? <Bell className="w-5 h-5 text-hf-accent" /> : <BellOff className="w-5 h-5 text-hf-text-secondary" />}
               <div className="flex flex-col">
                 <span className="text-[14px] font-bold">Habit Reminders</span>
-                <span className="text-[11px] text-tg-hint mt-0.5">Receive reminders at scheduled times</span>
+                <span className="text-[11px] text-hf-text-secondary mt-0.5">Receive reminders at scheduled times</span>
               </div>
             </div>
             <input
               type="checkbox"
               checked={reminders}
               onChange={(e) => setReminders(e.target.checked)}
-              className="w-9 h-5 rounded-full bg-tg-secondary-bg border border-tg-hint/25 accent-tg-accent cursor-pointer"
+              className="w-9 h-5 rounded-full bg-hf-bg-secondary border border-hf-border/25 accent-hf-accent cursor-pointer"
             />
           </div>
 
           {/* Sound Toggle */}
-          <div className="flex items-center justify-between border-t border-tg-hint/5 pt-4">
+          <div className="flex items-center justify-between border-t border-hf-border/5 pt-4">
             <div className="flex gap-3 items-center">
-              <Volume2 className="w-5 h-5 text-tg-accent" />
+              <Volume2 className="w-5 h-5 text-hf-accent" />
               <div className="flex flex-col">
                 <span className="text-[14px] font-bold">Notification Sounds</span>
-                <span className="text-[11px] text-tg-hint mt-0.5">Play a notification sound</span>
+                <span className="text-[11px] text-hf-text-secondary mt-0.5">Play a notification sound</span>
               </div>
             </div>
             <input
               type="checkbox"
               checked={sounds}
               onChange={(e) => setSounds(e.target.checked)}
-              className="w-9 h-5 rounded-full bg-tg-secondary-bg border border-tg-hint/25 accent-tg-accent cursor-pointer"
+              className="w-9 h-5 rounded-full bg-hf-bg-secondary border border-hf-border/25 accent-hf-accent cursor-pointer"
             />
           </div>
 
           {/* Weekly review reminder */}
-          <div className="flex items-center justify-between border-t border-tg-hint/5 pt-4">
+          <div className="flex items-center justify-between border-t border-hf-border/5 pt-4">
             <div className="flex gap-3 items-center">
-              <ShieldAlert className="w-5 h-5 text-tg-accent" />
+              <ShieldAlert className="w-5 h-5 text-hf-accent" />
               <div className="flex flex-col">
                 <span className="text-[14px] font-bold">Weekly Review Digest</span>
-                <span className="text-[11px] text-tg-hint mt-0.5">Reminder to close weekly reports on Sunday</span>
+                <span className="text-[11px] text-hf-text-secondary mt-0.5">Reminder to close weekly reports on Sunday</span>
               </div>
             </div>
             <input
               type="checkbox"
               checked={weeklyDigest}
               onChange={(e) => setWeeklyDigest(e.target.checked)}
-              className="w-9 h-5 rounded-full bg-tg-secondary-bg border border-tg-hint/25 accent-tg-accent cursor-pointer"
+              className="w-9 h-5 rounded-full bg-hf-bg-secondary border border-hf-border/25 accent-hf-accent cursor-pointer"
             />
           </div>
         </div>

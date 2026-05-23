@@ -22,15 +22,15 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
   return (
     <header
-      className={`w-full bg-tg-bg border-b border-tg-hint/10 flex items-center px-4 pt-tg-safe-top pb-3 gap-2 ${className}`}
+      className={`w-full bg-hf-bg-primary border-b border-hf-border flex items-center px-4 pt-tg-safe-top pb-3 gap-1 ${className}`}
     >
       <button
         onClick={handleBackClick}
-        className="text-tg-accent hover:opacity-80 active:scale-95 transition-all p-1 -ml-1 rounded-lg"
+        className="text-hf-accent hover:opacity-80 active:scale-95 transition-all p-1 -ml-1 rounded-lg"
       >
         <ChevronLeft className="w-6 h-6" />
       </button>
-      <h1 className="flex-1 text-[20px] font-bold text-tg-text tracking-[-0.02em] truncate">
+      <h1 className="flex-1 text-[20px] font-bold text-hf-text-primary tracking-[-0.02em] truncate">
         {title}
       </h1>
       {trailing && <div className="shrink-0 flex items-center">{trailing}</div>}
