@@ -26,7 +26,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     >
       <button
         onClick={handleBackClick}
-        className="text-hf-accent hover:opacity-80 active:scale-95 transition-all p-1 -ml-1 rounded-lg"
+        className="text-hf-accent hover:opacity-80 active:scale-95 transition-all p-2 -ml-2 rounded-hf-md flex items-center justify-center min-w-[36px] min-h-[36px]"
       >
         <ChevronLeft className="w-6 h-6" />
       </button>

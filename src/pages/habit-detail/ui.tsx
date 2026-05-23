@@ -543,6 +543,13 @@ export default function HabitDetailPage() {
             {t('commonDelete')}
           </button>
         </div>
+
+        <button
+          onClick={() => navigate('/habits')}
+          className="w-full py-3 rounded-hf-md border border-hf-border bg-hf-bg-secondary text-hf-text-primary font-semibold text-hf-body-md flex items-center justify-center gap-2 hover:bg-hf-bg-secondary/50 active:scale-[0.98] transition-all mt-2"
+        >
+          ← Назад
+        </button>
       </div>
 
       <BottomSheet
