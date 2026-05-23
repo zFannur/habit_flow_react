@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { retrieveLaunchParams } from '@telegram-apps/sdk-react';
+import { retrieveRawInitData } from '@telegram-apps/sdk-react';
 import { Send, Link as LinkIcon, RefreshCw, AlertCircle } from 'lucide-react';
 import { useSessionStore } from '@/entities/session';
 import { useTranslation } from '@/shared/lib/i18n';
@@ -8,16 +8,17 @@ import { Button } from '@/shared/ui';
 
 /** Read Telegram initData from all available sources with fallbacks. */
 function readInitData(): string {
-  // Source 1: SDK retrieveLaunchParams (works after initSDK())
+  // Source 1: SDK retrieveRawInitData — the canonical raw initData string in v3.
+  // retrieveLaunchParams().tgWebAppData is a PARSED object, not the raw string the
+  // backend needs; the raw value lives behind retrieveRawInitData().
   try {
-    const lp = retrieveLaunchParams();
-    const raw = (lp.initDataRaw as string | undefined) ?? '';
+    const raw = retrieveRawInitData() ?? '';
     if (raw) {
-      console.log('[Splash] initData source: SDK retrieveLaunchParams ✅');
+      console.log('[Splash] initData source: SDK retrieveRawInitData ✅');
       return raw;
     }
   } catch {
-    console.log('[Splash] SDK retrieveLaunchParams threw — trying fallbacks');
+    console.log('[Splash] SDK retrieveRawInitData threw — trying fallbacks');
   }
 
   // Source 2: window.Telegram.WebApp.initData (always available inside TG WebView)
