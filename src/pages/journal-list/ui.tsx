@@ -1,13 +1,49 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
-import { useJournalEntriesQuery, type JournalEntryModel } from '@/entities/journal';
-import { EmptyState, Button } from '@/shared/ui';
-import { Search, Plus } from 'lucide-react';
-import { dateOnly } from '@/entities/habit';
+import { useJournalEntriesQuery } from '@/entities/journal';
+import { EmptyState, Button, Chip } from '@/shared/ui';
+import { Plus } from 'lucide-react';
 
 type FilterType = 'all' | 'month' | 'lowMood' | 'highMood';
+
+const FILTERS: { id: FilterType; key: string }[] = [
+  { id: 'all', key: 'journalListFilterAll' },
+  { id: 'month', key: 'journalListFilterMonth' },
+  { id: 'lowMood', key: 'journalListFilterLowMood' },
+  { id: 'highMood', key: 'journalListFilterHighMood' },
+];
+
+function moodColor(mood: number | undefined): string {
+  if (mood === undefined) return '#9AA0AB';
+  if (mood <= 3) return '#EF4444';
+  if (mood <= 6) return '#F59E0B';
+  return '#22C55E';
+}
+
+function moodEmoji(mood: number | undefined): string {
+  if (mood === undefined) return '😐';
+  if (mood <= 2) return '😢';
+  if (mood <= 4) return '😕';
+  if (mood <= 6) return '😐';
+  if (mood <= 8) return '🙂';
+  return '😊';
+}
+
+function energyDots(energy: number | undefined): number {
+  if (energy === undefined) return 0;
+  return Math.round(energy / 2);
+}
+
+function formatDateShort(dateStr: string, locale: string): string {
+  try {
+    const d = new Date(dateStr);
+    return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(d);
+  } catch {
+    return dateStr;
+  }
+}
 
 export default function JournalListPage() {
   const navigate = useNavigate();
@@ -15,48 +51,14 @@ export default function JournalListPage() {
   const { state: session } = useSessionStore();
   const userId = session.status === 'authenticated' ? session.user.id : undefined;
 
-  // Local state
-  const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
 
-  // Query
   const { data: entries, isLoading } = useJournalEntriesQuery(userId);
 
-  const calculateStreak = (entriesList: JournalEntryModel[]): number => {
-    if (!entriesList.length) return 0;
-    const dates = new Set(entriesList.map((e) => e.entry_date));
-    let streak = 0;
-    const current = new Date();
-    
-    // Check starting from today or yesterday
-    const checkDate = new Date(current);
-    let checkStr = dateOnly(checkDate);
-    
-    if (!dates.has(checkStr)) {
-      // If today is empty, check starting from yesterday
-      checkDate.setDate(checkDate.getDate() - 1);
-      checkStr = dateOnly(checkDate);
-    }
-    
-    while (dates.has(checkStr)) {
-      streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-      checkStr = dateOnly(checkDate);
-    }
-    return streak;
-  };
-
-  const getFilteredEntries = () => {
+  const filteredEntries = useMemo(() => {
     if (!entries) return [];
     let list = [...entries];
 
-    // Search query filter
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      list = list.filter((e) => e.free_text?.toLowerCase().includes(q));
-    }
-
-    // Filter type
     if (filter === 'month') {
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
@@ -70,59 +72,22 @@ export default function JournalListPage() {
       list = list.filter((e) => e.mood !== undefined && e.mood >= 7);
     }
 
+    list.sort((a, b) => b.entry_date.localeCompare(a.entry_date));
     return list;
-  };
-
-  const filteredEntries = getFilteredEntries();
-  const streak = entries ? calculateStreak(entries) : 0;
-
-  // Group entries by month
-  const getGroupedEntries = () => {
-    const groups: Record<string, JournalEntryModel[]> = {};
-    filteredEntries.forEach((entry) => {
-      try {
-        const dateObj = new Date(entry.entry_date);
-        const monthStr = new Intl.DateTimeFormat(locale, {
-          month: 'long',
-          year: 'numeric',
-        }).format(dateObj);
-        
-        if (!groups[monthStr]) {
-          groups[monthStr] = [];
-        }
-        groups[monthStr].push(entry);
-      } catch {
-        const monthFallback = entry.entry_date.substring(0, 7);
-        if (!groups[monthFallback]) {
-          groups[monthFallback] = [];
-        }
-        groups[monthFallback].push(entry);
-      }
-    });
-    return groups;
-  };
-
-  const groupedEntries = getGroupedEntries();
-
-  const getDayAndWeekday = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      const dayNum = d.getDate();
-      const weekday = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(d);
-      return { dayNum, weekday };
-    } catch {
-      return { dayNum: dateStr.split('-')[2] || '?', weekday: '' };
-    }
-  };
+  }, [entries, filter]);
 
   if (isLoading) {
     return (
       <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary p-4 pb-tg-safe-bottom">
-        <div className="h-6 w-32 bg-hf-bg-secondary animate-pulse rounded mb-4" />
-        <div className="h-10 w-full bg-hf-bg-secondary animate-pulse rounded-xl mb-4" />
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-hf-bg-secondary animate-pulse rounded-2xl" />
+        <div className="h-[28px] w-[100px] bg-hf-bg-secondary animate-pulse rounded mb-4" />
+        <div className="flex gap-2 mb-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-8 w-20 bg-hf-bg-secondary animate-pulse rounded-hf-full" />
+          ))}
+        </div>
+        <div className="flex flex-col gap-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-[88px] bg-hf-bg-secondary animate-pulse rounded-hf-lg" />
           ))}
         </div>
       </div>
@@ -131,72 +96,26 @@ export default function JournalListPage() {
 
   return (
     <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
-      {/* Header */}
       <div className="p-4 bg-hf-bg-primary shrink-0">
-        <h2 className="text-[22px] font-bold tracking-tight text-hf-text-primary">
+        <h2 className="text-[22px] font-bold tracking-[-0.02em] text-hf-text-primary">
           {t('journalListTitle')}
         </h2>
-        {streak > 0 && (
-          <p className="text-[13px] text-hf-accent font-semibold mt-1">
-            {t('journalListStreak', { days: streak })}
-          </p>
-        )}
       </div>
 
-      {/* Search Input */}
-      <div className="px-4 pb-2 border-b border-hf-border/10 shrink-0">
-        <div className="flex items-center gap-2 bg-hf-bg-secondary border border-hf-border/15 rounded-xl px-3 py-2">
-          <Search className="w-4 h-4 text-hf-text-secondary shrink-0" />
-          <input
-            type="text"
-            placeholder={t('commonSearch')}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent border-none text-[14px] outline-none text-hf-text-primary placeholder:text-hf-text-tertiary"
+      <div className="flex items-center gap-2 overflow-x-auto px-4 pb-3 shrink-0 scrollbar-none">
+        {FILTERS.map((f) => (
+          <Chip
+            key={f.id}
+            label={t(f.key)}
+            selected={filter === f.id}
+            onTap={() => setFilter(f.id)}
           />
-        </div>
+        ))}
       </div>
 
-      {/* Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 shrink-0 scrollbar-none">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-3 py-1.5 rounded-full text-[13px] font-semibold transition-all shrink-0 ${
-            filter === 'all' ? 'bg-hf-accent text-white' : 'bg-hf-bg-secondary text-hf-text-primary'
-          }`}
-        >
-          {t('journalListFilterAll')}
-        </button>
-        <button
-          onClick={() => setFilter('month')}
-          className={`px-3 py-1.5 rounded-full text-[13px] font-semibold transition-all shrink-0 ${
-            filter === 'month' ? 'bg-hf-accent text-white' : 'bg-hf-bg-secondary text-hf-text-primary'
-          }`}
-        >
-          {t('journalListFilterMonth')}
-        </button>
-        <button
-          onClick={() => setFilter('lowMood')}
-          className={`px-3 py-1.5 rounded-full text-[13px] font-semibold transition-all shrink-0 ${
-            filter === 'lowMood' ? 'bg-hf-accent text-white' : 'bg-hf-bg-secondary text-hf-text-primary'
-          }`}
-        >
-          {t('journalListFilterLowMood')}
-        </button>
-        <button
-          onClick={() => setFilter('highMood')}
-          className={`px-3 py-1.5 rounded-full text-[13px] font-semibold transition-all shrink-0 ${
-            filter === 'highMood' ? 'bg-hf-accent text-white' : 'bg-hf-bg-secondary text-hf-text-primary'
-          }`}
-        >
-          {t('journalListFilterHighMood')}
-        </button>
-      </div>
-
-      {/* List content */}
-      <div className="flex-1 p-4 flex flex-col gap-6">
+      <div className="flex-1 px-4 pb-24">
         {filteredEntries.length === 0 ? (
-          <div className="py-12">
+          <div className="py-16">
             <EmptyState
               emoji="📝"
               title={t('emptyTitleNoEntries')}
@@ -210,63 +129,54 @@ export default function JournalListPage() {
             />
           </div>
         ) : (
-          Object.entries(groupedEntries).map(([monthStr, monthEntries]) => (
-            <div key={monthStr} className="flex flex-col gap-3">
-              <h3 className="text-[14px] font-bold text-hf-text-secondary uppercase tracking-wider ml-1">
-                {monthStr}
-              </h3>
-              <div className="flex flex-col gap-3">
-                {monthEntries.map((entry) => {
-                  const { dayNum, weekday } = getDayAndWeekday(entry.entry_date);
-                  return (
-                    <div
-                      key={entry.id}
-                      onClick={() => navigate(`/journal/${entry.entry_date}`)}
-                      className="bg-hf-card border border-hf-border/10 rounded-2xl p-4 shadow-sm flex items-center gap-4 cursor-pointer hover:opacity-[0.98] active:scale-[0.99] transition-all"
-                    >
-                      {/* Date Indicator */}
-                      <div className="flex flex-col items-center justify-center bg-hf-bg-secondary border border-hf-border/15 rounded-xl w-12 h-12 shrink-0">
-                        <span className="text-[17px] font-bold leading-none">{dayNum}</span>
-                        <span className="text-[9px] font-semibold text-hf-text-secondary uppercase mt-0.5">{weekday}</span>
-                      </div>
+          <div className="flex flex-col gap-3">
+            {filteredEntries.map((entry) => (
+              <div
+                key={entry.id}
+                onClick={() => navigate(`/journal/${entry.entry_date}`)}
+                className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 flex items-center gap-4 cursor-pointer hover:opacity-[0.98] active:scale-[0.99] transition-all"
+              >
+                <div
+                  className="w-3 h-3 rounded-full shrink-0"
+                  style={{ backgroundColor: moodColor(entry.mood) }}
+                />
 
-                      {/* Content middle */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[14px] text-hf-text-primary font-medium line-clamp-2 leading-relaxed">
-                          {entry.free_text ? entry.free_text.replace(/###.*?\n/g, '') : ''}
-                        </p>
-                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                          {entry.mood !== undefined && (
-                            <span className="text-[11px] font-bold text-hf-accent flex items-center gap-0.5">
-                              <span>😊</span>
-                              <span>{entry.mood}/10</span>
-                            </span>
-                          )}
-                          {entry.energy !== undefined && (
-                            <span className="text-[11px] font-bold text-orange-500 flex items-center gap-0.5">
-                              <span>⚡</span>
-                              <span>{entry.energy}/10</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                <div className="flex-1 min-w-0">
+                  <p className="text-hf-body-sm text-hf-text-secondary leading-tight">
+                    {formatDateShort(entry.entry_date, locale)}
+                  </p>
+                  <p className="text-hf-body-md text-hf-text-primary mt-0.5 line-clamp-2 leading-relaxed">
+                    {entry.free_text ? entry.free_text.replace(/###.*?\n/g, '').substring(0, 120) : ''}
+                  </p>
+                  {entry.mood !== undefined && (
+                    <span className="inline-flex items-center gap-0.5 mt-1 text-[12px] text-hf-text-secondary">
+                      <span>{moodEmoji(entry.mood)}</span>
+                      <span>{entry.mood}/10</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0 self-end">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-1.5 h-3 rounded-[2px] ${
+                        i < energyDots(entry.energy) ? 'bg-amber-500' : 'bg-hf-bg-tertiary'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Floating Action Button */}
       <button
         type="button"
         onClick={() => navigate('/journal/new')}
-        className="fixed right-5 bottom-20 w-14 h-14 rounded-full bg-hf-accent text-white flex items-center justify-center shadow-lg hover:opacity-90 active:scale-[0.95] transition-all z-10"
-        style={{
-          boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)',
-        }}
+        className="fixed right-5 bottom-24 w-14 h-14 rounded-full bg-hf-accent text-white flex items-center justify-center shadow-lg hover:opacity-90 active:scale-[0.95] transition-all z-10"
+        style={{ boxShadow: '0 4px 16px rgba(59, 130, 246, 0.35)' }}
       >
         <Plus className="w-6 h-6 stroke-[2px]" />
       </button>

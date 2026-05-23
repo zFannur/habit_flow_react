@@ -1,42 +1,82 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
-import { Button } from '@/shared/ui';
-import { ArrowLeft, Key, CheckCircle2, XCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { HeaderBar } from '@/shared/ui';
 import { OpenRouterClient } from '@/shared/api';
+import {
+  Search,
+  X,
+  Eye,
+  EyeOff,
+  XCircle,
+  RefreshCw,
+  Lock,
+  ChevronRight,
+} from 'lucide-react';
+
+const MODELS = [
+  { id: 'openai/gpt-oss-120b:free', name: 'GPT-OSS 120B', provider: 'OpenAI', free: true, context: '131K', rpm: 20, rpd: 200 },
+  { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B', provider: 'OpenAI', free: false, context: '131K', rpm: 60, price: '$0.04 / $0.18' },
+  { id: 'qwen/qwen3-coder:free', name: 'Qwen3 Coder', provider: 'Qwen / Alibaba', free: true, context: '32K', rpm: 20, rpd: 200 },
+  { id: 'anthropic/claude-haiku-4-5', name: 'Claude Haiku 4.5', provider: 'Anthropic', free: false, context: '200K', rpm: 50, price: '$0.08 / $0.25' },
+  { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google DeepMind', free: false, context: '1M', rpm: 60, price: '$0.00 / $0.00' },
+  { id: 'meta-llama/llama-4-maverick', name: 'Llama 4 Maverick', provider: 'Meta', free: false, context: '512K', rpm: 30, price: '$0.10 / $0.28' },
+];
+
+const AI_STYLES = [
+  { id: 'coach', emoji: '🎓', nameKey: 'aiStyleCoachName', descKey: 'aiStyleCoachDesc', previewKey: 'aiStyleCoachPreview', locked: false },
+  { id: 'sergeant', emoji: '💪', nameKey: 'aiStyleSergeantName', descKey: 'aiStyleSergeantDesc', previewKey: 'aiStyleSergeantPreview', locked: false },
+  { id: 'buddy', emoji: '🤗', nameKey: 'aiStyleBuddyName', descKey: 'aiStyleBuddyDesc', previewKey: 'aiStyleBuddyPreview', locked: false },
+  { id: 'sage', emoji: '🧘', nameKey: 'aiStyleSageName', descKey: 'aiStyleSageDesc', previewKey: 'aiStyleSagePreview', locked: false },
+  { id: 'poet', emoji: '✍️', nameKey: 'aiStylePoetName', descKey: 'aiStylePoetDesc', previewKey: 'aiStylePoetPreview', locked: true },
+];
+
+function maskKey(key: string): string {
+  if (key.length <= 13) return key;
+  return key.substring(0, 9) + '•••••••••••••••••' + key.substring(key.length - 4);
+}
+
+type KeyStatus = 'unchecked' | 'checking' | 'ok' | 'error';
 
 export default function AiSettingsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  // Local State
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
-  const [model, setModel] = useState('google/gemini-2.5-flash');
-  
-  // Status: 'unchecked' | 'checking' | 'ok' | 'error'
-  const [status, setStatus] = useState<'unchecked' | 'checking' | 'ok' | 'error'>('unchecked');
+  const [editing, setEditing] = useState(false);
+  const [inputKey, setInputKey] = useState('');
+  const [status, setStatus] = useState<KeyStatus>('unchecked');
 
-  // Load Saved Values
+  const [model, setModel] = useState('google/gemini-2.5-flash');
+  const [style, setStyle] = useState('coach');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
+
   useEffect(() => {
     const savedKey = localStorage.getItem('openrouter_key') || '';
     setApiKey(savedKey);
     if (savedKey) {
-      setStatus('ok'); // Assume okay until tested
+      setEditing(false);
+      setStatus('ok');
+    } else {
+      setEditing(true);
     }
-    
     const savedModel = localStorage.getItem('ai.preferred_model') || 'google/gemini-2.5-flash';
     setModel(savedModel);
+    const savedStyle = localStorage.getItem('ai.style') || 'coach';
+    setStyle(savedStyle);
   }, []);
 
   const handleTestKey = async () => {
-    if (!apiKey.trim()) {
+    const key = apiKey || inputKey;
+    if (!key.trim()) {
       setStatus('error');
       return;
     }
     setStatus('checking');
     try {
-      const client = new OpenRouterClient(apiKey);
+      const client = new OpenRouterClient(key);
       const isValid = await client.testKey();
       setStatus(isValid ? 'ok' : 'error');
     } catch {
@@ -44,143 +84,326 @@ export default function AiSettingsPage() {
     }
   };
 
-  const handleSave = () => {
-    const cleanKey = apiKey.trim();
-    if (cleanKey) {
-      localStorage.setItem('openrouter_key', cleanKey);
-    } else {
-      localStorage.removeItem('openrouter_key');
-    }
-    
-    localStorage.setItem('ai.preferred_model', model);
-    alert('AI settings saved!');
-    navigate(-1);
+  const handleSaveKey = () => {
+    const cleanKey = inputKey.trim();
+    if (cleanKey.length < 10) return;
+    localStorage.setItem('openrouter_key', cleanKey);
+    setApiKey(cleanKey);
+    setInputKey('');
+    setEditing(false);
+    setStatus('unchecked');
   };
 
-  const handleClear = () => {
-    localStorage.removeItem('openrouter_key');
-    setApiKey('');
-    setStatus('unchecked');
-    alert('API key cleared!');
+  const handleSelectModel = (id: string) => {
+    setModel(id);
+    localStorage.setItem('ai.preferred_model', id);
+  };
+
+  const handleSelectStyle = (id: string) => {
+    const s = AI_STYLES.find((s) => s.id === id);
+    if (s?.locked) return;
+    setStyle(id);
+    localStorage.setItem('ai.style', id);
+  };
+
+  const filteredModels = MODELS.filter((m) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return m.id === model || m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q);
+  });
+
+  const currentStyle = AI_STYLES.find((s) => s.id === style) ?? AI_STYLES[0]!;
+
+  const statusDot = () => {
+    switch (status) {
+      case 'unchecked': return <span className="text-hf-text-tertiary text-[12px] font-semibold">{t('aiSettingsStatusUnchecked')}</span>;
+      case 'checking': return (
+        <span className="text-hf-accent flex items-center gap-1 text-[12px] font-semibold">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          {t('aiSettingsStatusChecking')}
+        </span>
+      );
+      case 'ok': return (
+        <span className="text-[#16A34A] flex items-center gap-1 text-[12px] font-semibold">
+          <div className="w-2 h-2 rounded-full bg-[#16A34A]" />
+          {t('aiSettingsStatusOk')}
+        </span>
+      );
+      case 'error': return (
+        <span className="text-hf-danger flex items-center gap-1 text-[12px] font-semibold">
+          <XCircle className="w-3 h-3" />
+          {t('aiSettingsStatusError')}
+        </span>
+      );
+    }
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
-        >
-          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
-        </button>
-        <h2 className="text-[17px] font-bold">
-          {t('profileMenuAiSettings')}
-        </h2>
-        <div className="w-9" />
-      </div>
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto">
+      <HeaderBar title={t('aiSettingsTitle')} onBack={() => navigate(-1)} />
 
-      <div className="flex-1 p-4 flex flex-col gap-6 max-w-md mx-auto w-full">
-        {/* Intro */}
-        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex gap-3 items-start shadow-sm">
-          <Key className="w-5 h-5 text-hf-accent shrink-0 mt-0.5" />
-          <p className="text-[13px] leading-relaxed text-hf-text-secondary">
-            {t('aiChatDisclaimerText')}
-          </p>
-        </div>
+      <div className="flex-1 p-4 flex flex-col gap-4 max-w-md mx-auto w-full">
+        {/* Section Header */}
+        <p className="text-[11px] uppercase tracking-wider text-hf-text-tertiary font-semibold px-1">
+          {t('aiSettingsApiKeySection')}
+        </p>
 
-        {/* API Key Input */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[13px] font-semibold text-hf-text-secondary">OpenRouter API Key</label>
-          <div className="relative">
-            <input
-              type={showKey ? 'text' : 'password'}
-              placeholder="sk-or-v1-..."
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                setStatus('unchecked');
-              }}
-              className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl px-4 py-3.5 pr-11 text-[14px] text-hf-text-primary placeholder:text-hf-text-tertiary outline-none focus:border-hf-accent transition-all"
-            />
-            <button
-              type="button"
-              onClick={() => setShowKey(!showKey)}
-              className="absolute right-3.5 top-1/2 transform -translate-y-1/2 text-hf-text-secondary hover:text-hf-text-primary transition-all"
-            >
-              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+        {/* API Key Card */}
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card overflow-hidden">
+          <div className="p-4">
+            <p className="text-[13px] font-semibold text-hf-text-primary mb-2.5">{t('aiSettingsApiKeyLabel')}</p>
+
+            {editing || !apiKey ? (
+              <div className="flex gap-2 items-center">
+                <div className="flex-1 border-[1.5px] border-hf-border rounded-hf-md bg-hf-bg-secondary px-3.5 py-2.5">
+                  <input
+                    type="text"
+                    placeholder="sk-or-v1-..."
+                    value={inputKey}
+                    onChange={(e) => setInputKey(e.target.value)}
+                    className="w-full bg-transparent text-[13px] text-hf-text-primary outline-none placeholder:text-hf-text-tertiary"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  onClick={handleSaveKey}
+                  disabled={inputKey.length < 10}
+                  className="px-4 py-2.5 rounded-hf-md bg-hf-accent text-white text-[13px] font-semibold disabled:opacity-40 shrink-0"
+                >
+                  {t('commonSave')}
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 items-center">
+                <div className="flex-1 border-[1.5px] border-hf-border rounded-hf-md bg-hf-bg-secondary px-3.5 py-2.5 flex items-center gap-2">
+                  <span className="flex-1 text-[13px] text-hf-text-primary truncate">
+                    {showKey ? apiKey : maskKey(apiKey)}
+                  </span>
+                  <button onClick={() => setShowKey(!showKey)} className="p-1 rounded-md bg-hf-bg-tertiary hover:opacity-80">
+                    {showKey ? <EyeOff className="w-4 h-4 text-hf-text-secondary" /> : <Eye className="w-4 h-4 text-hf-text-secondary" />}
+                  </button>
+                </div>
+                <button
+                  onClick={() => { setEditing(true); setInputKey(''); }}
+                  className="px-4 py-2.5 rounded-hf-md bg-hf-accent text-white text-[13px] font-semibold shrink-0"
+                >
+                  {t('commonReplace')}
+                </button>
+              </div>
+            )}
+
+            <div className="flex gap-4 mt-2.5">
+              <button onClick={() => window.open('https://openrouter.ai/keys', '_blank')} className="text-[12px] text-hf-accent">
+                {t('aiSettingsApiKeyLink')}
+              </button>
+              <button onClick={() => setHowItWorksOpen(!howItWorksOpen)} className="text-[12px] text-hf-accent">
+                {t('aiSettingsHowItWorks')}
+              </button>
+            </div>
+
+            {/* How It Works - expandable */}
+            {howItWorksOpen && (
+              <div className="mt-4 pt-4 border-t border-hf-border flex flex-col gap-3.5">
+                <StepItem icon="🔑" title={t('aiSettingsHowItem1Title')} text={t('aiSettingsHowItem1Text')} />
+                <StepItem icon="🌐" title={t('aiSettingsHowItem2Title')} text={t('aiSettingsHowItem2Text')} />
+                <StepItem icon="💳" title={t('aiSettingsHowItem3Title')} text={t('aiSettingsHowItem3Text')} />
+              </div>
+            )}
           </div>
+
+          {!editing && apiKey && (
+            <>
+              <div className="border-t border-hf-border" />
+              <div className="p-4">
+                <button
+                  onClick={handleTestKey}
+                  disabled={status === 'checking'}
+                  className="w-full py-2.5 rounded-hf-md border-[1.5px] border-hf-border text-[13px] font-semibold text-hf-text-secondary hover:border-hf-accent hover:text-hf-accent transition-all flex items-center justify-center gap-1.5 disabled:opacity-60"
+                >
+                  🧪 {status === 'checking' ? t('commonSending') : t('aiSettingsTestButton')}
+                </button>
+                <div className="mt-2.5">{statusDot()}</div>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Status Indicator & Test Button */}
-        <div className="flex items-center justify-between bg-hf-bg-secondary/30 border border-hf-border/10 rounded-xl p-3 text-[13px]">
-          <div className="flex items-center gap-1.5 font-semibold">
-            {status === 'unchecked' && <span className="text-hf-text-secondary">Unchecked</span>}
-            {status === 'checking' && (
-              <span className="text-hf-accent flex items-center gap-1">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                Checking...
-              </span>
-            )}
-            {status === 'ok' && (
-              <span className="text-hf-success flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Active & Verified
-              </span>
-            )}
-            {status === 'error' && (
-              <span className="text-red-500 flex items-center gap-1">
-                <XCircle className="w-3.5 h-3.5" />
-                Invalid Key
-              </span>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleTestKey}
-            disabled={status === 'checking' || !apiKey.trim()}
-            className="text-[12px] font-bold text-hf-accent hover:underline disabled:opacity-50"
-          >
-            Verify Key
-          </button>
-        </div>
+        {/* Model Selection */}
+        <p className="text-[11px] uppercase tracking-wider text-hf-text-tertiary font-semibold px-1 mt-1">
+          {t('aiSettingsModelSection')}
+        </p>
 
-        {/* Model Selector */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-semibold text-hf-text-secondary">Preferred LLM Model</label>
-          <select
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3.5 text-[14px] text-hf-text-primary outline-none focus:border-hf-accent transition-all"
-          >
-            <option value="google/gemini-2.5-flash">Google Gemini 2.5 Flash (Recommended)</option>
-            <option value="meta-llama/llama-3-8b-instruct:free">Meta Llama 3 8B Instruct (Free)</option>
-            <option value="openai/gpt-4o-mini">OpenAI GPT-4o Mini</option>
-            <option value="anthropic/claude-3-haiku">Anthropic Claude 3 Haiku</option>
-          </select>
-        </div>
-
-        {/* Danger actions */}
-        {apiKey && (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="text-red-500 hover:text-red-700 text-[13px] font-semibold text-center hover:underline self-center mt-2"
-          >
-            Clear key from storage
-          </button>
-        )}
-
-        {/* Actions Button */}
-        <div className="mt-auto shrink-0 pb-6">
-          <Button
-            label={t('commonSave')}
-            onClick={handleSave}
-            className="w-full"
+        <div className="flex items-center gap-2 border-[1.5px] border-hf-border rounded-hf-md bg-hf-bg-secondary px-3 py-2">
+          <Search className="w-4 h-4 text-hf-text-tertiary" />
+          <input
+            type="text"
+            placeholder={t('aiSettingsModelSearchHint')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent text-[14px] text-hf-text-primary outline-none placeholder:text-hf-text-tertiary"
           />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')}>
+              <X className="w-4 h-4 text-hf-text-tertiary" />
+            </button>
+          )}
         </div>
+
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card overflow-hidden">
+          {filteredModels.length === 0 ? (
+            <div className="py-8 text-center text-[13px] text-hf-text-tertiary">{t('aiSettingsModelsEmpty')}</div>
+          ) : (
+            <div className="max-h-80 overflow-y-auto">
+              {filteredModels.map((m, i) => (
+                <div key={m.id}>
+                  <button
+                    onClick={() => handleSelectModel(m.id)}
+                    className={`w-full px-4 py-3.5 flex items-start gap-3 text-left transition-colors ${
+                      model === m.id ? 'bg-hf-accent/5' : ''
+                    }`}
+                  >
+                    <div className="pt-0.5">
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                          model === m.id ? 'bg-hf-accent border-2 border-hf-accent' : 'border-[1.5px] border-hf-border'
+                        }`}
+                      >
+                        {model === m.id && <div className="w-[7px] h-[7px] rounded-full bg-white" />}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[13px] font-semibold text-hf-text-primary">{m.name}</span>
+                        {m.free && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-[#22C55E]/10 text-[#16A34A] text-[10px] font-extrabold tracking-wider">
+                            {t('aiBadgeFree')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-hf-text-tertiary">
+                        <span>{m.provider}</span>
+                        <span>·</span>
+                        <span>{m.context} ctx</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {m.free ? null : (
+                        <div>
+                          <span className="text-[11px] text-hf-text-tertiary">за 1M</span>
+                          <div className="text-[12px] text-hf-text-secondary font-medium">{m.price}</div>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                  {i < filteredModels.length - 1 && <div className="mx-4 border-t border-hf-border" />}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button className="flex items-center gap-1 text-[12px] text-hf-accent px-1">
+          {t('aiSettingsAllModelsLink')}
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+
+        {/* AI Style Selection */}
+        <p className="text-[11px] uppercase tracking-wider text-hf-text-tertiary font-semibold px-1 mt-1">
+          {t('aiSettingsStyleSection')}
+        </p>
+        <p className="text-[13px] text-hf-text-secondary px-1 -mt-2 mb-0">{t('aiSettingsStyleSubtitle')}</p>
+
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card overflow-hidden">
+          {AI_STYLES.map((s, i) => (
+            <div key={s.id}>
+              <button
+                onClick={() => handleSelectStyle(s.id)}
+                disabled={s.locked}
+                className={`w-full px-4 py-3.5 flex items-start gap-3 text-left transition-colors disabled:opacity-45 ${
+                  style === s.id ? 'bg-hf-accent/5' : ''
+                }`}
+              >
+                <div className="pt-0.5">
+                  <div
+                    className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                      s.locked ? 'border-[1.5px] border-hf-bg-tertiary' :
+                      style === s.id ? 'bg-hf-accent border-2 border-hf-accent' : 'border-[1.5px] border-hf-border'
+                    }`}
+                  >
+                    {style === s.id && !s.locked && <div className="w-[7px] h-[7px] rounded-full bg-white" />}
+                  </div>
+                </div>
+                <span className="text-xl leading-none pt-0.5">{s.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[13px] font-semibold text-hf-text-primary">{t(s.nameKey)}</span>
+                  <p className="text-[12px] text-hf-text-tertiary mt-0.5">{t(s.descKey)}</p>
+                </div>
+                {s.locked && (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-hf-bg-tertiary text-[11px] text-hf-text-tertiary shrink-0">
+                    <Lock className="w-3 h-3" />
+                    Pro
+                  </span>
+                )}
+              </button>
+              {i < AI_STYLES.length - 1 && <div className="mx-4 border-t border-hf-border" />}
+            </div>
+          ))}
+        </div>
+
+        {/* Style Preview Bubble */}
+        <p className="text-[11px] uppercase tracking-wider text-hf-text-tertiary font-semibold px-1">
+          {t('aiSettingsStyleExampleHeader')}
+        </p>
+        <div className="bg-hf-bg-secondary border border-hf-border rounded-hf-md px-3.5 py-3 flex items-start gap-2">
+          <span className="text-lg leading-none mt-0.5">{currentStyle.emoji}</span>
+          <p className="text-[12px] text-hf-text-secondary leading-relaxed">{t(currentStyle.previewKey)}</p>
+        </div>
+
+        {/* Usage Stats */}
+        <p className="text-[11px] uppercase tracking-wider text-hf-text-tertiary font-semibold px-1 mt-1">
+          {t('aiSettingsUsageSection')}
+        </p>
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card overflow-hidden">
+          <div className="px-4 py-3 flex justify-between items-center text-[12px]">
+            <span className="text-hf-text-secondary">{t('aiSettingsUsageToday')}</span>
+            <span>
+              <span className="font-semibold text-hf-text-primary">0</span>
+              <span className="text-hf-text-tertiary"> / 200 {t('aiSettingsUsageToday').toLowerCase()}</span>
+            </span>
+          </div>
+          <div className="px-4 pb-1">
+            <div className="h-1 rounded-full bg-hf-bg-tertiary overflow-hidden">
+              <div className="h-full rounded-full bg-hf-accent" style={{ width: '0%' }} />
+            </div>
+          </div>
+          <div className="border-t border-hf-border" />
+          <div className="px-4 py-3 flex justify-between items-center text-[12px]">
+            <span className="text-hf-text-secondary">{t('aiSettingsUsageMonth')}</span>
+            <span className="font-semibold text-hf-text-primary">—</span>
+          </div>
+          <div className="border-t border-hf-border" />
+          <div className="px-4 py-3 flex justify-between items-center text-[12px]">
+            <span className="text-hf-text-secondary">{t('aiSettingsUsageSpent')}</span>
+            <span className="font-semibold text-hf-text-primary">—</span>
+          </div>
+          <div className="px-4 py-3">
+            <p className="text-[11px] text-hf-text-tertiary leading-relaxed">{t('aiSettingsUsageNote')}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StepItem({ icon, title, text }: { icon: string; title: string; text: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-[38px] h-[38px] rounded-hf-md bg-hf-bg-secondary flex items-center justify-center text-lg shrink-0">
+        {icon}
+      </div>
+      <div>
+        <p className="text-[13px] font-semibold text-hf-text-primary">{title}</p>
+        <p className="text-[12px] text-hf-text-secondary leading-relaxed mt-0.5">{text}</p>
       </div>
     </div>
   );

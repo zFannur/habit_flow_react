@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
-import { useCreateHabitMutation, dateOnly } from '@/entities/habit';
-import { ArrowLeft } from 'lucide-react';
+import { useCreateHabitMutation } from '@/entities/habit';
 
 interface OnboardingTemplate {
   emoji: string;
@@ -11,19 +10,20 @@ interface OnboardingTemplate {
   nameEn: string;
   subRu: string;
   subEn: string;
-  isAnti?: boolean;
 }
 
 const TEMPLATES: OnboardingTemplate[] = [
   { emoji: '💧', nameRu: 'Пить воду', nameEn: 'Drink water', subRu: '8 раз в день', subEn: '8 times a day' },
   { emoji: '🧘', nameRu: 'Медитация', nameEn: 'Meditation', subRu: '10 мин утром', subEn: '10 min morning' },
   { emoji: '🚶', nameRu: 'Прогулка', nameEn: 'Walk', subRu: '30 мин', subEn: '30 min' },
-  { emoji: '🚭', nameRu: 'Без курения', nameEn: 'No smoking', subRu: 'Анти-привычка', subEn: 'Anti-habit', isAnti: true },
+  { emoji: '🚭', nameRu: 'Без курения', nameEn: 'No smoking', subRu: 'Анти-привычка', subEn: 'Anti-habit' },
   { emoji: '📚', nameRu: 'Чтение', nameEn: 'Reading', subRu: '20 мин перед сном', subEn: '20 min before bed' },
   { emoji: '✍️', nameRu: 'Дневник', nameEn: 'Journal', subRu: 'Каждый вечер', subEn: 'Every evening' },
   { emoji: '💪', nameRu: 'Спорт', nameEn: 'Exercise', subRu: '3 раза в неделю', subEn: '3x per week' },
   { emoji: '🌅', nameRu: 'Ранний подъём', nameEn: 'Early rise', subRu: 'до 7:00', subEn: 'Before 7:00' },
 ];
+
+const TOTAL = 5;
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
@@ -32,24 +32,28 @@ export default function OnboardingPage() {
   const userId = session.status === 'authenticated' ? session.user.id : undefined;
 
   const [step, setStep] = useState(0);
+  const [lang, setLang] = useState<'ru' | 'en'>(locale as 'ru' | 'en');
   const [selectedTemplates, setSelectedTemplates] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
 
   const createHabitMutation = useCreateHabitMutation(userId || '');
 
-  const totalSteps = 5;
+  const dateOnly = (d: Date) => d.toISOString().split('T')[0]!;
 
   const handleNext = async () => {
-    // Creating habits on step 3 (templates page)
+    if (step === 0) {
+      setLocale(lang);
+    }
+
     if (step === 3 && selectedTemplates.size > 0 && !submitting) {
       setSubmitting(true);
       try {
-        const templatesToCreate = Array.from(selectedTemplates).map((idx) => TEMPLATES[idx]!);
-        for (const tpl of templatesToCreate) {
+        const toCreate = Array.from(selectedTemplates).map((i) => TEMPLATES[i]!);
+        for (const tpl of toCreate) {
           try {
             await createHabitMutation.mutateAsync({
-              name: locale === 'en' ? tpl.nameEn : tpl.nameRu,
-              habit_type: tpl.isAnti ? 'anti' : 'binary',
+              name: lang === 'en' ? tpl.nameEn : tpl.nameRu,
+              habit_type: 'binary',
               icon_emoji: tpl.emoji,
               color: '#3B82F6',
               schedule_type: 'daily',
@@ -60,20 +64,17 @@ export default function OnboardingPage() {
               position: 0,
             });
           } catch (err) {
-            console.error(`Failed to create template habit "${tpl.nameEn}":`, err);
+            console.error(`Failed to create template habit:`, err);
           }
         }
-      } catch (err) {
-        console.error('Failed to create onboarding habits:', err);
       } finally {
         setSubmitting(false);
       }
     }
 
-    if (step < totalSteps - 1) {
+    if (step < TOTAL - 1) {
       setStep(step + 1);
     } else {
-      // Last step: mark seen and go to Today
       localStorage.setItem('onboarding.seen', 'true');
       navigate('/today', { replace: true });
     }
@@ -84,7 +85,7 @@ export default function OnboardingPage() {
   };
 
   const handleSkip = () => {
-    setStep(totalSteps - 1);
+    setStep(TOTAL - 1);
   };
 
   const toggleTemplate = (idx: number) => {
@@ -97,90 +98,168 @@ export default function OnboardingPage() {
     setSelectedTemplates(next);
   };
 
-  const renderSlide = () => {
-    switch (step) {
-      case 0:
-        return (
-          <div className="flex-1 flex flex-col justify-between p-6">
-            <div className="flex justify-end mt-2">
-              <div className="bg-hf-bg-secondary border border-hf-border/10 rounded-xl p-0.5 flex gap-0.5">
+  const showSkip = step >= 1 && step <= 3;
+
+  return (
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary">
+      {/* Top Navigation Bar */}
+      <div className="flex items-center px-5 pt-4 pb-3 shrink-0">
+        <div className="w-9 h-9 shrink-0">
+          {step > 0 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="w-9 h-9 rounded-[10px] bg-hf-card border-[1.5px] border-hf-border flex items-center justify-center active:scale-95 transition-all"
+            >
+              <span className="text-hf-body-lg font-bold text-hf-text-secondary leading-none">←</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex-1 flex justify-center gap-[6px] mx-2.5">
+          {Array.from({ length: TOTAL }).map((_, i) => {
+            const active = i === step;
+            return (
+              <div
+                key={i}
+                className="h-[6px] rounded-[3px] transition-all duration-300"
+                style={{
+                  width: active ? '22px' : '6px',
+                  backgroundColor: active
+                    ? 'var(--color-hf-accent)'
+                    : 'var(--color-hf-bg-tertiary)',
+                }}
+              />
+            );
+          })}
+        </div>
+
+        <div className="w-[60px] text-right shrink-0">
+          {showSkip && (
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="text-hf-body-sm font-semibold text-hf-text-tertiary active:text-hf-accent transition-all py-1"
+            >
+              {t('onboardingSkip')}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Slides */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* ── Slide 0: Welcome ── */}
+        {step === 0 && (
+          <div className="flex-1 flex flex-col justify-between px-6 pt-5 pb-8">
+            <div className="flex justify-end">
+              {/* Language chip */}
+              <div className="bg-hf-bg-tertiary border border-hf-border rounded-[10px] p-0.5 flex">
                 <button
-                  onClick={() => setLocale('ru')}
-                  className={`px-3 py-1 rounded-lg text-[12px] font-semibold transition-all ${
-                    locale === 'ru' ? 'bg-hf-card text-hf-accent shadow-sm' : 'text-hf-text-secondary'
+                  onClick={() => setLang('ru')}
+                  className={`px-2.5 py-1 rounded-lg text-hf-label-md font-semibold transition-all ${
+                    lang === 'ru'
+                      ? 'bg-hf-card text-hf-accent shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                      : 'text-hf-text-secondary'
                   }`}
                 >
-                  🇷🇺 RU
+                  {t('langRu')}
                 </button>
                 <button
-                  onClick={() => setLocale('en')}
-                  className={`px-3 py-1 rounded-lg text-[12px] font-semibold transition-all ${
-                    locale === 'en' ? 'bg-hf-card text-hf-accent shadow-sm' : 'text-hf-text-secondary'
+                  onClick={() => setLang('en')}
+                  className={`px-2.5 py-1 rounded-lg text-hf-label-md font-semibold transition-all ${
+                    lang === 'en'
+                      ? 'bg-hf-card text-hf-accent shadow-[0_1px_3px_rgba(0,0,0,0.08)]'
+                      : 'text-hf-text-secondary'
                   }`}
                 >
-                  🇬🇧 EN
+                  {t('langEn')}
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="flex-1 flex flex-col items-center justify-center text-center pb-4">
               <span className="text-[80px] leading-none">🌱</span>
-              <h1 className="text-[34px] font-bold tracking-tight mt-6 text-hf-text-primary">
+              <h1 className="text-[34px] font-bold tracking-[-0.03em] mt-4 text-hf-text-primary leading-[1.1]">
                 HabitFlow
               </h1>
-              <p className="text-[16px] text-hf-text-secondary mt-2 max-w-xs leading-normal">
+              <p className="text-hf-body-lg font-normal text-hf-text-secondary leading-[1.5] mt-2.5 max-w-[280px]">
                 {t('onboardingS1Sub')}
               </p>
             </div>
 
             <button
               onClick={handleNext}
-              className="w-full bg-hf-accent hover:opacity-90 active:scale-[0.99] text-white font-bold text-[16px] py-4 rounded-2xl transition-all"
+              className="w-full bg-hf-accent active:scale-[0.99] text-white font-bold text-[16px] py-[15px] px-6 rounded-[14px] transition-all tracking-[-0.01em]"
             >
               {t('onboardingBegin')}
             </button>
           </div>
-        );
+        )}
 
-      case 1:
-        return (
-          <div className="flex-1 flex flex-col justify-between p-6">
-            <div className="flex-1 flex flex-col justify-center gap-6">
-              {/* Concentric Circles Visual */}
-              <div className="flex justify-center relative w-48 h-48 mx-auto">
-                <div className="absolute inset-0 rounded-full border border-hf-accent/15" />
-                <div className="absolute inset-4 rounded-full border border-hf-accent/15" />
-                <div className="absolute inset-8 rounded-full border border-hf-accent/15" />
-                <div className="absolute inset-12 rounded-full border border-hf-accent/50" />
-                <div className="absolute inset-[68px] rounded-full bg-hf-accent shadow-md flex items-center justify-center text-[22px] text-white font-bold">
-                  🧑
+        {/* ── Slide 1: Identity ── */}
+        {step === 1 && (
+          <div className="flex-1 flex flex-col justify-between px-6 pt-2 pb-7 overflow-y-auto">
+            <div className="flex flex-col gap-5 flex-1 justify-center">
+              {/* Concentric Circles */}
+              <div className="flex justify-center pt-2">
+                <div className="relative w-[180px] h-[180px] shrink-0">
+                  {/* Rings */}
+                  {[178, 140, 100, 60].map((size, i) => (
+                    <div
+                      key={size}
+                      className="absolute inset-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px]"
+                      style={{
+                        width: size,
+                        height: size,
+                        borderColor: `var(--color-hf-accent)`,
+                        opacity: i === 3 ? 0.5 : 0.18,
+                      }}
+                    />
+                  ))}
+                  {/* Center */}
+                  <div className="absolute inset-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-hf-accent flex items-center justify-center shadow-[0_4px_16px_rgba(59,130,246,0.3)]">
+                    <span className="text-[22px] leading-none">🧑</span>
+                  </div>
+                  {/* Labels */}
+                  <span
+                    className="absolute text-[10px] font-semibold text-hf-text-tertiary tracking-[0.03em] whitespace-nowrap"
+                    style={{ top: '20%', right: '4%' }}
+                  >
+                    {t('onboardingS2LabelHabits')}
+                  </span>
+                  <span
+                    className="absolute text-[10px] font-semibold text-hf-text-tertiary tracking-[0.03em] whitespace-nowrap"
+                    style={{ bottom: '25%', right: '0%' }}
+                  >
+                    {t('onboardingS2LabelActions')}
+                  </span>
+                  <span
+                    className="absolute text-[10px] font-semibold text-hf-text-tertiary tracking-[0.03em] whitespace-nowrap"
+                    style={{ bottom: '10%', left: '4%' }}
+                  >
+                    {t('onboardingS2LabelIdentity')}
+                  </span>
                 </div>
-                <span className="absolute top-[20%] right-[-5%] text-[10px] font-bold text-hf-text-secondary uppercase tracking-wider">
-                  {t('onboardingS2LabelHabits')}
-                </span>
-                <span className="absolute bottom-[25%] right-[-10%] text-[10px] font-bold text-hf-text-secondary uppercase tracking-wider">
-                  {t('onboardingS2LabelActions')}
-                </span>
-                <span className="absolute bottom-[10%] left-[-5%] text-[10px] font-bold text-hf-text-secondary uppercase tracking-wider">
-                  {t('onboardingS2LabelIdentity')}
-                </span>
               </div>
 
               <div>
-                <h2 className="text-[24px] font-bold tracking-tight text-hf-text-primary">
+                <h2 className="text-[24px] font-bold leading-[1.2] tracking-[-0.02em] text-hf-text-primary">
                   {t('onboardingS2Title')}
                 </h2>
-                <p className="text-[14px] text-hf-text-secondary mt-3 leading-relaxed">
+                <p className="text-hf-body-md text-hf-text-secondary leading-[1.65] mt-3.5">
                   {t('onboardingS2P1')}
                 </p>
-                <p className="text-[14px] text-hf-text-secondary mt-2.5 leading-relaxed">
+                <p className="text-hf-body-md text-hf-text-secondary leading-[1.65] mt-2.5">
                   {t('onboardingS2P2')}
                 </p>
               </div>
 
-              <blockquote className="border-l-3 border-hf-accent pl-4 italic text-[13px] text-hf-text-secondary">
-                <p>{t('onboardingS2Quote')}</p>
-                <cite className="block mt-1 font-semibold not-italic text-[11px] text-hf-text-secondary/70 uppercase">
+              <blockquote className="border-l-[3px] border-hf-accent pl-3.5 opacity-75">
+                <p className="text-hf-body-sm text-hf-text-secondary italic leading-[1.5]">
+                  {t('onboardingS2Quote')}
+                </p>
+                <cite className="block mt-1 text-hf-label-sm text-hf-text-tertiary not-italic">
                   {t('onboardingS2Author')}
                 </cite>
               </blockquote>
@@ -188,174 +267,173 @@ export default function OnboardingPage() {
 
             <button
               onClick={handleNext}
-              className="w-full bg-hf-accent hover:opacity-90 active:scale-[0.99] text-white font-bold text-[16px] py-4 rounded-2xl transition-all"
+              className="w-full bg-hf-accent active:scale-[0.99] text-white font-bold text-[16px] py-[15px] px-6 rounded-[14px] transition-all tracking-[-0.01em] mt-6"
             >
               {t('commonNext')}
             </button>
           </div>
-        );
+        )}
 
-      case 2:
-        return (
-          <div className="flex-1 flex flex-col justify-between p-6">
-            <div className="flex-1 flex flex-col justify-center gap-6">
-              <div>
-                <h2 className="text-[26px] font-bold tracking-tight text-hf-text-primary leading-tight">
-                  {t('onboardingS3Title')}
-                </h2>
-                <p className="text-[14px] text-hf-text-secondary mt-2 leading-relaxed">
-                  {t('onboardingS3Sub')}
-                </p>
-              </div>
+        {/* ── Slide 2: Choose path ── */}
+        {step === 2 && (
+          <div className="flex-1 flex flex-col justify-center px-6 pb-7">
+            <div>
+              <h2 className="text-[26px] font-bold leading-[1.2] tracking-[-0.02em] text-hf-text-primary">
+                {t('onboardingS3Title')}
+              </h2>
+              <p className="text-hf-body-md text-hf-text-secondary leading-[1.6] mt-2">
+                {t('onboardingS3Sub')}
+              </p>
+            </div>
 
-              {/* Path Option 1 */}
+            <div className="flex flex-col gap-3 mt-5">
+              {/* Templates - highlighted */}
               <button
                 onClick={handleNext}
-                className="w-full text-left bg-hf-accent/4 border border-hf-accent hover:bg-hf-accent/8 p-4 rounded-2xl flex items-center gap-4 transition-all"
+                className="w-full text-left flex items-center gap-3 px-4 py-[18px] rounded-[14px] border-[1.5px] border-hf-accent bg-hf-accent/5 active:opacity-80 transition-all"
               >
-                <div className="w-11 h-11 bg-hf-accent/12 rounded-xl flex items-center justify-center text-[22px]">
-                  ✨
+                <div className="w-[46px] h-[46px] rounded-[14px] bg-hf-accent/10 flex items-center justify-center shrink-0">
+                  <span className="text-xl leading-none">✨</span>
                 </div>
-                <div className="flex-1">
-                  <h4 className="text-[15px] font-bold text-hf-text-primary">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-hf-body-lg font-bold text-hf-text-primary leading-[1.2]">
                     {t('onboardingS3Templates')}
                   </h4>
-                  <p className="text-[12px] text-hf-text-secondary mt-0.5">
+                  <p className="text-hf-body-sm text-hf-text-secondary leading-[1.2] mt-0.5">
                     {t('onboardingS3TemplatesSub')}
                   </p>
                 </div>
-                <span className="bg-hf-accent/12 text-hf-accent font-semibold text-[11px] px-2.5 py-1 rounded-full uppercase">
+                <span className="px-2 py-[3px] rounded-full bg-hf-accent/10 text-hf-label-sm text-hf-accent shrink-0">
                   {t('onboardingS3BadgeRecommended')}
                 </span>
               </button>
 
-              {/* Path Option 2 */}
+              {/* Custom - not highlighted */}
               <button
                 onClick={handleNext}
-                className="w-full text-left bg-hf-card border border-hf-border/15 hover:bg-hf-bg-secondary p-4 rounded-2xl flex items-center gap-4 transition-all"
+                className="w-full text-left flex items-center gap-3 px-4 py-[18px] rounded-[14px] border-[1.5px] border-hf-border bg-hf-card active:opacity-80 transition-all"
               >
-                <div className="w-11 h-11 bg-hf-bg-secondary rounded-xl flex items-center justify-center text-[22px]">
-                  ✏️
+                <div className="w-[46px] h-[46px] rounded-[14px] bg-hf-bg-tertiary flex items-center justify-center shrink-0">
+                  <span className="text-xl leading-none">✏️</span>
                 </div>
-                <div>
-                  <h4 className="text-[15px] font-bold text-hf-text-primary">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-hf-body-lg font-bold text-hf-text-primary leading-[1.2]">
                     {t('onboardingS3Custom')}
                   </h4>
-                  <p className="text-[12px] text-hf-text-secondary mt-0.5">
+                  <p className="text-hf-body-sm text-hf-text-secondary leading-[1.2] mt-0.5">
                     {t('onboardingS3CustomSub')}
                   </p>
                 </div>
               </button>
             </div>
           </div>
-        );
+        )}
 
-      case 3:
-        return (
-          <div className="flex-1 flex flex-col justify-between p-6 overflow-y-auto">
-            <div className="flex-1 flex flex-col gap-4">
-              <div>
-                <h2 className="text-[24px] font-bold tracking-tight text-hf-text-primary">
-                  {t('onboardingS4Title')}
-                </h2>
-                <p className="text-[12px] text-hf-text-secondary mt-1">
-                  {t('onboardingS4Max')} · {t('onboardingS4Selected', { count: selectedTemplates.size })}/3
-                </p>
-              </div>
+        {/* ── Slide 3: Templates grid ── */}
+        {step === 3 && (
+          <div className="flex-1 flex flex-col px-5 pt-3 pb-6 overflow-hidden">
+            <div className="shrink-0 mb-3.5">
+              <h2 className="text-[24px] font-bold leading-[1.2] tracking-[-0.02em] text-hf-text-primary">
+                {t('onboardingS4Title')}
+              </h2>
+              <p className="text-hf-body-sm text-hf-text-tertiary text-[12px] mt-1">
+                {t('onboardingS4Max')} · {t('onboardingS4Selected', { count: selectedTemplates.size })}/3
+              </p>
+            </div>
 
-              {/* Templates Grid */}
-              <div className="grid grid-cols-2 gap-3 mt-2">
-                {TEMPLATES.map((tpl, idx) => {
-                  const isSelected = selectedTemplates.has(idx);
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => toggleTemplate(idx)}
-                      className={`relative text-center border p-4 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${
-                        isSelected
-                          ? 'border-hf-accent bg-hf-accent/6'
-                          : 'border-hf-border/15 bg-hf-card hover:bg-hf-bg-secondary'
-                      }`}
-                    >
-                      <span className="text-[28px] leading-none">{tpl.emoji}</span>
-                      <span className="text-[13px] font-semibold text-hf-text-primary mt-1">
-                        {locale === 'en' ? tpl.nameEn : tpl.nameRu}
+            <div className="flex-1 grid grid-cols-2 gap-2.5 overflow-y-auto pb-1">
+              {TEMPLATES.map((tpl, idx) => {
+                const isSelected = selectedTemplates.has(idx);
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => toggleTemplate(idx)}
+                    className={`relative flex flex-col items-center justify-center text-center rounded-xl border-[1.5px] px-2.5 py-3 gap-1.5 transition-all active:scale-[0.98] ${
+                      isSelected
+                        ? 'border-hf-accent bg-hf-accent/6'
+                        : 'border-hf-border bg-hf-card hover:bg-hf-bg-secondary'
+                    }`}
+                  >
+                    <span className="text-[28px] leading-none">{tpl.emoji}</span>
+                    <span className="text-hf-body-sm font-semibold text-hf-text-primary">
+                      {lang === 'en' ? tpl.nameEn : tpl.nameRu}
+                    </span>
+                    <span className="text-hf-label-sm text-hf-text-tertiary text-[10px]">
+                      {lang === 'en' ? tpl.subEn : tpl.subRu}
+                    </span>
+                    {isSelected && (
+                      <span className="absolute top-[6px] right-[6px] w-[18px] h-[18px] bg-hf-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                        ✓
                       </span>
-                      <span className="text-[10px] text-hf-text-secondary">
-                        {locale === 'en' ? tpl.subEn : tpl.subRu}
-                      </span>
-                      {isSelected && (
-                        <span className="absolute top-2 right-2 w-[18px] h-[18px] bg-hf-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow">
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <button
               onClick={handleNext}
               disabled={selectedTemplates.size === 0}
-              className={`w-full font-bold text-[16px] py-4 rounded-2xl mt-6 transition-all ${
+              className={`w-full font-bold text-[16px] py-[15px] px-6 rounded-[14px] transition-all tracking-[-0.01em] mt-3 shrink-0 ${
                 selectedTemplates.size === 0
                   ? 'bg-hf-accent/30 text-white/50 cursor-not-allowed'
-                  : 'bg-hf-accent hover:opacity-90 active:scale-[0.99] text-white'
+                  : 'bg-hf-accent active:scale-[0.99] text-white'
               }`}
             >
               {t('onboardingS4Btn')}
             </button>
           </div>
-        );
+        )}
 
-      case 4:
-        return (
-          <div className="flex-1 flex flex-col justify-between p-6">
-            <div className="flex-1 flex flex-col justify-center gap-6 overflow-y-auto">
-              <div className="flex justify-center shrink-0">
-                <div className="w-24 h-24 bg-hf-accent/10 rounded-full flex items-center justify-center text-[42px] leading-none shadow-inner">
-                  🔔
+        {/* ── Slide 4: Notifications ── */}
+        {step === 4 && (
+          <div className="flex-1 flex flex-col justify-between px-6 pb-7 overflow-y-auto">
+            <div className="flex-1 flex flex-col justify-center gap-5">
+              <div className="flex justify-center pt-2">
+                <div className="w-24 h-24 rounded-full bg-hf-accent/10 flex items-center justify-center shadow-inner">
+                  <span className="text-[42px] leading-none">🔔</span>
                 </div>
               </div>
 
               <div>
-                <h2 className="text-[24px] font-bold tracking-tight text-hf-text-primary">
+                <h2 className="text-[24px] font-bold leading-[1.2] tracking-[-0.02em] text-hf-text-primary">
                   {t('onboardingS5Title')}
                 </h2>
-                <p className="text-[14px] text-hf-text-secondary mt-2.5 leading-relaxed">
+                <p className="text-hf-body-md text-hf-text-secondary leading-[1.65] mt-2.5">
                   {t('onboardingS5Text')}
                 </p>
               </div>
 
-              {/* Bot Mock Preview */}
-              <div className="bg-hf-bg-secondary rounded-2xl p-4 flex flex-col gap-2.5">
-                <span className="text-[9px] font-bold text-hf-text-secondary tracking-wider uppercase">
-                  Telegram
+              {/* Telegram Preview */}
+              <div className="bg-hf-bg-secondary rounded-2xl p-4">
+                <span className="text-[9px] font-bold text-hf-text-tertiary tracking-[0.04em] uppercase">
+                  TELEGRAM
                 </span>
-                
-                <div className="bg-blue-50/70 p-3.5 rounded-2xl flex gap-3">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-[16px] text-white shrink-0">
-                    🤖
+
+                <div className="mt-2.5 bg-[#EFF7FF] rounded-[14px] p-3 flex gap-2.5">
+                  {/* Bot avatar */}
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0">
+                    <span className="text-base leading-none">🤖</span>
                   </div>
-                  <div className="flex-1">
-                    <h5 className="text-[12px] font-bold text-hf-accent leading-none">
+
+                  <div className="flex-1 min-w-0">
+                    <h5 className="text-hf-label-md text-hf-accent leading-none">
                       {t('onboardingS5BotName')}
                     </h5>
-                    
+
                     {/* Chat bubble */}
-                    <div className="bg-white p-3.5 rounded-xl rounded-tl-sm shadow-sm mt-2 flex flex-col gap-2 text-black max-w-[240px]">
-                      <p className="text-[12px] leading-relaxed font-medium">
+                    <div className="bg-white rounded-xl rounded-tl-[4px] px-3 py-2.5 mt-1 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
+                      <p className="text-hf-body-sm text-[#222222] leading-[1.5]">
                         {t('onboardingS5TgMsg')}
                       </p>
-                      <span className="text-[8px] text-hf-text-secondary self-end mt-0.5">
-                        09:00 ✓✓
-                      </span>
-                      <div className="flex gap-2 mt-2">
-                        <span className="flex-1 bg-hf-accent/12 text-hf-accent text-[11px] font-bold py-1.5 rounded-lg text-center leading-none">
+                      <div className="text-right mt-2">
+                        <span className="text-[8px] text-[#AAAAAA]">09:00 ✓✓</span>
+                      </div>
+                      <div className="flex gap-1.5 mt-2">
+                        <span className="flex-1 bg-hf-accent/10 text-hf-accent text-hf-label-md font-semibold py-1.5 px-2.5 rounded-lg text-center leading-none">
                           {t('onboardingS5DoneBtn')}
                         </span>
-                        <span className="flex-1 bg-hf-accent/12 text-hf-accent text-[11px] font-bold py-1.5 rounded-lg text-center leading-none">
+                        <span className="flex-1 bg-hf-accent/10 text-hf-accent text-hf-label-md font-semibold py-1.5 px-2.5 rounded-lg text-center leading-none">
                           {t('onboardingS5SkipBtn')}
                         </span>
                       </div>
@@ -367,66 +445,12 @@ export default function OnboardingPage() {
 
             <button
               onClick={handleNext}
-              className="w-full bg-hf-accent hover:opacity-90 active:scale-[0.99] text-white font-bold text-[16px] py-4 rounded-2xl transition-all"
+              className="w-full bg-hf-accent active:scale-[0.99] text-white font-bold text-[16px] py-[15px] px-6 rounded-[14px] transition-all tracking-[-0.01em] mt-3"
             >
               {t('onboardingFinish')}
             </button>
           </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom">
-      {/* Top Navigation Bar */}
-      <div className="flex justify-between items-center px-5 py-4 shrink-0">
-        <div className="w-9 h-9 shrink-0">
-          {step > 0 && (
-            <button
-              type="button"
-              onClick={handleBack}
-              className="w-9 h-9 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] flex items-center justify-center border border-hf-border/10 transition-all text-hf-text-primary"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Progress dots */}
-        <div className="flex gap-1.5 items-center">
-          {Array.from({ length: totalSteps }).map((_, i) => {
-            const isActive = i === step;
-            return (
-              <div
-                key={i}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  isActive ? 'w-5 bg-hf-accent' : 'w-1.5 bg-hf-text-secondary/20'
-                }`}
-              />
-            );
-          })}
-        </div>
-
-        {/* Skip button */}
-        <div className="w-[60px] text-right shrink-0">
-          {step >= 1 && step <= 3 && (
-            <button
-              type="button"
-              onClick={handleSkip}
-              className="text-[13px] font-semibold text-hf-text-secondary hover:text-hf-accent transition-all"
-            >
-              {t('onboardingSkip')}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Slide Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {renderSlide()}
+        )}
       </div>
     </div>
   );

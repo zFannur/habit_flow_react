@@ -13,13 +13,76 @@ import {
   useDeleteSummaryMutation,
   getSystemPrompt,
   type AiStyleType,
-  type AiMessageModel
+  type AiMessageModel,
 } from '@/entities/ai';
 import { useJournalEntryCountQuery } from '@/entities/journal';
 import { OpenRouterClient } from '@/shared/api';
 import { supabase } from '@/shared/api';
 import { Button, Input, BottomSheet, EmptyState } from '@/shared/ui';
-import { MessageSquare, Sparkles, FileText, Send, Plus, Trash2, Edit3, AlertCircle } from 'lucide-react';
+import { MessageSquare, Sparkles, FileText, Send, Plus, Trash2, Edit3, AlertCircle, Settings, ChevronDown } from 'lucide-react';
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+type TabId = 'chat' | 'summaries' | 'prompts';
+type PromptCategory = 'analysis' | 'emotions' | 'growth' | 'relapse';
+
+const CATEGORY_INFO: Record<PromptCategory, { color: string; bg: string }> = {
+  analysis: { color: 'text-blue-500', bg: 'bg-blue-500/10' },
+  emotions: { color: 'text-pink-500', bg: 'bg-pink-500/10' },
+  growth: { color: 'text-green-500', bg: 'bg-green-500/10' },
+  relapse: { color: 'text-amber-500', bg: 'bg-amber-500/10' },
+};
+
+const CATEGORY_LABEL_KEYS: Record<PromptCategory, string> = {
+  analysis: 'aiPromptsFilterAnalysis',
+  emotions: 'aiPromptsFilterEmotions',
+  growth: 'aiPromptsFilterGrowth',
+  relapse: 'aiPromptsFilterRelapse',
+};
+
+interface SystemPromptMeta {
+  titleKey: string;
+  descKey: string;
+  emoji: string;
+  category: PromptCategory;
+}
+
+const SYSTEM_PROMPTS_META: SystemPromptMeta[] = [
+  { titleKey: 'aiPromptSystem1Title', descKey: 'aiPromptSystem1Desc', emoji: '📊', category: 'analysis' },
+  { titleKey: 'aiPromptSystem2Title', descKey: 'aiPromptSystem2Desc', emoji: '🔍', category: 'analysis' },
+  { titleKey: 'aiPromptSystem3Title', descKey: 'aiPromptSystem3Desc', emoji: '🛡️', category: 'relapse' },
+  { titleKey: 'aiPromptSystem4Title', descKey: 'aiPromptSystem4Desc', emoji: '🌱', category: 'growth' },
+  { titleKey: 'aiPromptSystem5Title', descKey: 'aiPromptSystem5Desc', emoji: '🗺️', category: 'emotions' },
+  { titleKey: 'aiPromptSystem6Title', descKey: 'aiPromptSystem6Desc', emoji: '🧬', category: 'analysis' },
+  { titleKey: 'aiPromptSystem7Title', descKey: 'aiPromptSystem7Desc', emoji: '📈', category: 'growth' },
+  { titleKey: 'aiPromptSystem8Title', descKey: 'aiPromptSystem8Desc', emoji: '🎯', category: 'analysis' },
+  { titleKey: 'aiPromptSystem9Title', descKey: 'aiPromptSystem9Desc', emoji: '⏰', category: 'growth' },
+  { titleKey: 'aiPromptSystem10Title', descKey: 'aiPromptSystem10Desc', emoji: '👑', category: 'growth' },
+  { titleKey: 'aiPromptSystem11Title', descKey: 'aiPromptSystem11Desc', emoji: '🔥', category: 'growth' },
+  { titleKey: 'aiPromptSystem12Title', descKey: 'aiPromptSystem12Desc', emoji: '🧨', category: 'relapse' },
+  { titleKey: 'aiPromptSystem13Title', descKey: 'aiPromptSystem13Desc', emoji: '🏛️', category: 'growth' },
+  { titleKey: 'aiPromptSystem14Title', descKey: 'aiPromptSystem14Desc', emoji: '💌', category: 'emotions' },
+];
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-0.5 ml-1">
+      <span className="w-1.5 h-1.5 rounded-full bg-hf-text-secondary animate-pulse" style={{ animationDelay: '0ms' }} />
+      <span className="w-1.5 h-1.5 rounded-full bg-hf-text-secondary animate-pulse" style={{ animationDelay: '200ms' }} />
+      <span className="w-1.5 h-1.5 rounded-full bg-hf-text-secondary animate-pulse" style={{ animationDelay: '400ms' }} />
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Page
+// ---------------------------------------------------------------------------
 
 export default function AiHubPage() {
   const navigate = useNavigate();
@@ -27,46 +90,37 @@ export default function AiHubPage() {
   const { state: session } = useSessionStore();
   const userId = session.status === 'authenticated' ? session.user.id : undefined;
 
-  // Tabs: 'chat' | 'summaries' | 'prompts'
-  const [activeTab, setActiveTab] = useState<'chat' | 'summaries' | 'prompts'>('chat');
+  const [activeTab, setActiveTab] = useState<TabId>('chat');
 
   // OpenRouter Key
   const [openRouterKey, setOpenRouterKey] = useState<string | null>(null);
-
-  // Load OpenRouter Key from LocalStorage
   useEffect(() => {
     const key = localStorage.getItem('openrouter_key');
     setOpenRouterKey(key);
   }, []);
 
-  // Queries
+  // Chats
   const { data: chats } = useAiChatsQuery(userId);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 
-  // Auto-select first chat or handle selection
   useEffect(() => {
     if (chats && chats.length > 0 && !selectedChatId) {
       const first = chats[0];
-      if (first) {
-        setSelectedChatId(first.id);
-      }
+      if (first) setSelectedChatId(first.id);
     }
   }, [chats, selectedChatId]);
 
-
   const activeChat = chats?.find((c) => c.id === selectedChatId);
 
-  // Messages Query
+  // Messages
   const { data: dbMessages } = useAiMessagesQuery(selectedChatId || undefined, userId);
 
-  // Journal entry count for Summaries
+  // Journal count
   const { data: journalCount = 0 } = useJournalEntryCountQuery(userId);
 
-  // AI Style / Coach State
+  // AI Style
   const [aiStyle, setAiStyle] = useState<AiStyleType>('coach');
   const [isSupporter, setIsSupporter] = useState(false);
-
-  // Fetch users metadata for ai_style and supporter flag
   useEffect(() => {
     if (!userId) return;
     supabase
@@ -93,7 +147,7 @@ export default function AiHubPage() {
     }
   };
 
-  // Chat Actions
+  // Chat mutations
   const createChatMutation = useCreateAiChatMutation(userId || '');
   const renameChatMutation = useRenameAiChatMutation(userId || '');
   const deleteChatMutation = useDeleteAiChatMutation(userId || '');
@@ -127,35 +181,27 @@ export default function AiHubPage() {
     if (confirm(t('aiChatDeleteConfirmText'))) {
       try {
         await deleteChatMutation.mutateAsync(chatId);
-        if (selectedChatId === chatId) {
-          setSelectedChatId(null);
-        }
+        if (selectedChatId === chatId) setSelectedChatId(null);
       } catch (e) {
         console.error(e);
       }
     }
   };
 
-  // Chat Message Input and Streaming State
+  // Streaming
   const [inputText, setInputText] = useState('');
   const [streamingText, setStreamingText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Combine database messages with any active streaming chunk
   const messages: (AiMessageModel | { id: string; role: 'assistant'; content: string })[] = useMemo(() => {
     const list: (AiMessageModel | { id: string; role: 'assistant'; content: string })[] = dbMessages ? [...dbMessages] : [];
     if (streamingText || isStreaming) {
-      list.push({
-        id: 'streaming-temp',
-        role: 'assistant',
-        content: streamingText || '...',
-      });
+      list.push({ id: 'streaming-temp', role: 'assistant', content: streamingText || '...' });
     }
     return list;
   }, [dbMessages, streamingText, isStreaming]);
 
-  // Scroll to bottom when messages list changes
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -169,62 +215,32 @@ export default function AiHubPage() {
       return;
     }
 
-    if (!textToSend) {
-      setInputText('');
-    }
+    if (!textToSend) setInputText('');
 
     setIsStreaming(true);
     setStreamingText('');
 
     try {
-      // 1. Insert user message to database
-      await insertMessageMutation.mutateAsync({
-        role: 'user',
-        content: text,
-      });
+      await insertMessageMutation.mutateAsync({ role: 'user', content: text });
 
-      // 2. Prepare conversation history for the model
       const history: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
+      history.push({ role: 'system', content: getSystemPrompt(aiStyle, t('languageEnglish') === 'English' ? 'en' : 'ru') });
 
-      // Add system prompt based on chosen style
-      history.push({
-        role: 'system',
-        content: getSystemPrompt(aiStyle, t('languageEnglish') === 'English' ? 'en' : 'ru'),
-      });
-
-      // Add last few messages for context
       const contextMsgs = dbMessages || [];
       contextMsgs.slice(-10).forEach((m) => {
-        history.push({
-          role: m.role,
-          content: m.content,
-        });
+        history.push({ role: m.role, content: m.content });
       });
+      history.push({ role: 'user', content: text });
 
-      // Add current user message
-      history.push({
-        role: 'user',
-        content: text,
-      });
-
-      // 3. Request completion from OpenRouter
       const client = new OpenRouterClient(openRouterKey);
       let fullReply = '';
 
-      await client.chatCompletionStream(
-        history,
-        'google/gemini-2.5-flash',
-        (chunk) => {
-          fullReply += chunk;
-          setStreamingText(fullReply);
-        }
-      );
-
-      // 4. Save completed assistant message to database
-      await insertMessageMutation.mutateAsync({
-        role: 'assistant',
-        content: fullReply,
+      await client.chatCompletionStream(history, 'google/gemini-2.5-flash', (chunk) => {
+        fullReply += chunk;
+        setStreamingText(fullReply);
       });
+
+      await insertMessageMutation.mutateAsync({ role: 'assistant', content: fullReply });
     } catch (e) {
       console.error(e);
       alert(t('aiChatErrorGeneric'));
@@ -234,7 +250,7 @@ export default function AiHubPage() {
     }
   };
 
-  // Summaries List
+  // Summaries
   const { data: summaries, isLoading: isLoadingSummaries } = useAiSummariesQuery(userId);
   const deleteSummaryMutation = useDeleteSummaryMutation(userId || '');
 
@@ -249,27 +265,21 @@ export default function AiHubPage() {
     }
   };
 
-  // Prompts Grid list
-  const systemPrompts = [
-    { title: t('aiPromptSystem1Title'), desc: t('aiPromptSystem1Desc'), emoji: '📊' },
-    { title: t('aiPromptSystem2Title'), desc: t('aiPromptSystem2Desc'), emoji: '🔍' },
-    { title: t('aiPromptSystem3Title'), desc: t('aiPromptSystem3Desc'), emoji: '🛡️' },
-    { title: t('aiPromptSystem4Title'), desc: t('aiPromptSystem4Desc'), emoji: '🌱' },
-    { title: t('aiPromptSystem5Title'), desc: t('aiPromptSystem5Desc'), emoji: '🗺️' },
-    { title: t('aiPromptSystem6Title'), desc: t('aiPromptSystem6Desc'), emoji: '🧬' },
-    { title: t('aiPromptSystem7Title'), desc: t('aiPromptSystem7Desc'), emoji: '📈' },
-    { title: t('aiPromptSystem8Title'), desc: t('aiPromptSystem8Desc'), emoji: '🎯' },
-    { title: t('aiPromptSystem9Title'), desc: t('aiPromptSystem9Desc'), emoji: '⏰' },
-    { title: t('aiPromptSystem10Title'), desc: t('aiPromptSystem10Desc'), emoji: '👑' },
-  ];
+  // Prompts
+  const [promptFilter, setPromptFilter] = useState<PromptCategory | 'all'>('all');
 
-  const handlePromptClick = async (title: string, desc: string) => {
-    // Start a new chat named after the prompt
+  const filteredPrompts = useMemo(() => {
+    if (promptFilter === 'all') return SYSTEM_PROMPTS_META;
+    return SYSTEM_PROMPTS_META.filter((p) => p.category === promptFilter);
+  }, [promptFilter]);
+
+  const handlePromptClick = async (titleKey: string, descKey: string) => {
     try {
+      const title = t(titleKey);
+      const desc = t(descKey);
       const newChat = await createChatMutation.mutateAsync(title);
       setSelectedChatId(newChat.id);
       setActiveTab('chat');
-      // Send the query automatically
       setTimeout(() => {
         handleSend(desc);
       }, 500);
@@ -278,114 +288,107 @@ export default function AiHubPage() {
     }
   };
 
+  // Group messages by date for time separators
+  const groupedMessages = useMemo(() => {
+    const groups: { date: string; msgs: typeof messages }[] = [];
+    for (const m of messages) {
+      let dateStr: string;
+      try {
+        const dt = 'created_at' in m ? new Date((m as AiMessageModel).created_at) : new Date();
+        dateStr = dt.toLocaleDateString();
+      } catch {
+        dateStr = 'Today';
+      }
+      const last = groups[groups.length - 1];
+      if (last && last.date === dateStr) {
+        last.msgs.push(m);
+      } else {
+        groups.push({ date: dateStr, msgs: [m] });
+      }
+    }
+    return groups;
+  }, [messages]);
+
   return (
     <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-hidden">
-      {/* Tabs Header */}
-      <div className="flex bg-hf-bg-secondary border-b border-hf-border/10 p-2 shrink-0">
+      {/* ================================================================ */}
+      {/* HEADER */}
+      {/* ================================================================ */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+        <h1 className="text-hf-headline-md text-hf-text-primary">{t('aiScreenTitle')}</h1>
         <button
-          onClick={() => setActiveTab('chat')}
-          className={`flex-1 py-2 text-[13px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-            activeTab === 'chat' ? 'bg-hf-bg-primary text-hf-accent shadow-sm' : 'text-hf-text-secondary'
-          }`}
+          onClick={() => navigate('/profile/ai-settings')}
+          className="w-9 h-9 rounded-hf-md bg-hf-bg-secondary flex items-center justify-center text-hf-text-secondary hover:opacity-80 active:scale-95 transition-all"
         >
-          <MessageSquare className="w-4 h-4" />
-          {t('aiChatTab')}
-        </button>
-        <button
-          onClick={() => setActiveTab('summaries')}
-          className={`flex-1 py-2 text-[13px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-            activeTab === 'summaries' ? 'bg-hf-bg-primary text-hf-accent shadow-sm' : 'text-hf-text-secondary'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          {t('aiSummariesTab')}
-        </button>
-        <button
-          onClick={() => setActiveTab('prompts')}
-          className={`flex-1 py-2 text-[13px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
-            activeTab === 'prompts' ? 'bg-hf-bg-primary text-hf-accent shadow-sm' : 'text-hf-text-secondary'
-          }`}
-        >
-          <Sparkles className="w-4 h-4" />
-          {t('aiPromptsTab')}
+          <Settings className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Main Tab Content */}
-      <div className="flex-1 overflow-y-auto flex flex-col">
-        {/* CHAT TAB */}
-        {activeTab === 'chat' && (
-          <div className="flex-1 flex flex-col h-full overflow-hidden">
-            {/* API Key Missing Alert */}
-            {!openRouterKey && (
-              <div className="bg-red-500/10 border-b border-red-500/20 p-3 flex items-center justify-between text-[12px] text-red-500 font-semibold shrink-0">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>{t('aiChatNoKeyText')}</span>
-                </div>
-                <button
-                  onClick={() => navigate('/profile/ai-settings')}
-                  className="px-2.5 py-1 bg-red-500 text-white rounded-lg hover:opacity-90 active:scale-[0.98] transition-all"
-                >
-                  {t('emptyNoKeyCta')}
-                </button>
-              </div>
-            )}
+      {/* Tab chips */}
+      <div className="flex gap-2 px-4 pb-3 overflow-x-auto shrink-0 scrollbar-none">
+        {([
+          { id: 'chat' as TabId, icon: MessageSquare, label: t('aiChatTab') },
+          { id: 'summaries' as TabId, icon: FileText, label: t('aiSummariesTab') },
+          { id: 'prompts' as TabId, icon: Sparkles, label: t('aiPromptsTab') },
+        ] as const).map((tab) => {
+          const selected = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-hf-full text-hf-label-sm shrink-0 transition-all ${
+                selected
+                  ? 'bg-hf-accent text-white'
+                  : 'bg-hf-bg-secondary text-hf-text-secondary'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
-            {/* Chat List Top Bar selector */}
-            <div className="p-3 bg-hf-bg-secondary/30 border-b border-hf-border/10 flex justify-between items-center gap-2 shrink-0">
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {/* ============================================================== */}
+        {/* CHAT TAB */}
+        {/* ============================================================== */}
+        {activeTab === 'chat' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Chat selector + new chat */}
+            <div className="px-4 py-2 flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setIsManageChatsOpen(true)}
-                className="bg-hf-bg-secondary hover:opacity-95 px-3 py-1.5 rounded-xl text-[13px] font-semibold text-hf-text-primary truncate max-w-[65%]"
+                className="flex-1 flex items-center justify-between bg-hf-bg-secondary border border-hf-border/10 rounded-hf-lg px-3 py-2 text-hf-body-sm text-hf-text-primary truncate"
               >
-                💬 {activeChat?.title || 'Select Chat'}
+                <span className="truncate">
+                  {activeChat?.title || t('aiChatNew')}
+                </span>
+                <ChevronDown className="w-4 h-4 text-hf-text-secondary shrink-0 ml-1" />
               </button>
-              <div className="flex gap-2">
-                {selectedChatId && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setChatRenameTitle(activeChat?.title || '');
-                        setIsRenameOpen(true);
-                      }}
-                      className="p-2 bg-hf-bg-secondary hover:opacity-90 rounded-xl text-hf-text-secondary"
-                      title={t('aiChatRename')}
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteChat(selectedChatId)}
-                      className="p-2 bg-hf-bg-secondary hover:bg-red-500/10 rounded-xl text-red-500"
-                      title={t('aiChatDelete')}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => handleCreateChat()}
-                  className="p-2 bg-hf-accent hover:opacity-90 rounded-xl text-white"
-                  title={t('aiChatNew')}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <button
+                onClick={() => handleCreateChat()}
+                className="w-10 h-10 rounded-full bg-hf-accent flex items-center justify-center text-white hover:opacity-90 active:scale-95 transition-all shrink-0"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* AI Style Coach Selector */}
-            <div className="px-4 py-2 border-b border-hf-border/5 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
-              <span className="text-[11px] font-bold text-hf-text-secondary uppercase shrink-0">AI Coach:</span>
-              {[
+            {/* AI Style chips */}
+            <div className="px-4 py-2 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+              {([
                 { type: 'coach' as AiStyleType, label: t('aiStyleCoachName') },
                 { type: 'sergeant' as AiStyleType, label: t('aiStyleSergeantName') },
                 { type: 'buddy' as AiStyleType, label: t('aiStyleBuddyName') },
                 { type: 'sage' as AiStyleType, label: t('aiStyleSageName') },
-                { type: 'poet' as AiStyleType, label: `${t('aiStylePoetName')} 💎` },
-              ].map((style) => (
+                { type: 'poet' as AiStyleType, label: `${t('aiStylePoetName')}💎` },
+              ] as const).map((style) => (
                 <button
                   key={style.type}
                   onClick={() => handleStyleChange(style.type)}
-                  className={`px-3 py-1 rounded-full text-[12px] font-bold transition-all shrink-0 ${
+                  className={`px-3 py-1.5 rounded-hf-full text-hf-label-sm whitespace-nowrap transition-all shrink-0 ${
                     aiStyle === style.type
                       ? 'bg-hf-accent text-white'
                       : 'bg-hf-bg-secondary text-hf-text-primary'
@@ -396,25 +399,35 @@ export default function AiHubPage() {
               ))}
             </div>
 
-            {/* Message Thread */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
+            {/* API Key warning */}
+            {!openRouterKey && (
+              <div className="mx-4 my-2 bg-hf-danger/10 border border-hf-danger/20 rounded-hf-lg p-3 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-hf-danger shrink-0" />
+                  <span className="text-hf-body-sm text-hf-danger">{t('aiChatNoKeyText')}</span>
+                </div>
+                <button
+                  onClick={() => navigate('/profile/ai-settings')}
+                  className="px-3 py-1.5 bg-hf-danger text-white rounded-hf-md text-hf-label-sm hover:opacity-90 active:scale-95 transition-all shrink-0"
+                >
+                  {t('emptyNoKeyCta')}
+                </button>
+              </div>
+            )}
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
               {messages.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-4">
-                  <div className="w-16 h-16 rounded-full bg-hf-accent/8 flex items-center justify-center text-hf-accent text-3xl">
-                    🧠
-                  </div>
+                /* Empty state */
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-4 gap-4">
+                  <span className="text-[72px] leading-none select-none">🧠</span>
                   <div>
-                    <h3 className="font-bold text-lg">HabitFlow AI Hub</h3>
-                    <p className="text-[13px] text-hf-text-secondary mt-1.5 max-w-[240px]">
+                    <h3 className="text-hf-headline-sm text-hf-text-primary">HabitFlow AI Hub</h3>
+                    <p className="text-hf-body-sm text-hf-text-secondary mt-1.5 max-w-[260px]">
                       {t('aiChatDisclaimerText')}
                     </p>
                   </div>
-
-                  {/* Suggestions Chips */}
-                  <div className="flex flex-col gap-2 w-full max-w-sm mt-4">
-                    <span className="text-[11px] font-bold text-hf-text-secondary uppercase tracking-wider mb-1">
-                      Suggestions
-                    </span>
+                  <div className="flex flex-col gap-2 w-full max-w-xs mt-2">
                     {[
                       t('aiChatSuggestion1'),
                       t('aiChatSuggestion2'),
@@ -424,7 +437,7 @@ export default function AiHubPage() {
                       <button
                         key={i}
                         onClick={() => handleSend(s)}
-                        className="w-full text-left p-3 bg-hf-bg-secondary/50 border border-hf-border/10 rounded-xl text-[13px] font-semibold hover:bg-hf-bg-secondary active:scale-[0.99] transition-all"
+                        className="w-full text-left p-3 bg-hf-bg-secondary/60 border border-hf-border/10 rounded-hf-lg text-hf-body-sm text-hf-text-primary hover:bg-hf-bg-secondary active:scale-[0.99] transition-all"
                       >
                         {s}
                       </button>
@@ -432,48 +445,76 @@ export default function AiHubPage() {
                   </div>
                 </div>
               ) : (
-                messages.map((m) => {
-                  const isUser = m.role === 'user';
-                  return (
-                    <div
-                      key={m.id}
-                      className={`flex flex-col max-w-[85%] ${isUser ? 'self-end items-end' : 'self-start items-start'}`}
-                    >
-                      <div
-                        className={`p-3.5 rounded-2xl text-[14px] leading-relaxed whitespace-pre-wrap ${
-                          isUser
-                            ? 'bg-hf-accent text-white rounded-tr-none'
-                            : 'bg-hf-bg-secondary border border-hf-border/10 text-hf-text-primary rounded-tl-none'
-                        }`}
-                      >
-                        {m.content}
-                      </div>
-                      <span className="text-[10px] text-hf-text-secondary mt-1 mx-1.5">
-                        {isUser ? 'You' : `${t('aiStyleCoachName')} (${aiStyle})`}
+                /* Message groups with time separators */
+                groupedMessages.map((group, gi) => (
+                  <div key={gi} className="flex flex-col gap-2">
+                    {/* Time separator */}
+                    <div className="flex items-center justify-center my-2">
+                      <span className="text-hf-label-sm text-hf-text-tertiary px-3 py-0.5 rounded-hf-full bg-hf-bg-secondary/50">
+                        {group.date}
                       </span>
                     </div>
-                  );
-                })
+                    {group.msgs.map((m) => {
+                      const isUser = m.role === 'user';
+                      const isStreamingMsg = m.id === 'streaming-temp';
+                      const content = m.content || '';
+                      const isEmptyStreaming = isStreamingMsg && !content;
+
+                      if (isEmptyStreaming) {
+                        return (
+                          <div key={m.id} className="flex flex-col max-w-[85%] self-start items-start">
+                            <div className="p-3.5 rounded-hf-lg rounded-tl-none bg-hf-card border border-hf-border text-hf-text-primary">
+                              <TypingDots />
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={m.id}
+                          className={`flex flex-col max-w-[85%] ${isUser ? 'self-end items-end' : 'self-start items-start'}`}
+                        >
+                          <div
+                            className={`p-3.5 text-hf-body-md leading-relaxed whitespace-pre-wrap ${
+                              isUser
+                                ? 'bg-hf-accent text-white rounded-hf-lg rounded-tr-none'
+                                : 'bg-hf-card border border-hf-border rounded-hf-lg rounded-tl-none text-hf-text-primary'
+                            }`}
+                          >
+                            {content}
+                            {isStreamingMsg && content && <TypingDots />}
+                          </div>
+                          {!isUser && !isStreamingMsg && (
+                            <span className="text-hf-label-sm text-hf-text-tertiary mt-1 mx-1.5">
+                              {t('aiStyleCoachName')} (google/gemini-2.5-flash)
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Footer */}
+            {/* Input bar */}
             <div className="p-3 border-t border-hf-border/10 bg-hf-bg-primary flex items-center gap-2 shrink-0">
               <input
                 type="text"
-                placeholder={isStreaming ? 'Streaming...' : t('aiChatInputPlaceholder')}
+                placeholder={isStreaming ? '...' : t('aiChatInputPlaceholder')}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 disabled={isStreaming || !selectedChatId}
-                className="flex-1 bg-hf-bg-secondary border border-hf-border/15 rounded-xl px-4 py-3 text-[14px] outline-none text-hf-text-primary placeholder:text-hf-text-tertiary disabled:opacity-50"
+                className="flex-1 bg-hf-bg-secondary border border-hf-border rounded-hf-md px-4 py-3 text-hf-body-md outline-none text-hf-text-primary placeholder:text-hf-text-tertiary disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => handleSend()}
                 disabled={isStreaming || !inputText.trim() || !selectedChatId}
-                className="w-12 h-12 rounded-xl bg-hf-accent text-white flex items-center justify-center hover:opacity-90 active:scale-[0.95] transition-all disabled:opacity-40"
+                className="w-12 h-12 rounded-full bg-hf-accent text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 shrink-0"
               >
                 <Send className="w-5 h-5" />
               </button>
@@ -481,13 +522,15 @@ export default function AiHubPage() {
           </div>
         )}
 
+        {/* ============================================================== */}
         {/* SUMMARIES TAB */}
+        {/* ============================================================== */}
         {activeTab === 'summaries' && (
-          <div className="p-4 flex flex-col gap-4">
-            {/* Info Banner */}
-            <div className="bg-hf-bg-secondary border border-hf-border/15 rounded-2xl p-4 flex gap-3 items-start">
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+            {/* Info banner */}
+            <div className="bg-hf-bg-secondary border border-hf-border/15 rounded-hf-lg p-4 flex gap-3 items-start">
               <Sparkles className="w-5 h-5 text-hf-accent shrink-0 mt-0.5" />
-              <p className="text-[13px] leading-relaxed text-hf-text-secondary">
+              <p className="text-hf-body-sm text-hf-text-secondary">
                 {t('aiSummariesInfoBanner', {
                   interval: 30,
                   count: journalCount,
@@ -496,9 +539,13 @@ export default function AiHubPage() {
               </p>
             </div>
 
-            {/* Summaries list */}
+            {/* Summary cards */}
             {isLoadingSummaries ? (
-              <div className="h-20 bg-hf-bg-secondary animate-pulse rounded-2xl" />
+              <div className="flex flex-col gap-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-24 bg-hf-bg-secondary animate-pulse rounded-hf-lg" />
+                ))}
+              </div>
             ) : !summaries || summaries.length === 0 ? (
               <div className="py-12">
                 <EmptyState
@@ -515,109 +562,194 @@ export default function AiHubPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {summaries.map((summary) => (
+                {summaries.map((summary, idx) => (
                   <div
                     key={summary.id}
                     onClick={() => navigate(`/summary/${summary.id}`)}
-                    className="bg-hf-card border border-hf-border/10 rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer hover:opacity-[0.98] active:scale-[0.99] transition-all"
+                    className="bg-hf-card border border-hf-border/10 rounded-hf-lg p-4 shadow-sm flex items-center justify-between cursor-pointer hover:opacity-[0.98] active:scale-[0.99] transition-all"
                   >
-                    <div className="flex flex-col gap-1.5 min-w-0 flex-1 mr-3">
-                      <span className="text-[14px] font-bold leading-snug truncate text-hf-text-primary">
-                        {t('aiSummaryTitle', {
-                          from: summary.range_start_date,
-                          to: summary.range_end_date,
-                        })}
+                    <div className="flex flex-col gap-1 min-w-0 flex-1 mr-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-hf-title-md text-hf-text-primary truncate">
+                          {t('aiSummaryTitle', {
+                            from: summary.range_start_date,
+                            to: summary.range_end_date,
+                          })}
+                        </span>
+                        {idx === 0 && (
+                          <span className="px-2 py-0.5 rounded-hf-full bg-hf-accent/10 text-hf-accent text-hf-label-sm font-semibold shrink-0">
+                            {t('aiSummariesBadgeNew')}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-hf-label-sm text-hf-text-secondary">
+                        {summary.range_start_date} – {summary.range_end_date} · {summary.model_used}
                       </span>
-                      <span className="text-[11px] text-hf-text-secondary">
-                        Entries range: {summary.range_start_n} - {summary.range_end_n} · Model: {summary.model_used}
-                      </span>
+                      <p className="text-hf-body-sm text-hf-text-secondary line-clamp-2">
+                        {summary.content.slice(0, 120)}...
+                      </p>
                     </div>
                     <button
                       onClick={(e) => handleDeleteSummary(e, summary.id)}
-                      className="p-2 text-hf-text-secondary hover:text-red-500 transition-all shrink-0"
+                      className="p-2 text-hf-text-secondary hover:text-hf-danger transition-all shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 ))}
+
+                {/* Ghost card: entries until next summary */}
+                <div className="bg-hf-bg-secondary/30 border border-dashed border-hf-border/20 rounded-hf-lg p-4 flex items-center justify-center">
+                  <p className="text-hf-body-sm text-hf-text-tertiary text-center">
+                    {t('aiSummariesInfoBanner', {
+                      interval: 30,
+                      count: journalCount,
+                      remaining: Math.max(0, 30 - (journalCount % 30)),
+                    })}
+                  </p>
+                </div>
               </div>
             )}
           </div>
         )}
 
+        {/* ============================================================== */}
         {/* PROMPTS TAB */}
+        {/* ============================================================== */}
         {activeTab === 'prompts' && (
-          <div className="p-4 flex flex-col gap-4">
-            <p className="text-[13px] text-hf-text-secondary ml-1">
-              {t('aiPromptsIntro')}
-            </p>
-
-            <div className="grid grid-cols-1 gap-3">
-              {systemPrompts.map((p, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handlePromptClick(p.title, p.desc)}
-                  className="w-full text-left p-4 bg-hf-card border border-hf-border/10 rounded-2xl flex gap-3.5 items-start hover:bg-hf-bg-secondary/30 active:scale-[0.99] transition-all shadow-sm"
-                >
-                  <span className="text-2xl mt-0.5 shrink-0">{p.emoji}</span>
-                  <div>
-                    <h4 className="font-bold text-[14px] text-hf-text-primary">{p.title}</h4>
-                    <p className="text-[12px] text-hf-text-secondary mt-1.5 leading-relaxed">{p.desc}</p>
-                  </div>
-                </button>
-              ))}
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+            {/* Category filter chips */}
+            <div className="flex gap-2 overflow-x-auto shrink-0 scrollbar-none">
+              {([
+                { id: 'all' as const, label: t('aiPromptsFilterAll') },
+                { id: 'analysis' as const, label: t('aiPromptsFilterAnalysis'), color: 'text-blue-500' },
+                { id: 'emotions' as const, label: t('aiPromptsFilterEmotions'), color: 'text-pink-500' },
+                { id: 'growth' as const, label: t('aiPromptsFilterGrowth'), color: 'text-green-500' },
+                { id: 'relapse' as const, label: t('aiPromptsFilterRelapse'), color: 'text-amber-500' },
+              ] as const).map((cat) => {
+                const selected = promptFilter === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setPromptFilter(cat.id)}
+                    className={`px-3 py-1.5 rounded-hf-full text-hf-label-sm whitespace-nowrap transition-all shrink-0 ${
+                      selected
+                        ? 'bg-hf-accent text-white'
+                        : 'bg-hf-bg-secondary text-hf-text-secondary'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* 2-column grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {filteredPrompts.map((p, idx) => {
+                const catInfo = CATEGORY_INFO[p.category];
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handlePromptClick(p.titleKey, p.descKey)}
+                    className="w-full text-left p-3.5 bg-hf-card border border-hf-border/10 rounded-hf-lg flex flex-col gap-2 min-h-[150px] hover:bg-hf-bg-secondary/30 active:scale-[0.98] transition-all shadow-sm"
+                  >
+                    <div className="flex items-start justify-between">
+                      <span className="text-2xl leading-none select-none">{p.emoji}</span>
+                      <span className={`text-hf-label-sm font-semibold px-2 py-0.5 rounded-hf-full ${catInfo.bg} ${catInfo.color}`}>
+                        {t(CATEGORY_LABEL_KEYS[p.category])}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <h4 className="text-hf-title-sm text-hf-text-primary line-clamp-2">{t(p.titleKey)}</h4>
+                      <p className="text-hf-label-sm text-hf-text-secondary line-clamp-3">{t(p.descKey)}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* FAB: create custom prompt */}
+            <button
+              onClick={() => {
+                alert('Custom prompt creation — coming soon');
+              }}
+              className="fixed bottom-20 right-5 w-14 h-14 rounded-full bg-hf-accent text-white flex items-center justify-center shadow-lg hover:opacity-90 active:scale-95 transition-all z-10"
+              style={{ marginBottom: 'var(--tg-viewport-safe-area-inset-bottom, 0px)' }}
+            >
+              <Plus className="w-6 h-6" />
+            </button>
           </div>
         )}
       </div>
 
-      {/* Bottom Sheet to Manage/Select chats */}
+      {/* ================================================================ */}
+      {/* BOTTOM SHEET: Manage / Select Chats */}
+      {/* ================================================================ */}
       <BottomSheet
         isOpen={isManageChatsOpen}
         onClose={() => setIsManageChatsOpen(false)}
         title={t('aiChatHistoryTitle')}
       >
-        <div className="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto">
+        <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto">
           {chats?.map((c) => (
             <div
               key={c.id}
-              className={`w-full flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${
+              className={`w-full flex items-center justify-between p-3 rounded-hf-lg cursor-pointer transition-all ${
                 selectedChatId === c.id ? 'bg-hf-accent/8 border border-hf-accent/20' : 'bg-hf-bg-secondary hover:opacity-95'
               }`}
-              onClick={() => {
-                setSelectedChatId(c.id);
-                setIsManageChatsOpen(false);
-              }}
             >
-              <span className={`text-[14px] font-semibold truncate max-w-[70%] ${
-                selectedChatId === c.id ? 'text-hf-accent' : 'text-hf-text-primary'
-              }`}>
-                💬 {c.title}
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteChat(c.id);
+              <span
+                className={`text-hf-body-sm font-semibold truncate flex-1 mr-2 ${
+                  selectedChatId === c.id ? 'text-hf-accent' : 'text-hf-text-primary'
+                }`}
+                onClick={() => {
+                  setSelectedChatId(c.id);
+                  setIsManageChatsOpen(false);
                 }}
-                className="p-1 text-hf-text-secondary hover:text-red-500 rounded-lg"
               >
-                <Trash2 className="w-4 h-4" />
-              </button>
+                {c.title}
+              </span>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChatRenameTitle(c.title);
+                    setIsRenameOpen(true);
+                    setIsManageChatsOpen(false);
+                  }}
+                  className="p-1.5 text-hf-text-secondary hover:text-hf-accent rounded-hf-md"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteChat(c.id);
+                  }}
+                  className="p-1.5 text-hf-text-secondary hover:text-hf-danger rounded-hf-md"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
         <button
           type="button"
           onClick={() => handleCreateChat()}
-          className="w-full mt-4 py-3.5 rounded-xl bg-hf-accent text-white font-bold text-[14px] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
+          className="w-full mt-4 py-3.5 rounded-hf-lg bg-hf-accent text-white font-bold text-hf-body-md flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
         >
           <Plus className="w-4 h-4" />
           {t('aiChatNew')}
         </button>
       </BottomSheet>
 
-      {/* Rename Chat Dialog */}
+      {/* ================================================================ */}
+      {/* BOTTOM SHEET: Rename Chat */}
+      {/* ================================================================ */}
       <BottomSheet
         isOpen={isRenameOpen}
         onClose={() => setIsRenameOpen(false)}
@@ -632,13 +764,13 @@ export default function AiHubPage() {
           <div className="flex gap-3">
             <button
               onClick={() => setIsRenameOpen(false)}
-              className="flex-1 py-3 rounded-xl bg-hf-bg-secondary font-semibold text-[14px]"
+              className="flex-1 py-3 rounded-hf-lg bg-hf-bg-secondary font-semibold text-hf-body-md"
             >
               {t('commonCancel')}
             </button>
             <button
               onClick={handleRenameChat}
-              className="flex-1 py-3 rounded-xl bg-hf-accent text-white font-semibold text-[14px]"
+              className="flex-1 py-3 rounded-hf-lg bg-hf-accent text-white font-semibold text-hf-body-md"
             >
               {t('commonSave')}
             </button>

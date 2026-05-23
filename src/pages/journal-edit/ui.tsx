@@ -6,42 +6,47 @@ import {
   useJournalEntryByDateQuery,
   useUpsertJournalEntryMutation,
   useDeleteJournalEntryMutation,
-  useReflectionTemplate
+  useReflectionTemplate,
 } from '@/entities/journal';
-import { Button } from '@/shared/ui';
-import { ArrowLeft, Trash2, Smile, Zap, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { HeaderBar, Slider, Input, Button } from '@/shared/ui';
+import { ChevronDown } from 'lucide-react';
 import { dateOnly } from '@/entities/habit';
+
+const MOOD_FACES = ['😢', '😕', '😐', '🙂', '😊'];
+
+function moodColor(val: number): string {
+  if (val <= 3) return '#EF4444';
+  if (val <= 6) return '#9AA0AB';
+  return '#22C55E';
+}
 
 export default function JournalEditPage() {
   const navigate = useNavigate();
-  const { id } = useParams(); // Can be YYYY-MM-DD or entry id
+  const { id } = useParams();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
   const { state: session } = useSessionStore();
   const userId = session.status === 'authenticated' ? session.user.id : undefined;
 
-  // Determine target date
   const paramDate = id && /^\d{4}-\d{2}-\d{2}$/.test(id) ? id : undefined;
   const queryDate = searchParams.get('date');
   const todayStr = dateOnly(new Date());
   const entryDate = paramDate || queryDate || todayStr;
-
-  // Queries & Mutations
-  const { data: existingEntry, isLoading: isLoadingEntry } = useJournalEntryByDateQuery(userId, entryDate);
+  const { data: existingEntry, isLoading: isLoadingEntry } = useJournalEntryByDateQuery(
+    userId,
+    entryDate,
+  );
   const upsertMutation = useUpsertJournalEntryMutation(userId || '');
   const deleteMutation = useDeleteJournalEntryMutation(userId || '');
 
-  // Reflection template questions
   const templateQuestions = useReflectionTemplate();
 
-  // Local Form State
   const [mood, setMood] = useState<number>(5);
   const [energy, setEnergy] = useState<number>(5);
   const [freeText, setFreeText] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showQuestions, setShowQuestions] = useState(true);
 
-  // Load existing entry data
   useEffect(() => {
     if (existingEntry) {
       setMood(existingEntry.mood ?? 5);
@@ -49,7 +54,6 @@ export default function JournalEditPage() {
       setFreeText(existingEntry.free_text || '');
       setAnswers(existingEntry.answers || {});
     } else {
-      // Clear form for new entry
       setMood(5);
       setEnergy(5);
       setFreeText('');
@@ -58,17 +62,12 @@ export default function JournalEditPage() {
   }, [existingEntry]);
 
   const handleAnswerChange = (question: string, text: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [question]: text,
-    }));
+    setAnswers((prev) => ({ ...prev, [question]: text }));
   };
 
   const handleSave = async () => {
     if (!userId) return;
 
-    // Construct final free text from questions if they are filled and shown,
-    // or just use free text directly.
     let finalFreeText = freeText;
     if (showQuestions) {
       const qText = templateQuestions
@@ -112,155 +111,152 @@ export default function JournalEditPage() {
     }
   };
 
+  const trailing = existingEntry ? (
+    <button
+      type="button"
+      onClick={handleDelete}
+      className="p-1.5 rounded-hf-md bg-hf-bg-secondary hover:bg-red-500/10 text-red-500 active:scale-[0.95] transition-all"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M3 6h18" />
+        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      </svg>
+    </button>
+  ) : undefined;
+
   if (isLoadingEntry) {
     return (
       <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary p-4 pb-tg-safe-bottom">
         <div className="h-6 w-32 bg-hf-bg-secondary animate-pulse rounded mb-4" />
-        <div className="h-[200px] w-full bg-hf-bg-secondary animate-pulse rounded-2xl mb-4" />
-        <div className="h-10 w-full bg-hf-bg-secondary animate-pulse rounded-xl" />
+        <div className="h-[200px] w-full bg-hf-bg-secondary animate-pulse rounded-hf-lg mb-4" />
+        <div className="h-10 w-full bg-hf-bg-secondary animate-pulse rounded-hf-md" />
       </div>
     );
   }
 
   return (
     <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
-      {/* Top Header */}
-      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
-        >
-          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
-        </button>
-        <h2 className="text-lg font-bold">
-          {entryDate === todayStr ? t('journalEditHeaderToday') : entryDate}
-        </h2>
-        {existingEntry ? (
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="p-2 rounded-xl bg-hf-bg-secondary hover:bg-red-500/10 text-red-500 active:scale-[0.95] transition-all"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
-        ) : (
-          <div className="w-9" />
-        )}
-      </div>
+      <HeaderBar
+        title={existingEntry ? t('journalEditHeaderEdit') : t('journalEditHeaderNew')}
+        onBack={() => navigate('/journal')}
+        trailing={trailing}
+      />
 
-      <div className="flex-1 p-4 flex flex-col gap-6 max-w-md mx-auto w-full">
-        {/* Sliders Container */}
-        <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex flex-col gap-5">
-          {/* Mood Slider */}
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center text-[14px]">
-              <span className="font-semibold flex items-center gap-1.5">
-                <Smile className="w-4 h-4 text-hf-accent" />
-                {t('journalEditMoodLabel')}
-              </span>
-              <span className="font-bold text-hf-accent text-lg">
-                {mood} {mood <= 3 ? '😢' : mood <= 5 ? '😐' : mood <= 7 ? '🙂' : mood <= 9 ? '😊' : '🤩'}
-              </span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={mood}
-              onChange={(e) => setMood(parseInt(e.target.value))}
-              className="w-full accent-hf-accent cursor-pointer"
-            />
-          </div>
-
-          {/* Energy Slider */}
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center text-[14px]">
-              <span className="font-semibold flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-orange-500" />
-                {t('journalEditEnergyLabel')}
-              </span>
-              <span className="font-bold text-orange-500 text-lg">
-                {energy} {energy <= 3 ? '🥱' : energy <= 5 ? '💤' : energy <= 7 ? '⚡' : '🔥'}
-              </span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={energy}
-              onChange={(e) => setEnergy(parseInt(e.target.value))}
-              className="w-full accent-orange-500 cursor-pointer"
-            />
-          </div>
-        </div>
-
-        {/* Template Questions Toggle */}
-        <div className="flex flex-col gap-4">
-          <button
-            type="button"
-            onClick={() => setShowQuestions(!showQuestions)}
-            className="flex justify-between items-center bg-hf-bg-secondary p-3.5 rounded-xl hover:opacity-95 text-left"
-          >
-            <span className="text-[14px] font-semibold text-hf-text-primary">
-              {showQuestions ? t('journalEditQuestionsHide') : t('journalEditQuestionsShow')}
+      <div className="flex-1 p-4 flex flex-col gap-5 max-w-md mx-auto w-full">
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-hf-body-md font-semibold text-hf-text-primary">
+              {t('journalEditMoodLabel')}
             </span>
-            {showQuestions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
+            <span className="text-hf-headline-md font-bold" style={{ color: moodColor(mood) }}>
+              {mood}
+            </span>
+          </div>
 
-          {/* Template Questions Fields */}
-          {showQuestions && (
-            <div className="flex flex-col gap-4">
-              {templateQuestions.map((q, idx) => (
-                <div key={idx} className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-medium text-hf-text-secondary">{q}</label>
-                  <textarea
-                    placeholder={t('journalEditQuestionPlaceholder')}
-                    value={answers[q] || ''}
-                    onChange={(e) => handleAnswerChange(q, e.target.value)}
-                    rows={2}
-                    className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3 text-[14px] text-hf-text-primary placeholder:text-hf-text-tertiary outline-none focus:border-hf-accent focus:ring-1 focus:ring-hf-accent resize-none transition-all"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="flex justify-between items-center px-2">
+            {MOOD_FACES.map((face, i) => (
+              <span key={i} className="text-[24px] leading-none select-none opacity-70">
+                {face}
+              </span>
+            ))}
+          </div>
+
+          <Slider value={mood} onChanged={(v) => setMood(v)} min={1} max={10} />
         </div>
 
-        {/* Free Text / General Notes */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[13px] font-medium text-hf-text-secondary flex items-center gap-1.5">
-            <FileText className="w-4 h-4" />
-            {showQuestions ? 'Notes / Free form' : t('journalEditEntryLabel')}
-          </label>
-          <textarea
-            placeholder={t('journalEditPlaceholder')}
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-hf-body-md font-semibold text-hf-text-primary flex items-center gap-1.5">
+              <span className="text-amber-500 text-lg">⚡</span>
+              {t('journalEditEnergyLabel')}
+            </span>
+            <span className="text-hf-headline-md font-bold text-amber-500">
+              {energy}
+            </span>
+          </div>
+
+          <Slider value={energy} onChanged={(v) => setEnergy(v)} min={1} max={10} className="[&_input]:accent-amber-500 [&_input::-webkit-slider-thumb]:bg-amber-500 [&_input::-moz-range-thumb]:bg-amber-500" />
+        </div>
+
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4">
+          <Input
+            label={t('journalEditEntryLabel')}
+            hint={t('journalEditPlaceholder')}
             value={freeText}
-            onChange={(e) => setFreeText(e.target.value)}
-            rows={5}
-            className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3 text-[14px] text-hf-text-primary placeholder:text-hf-text-tertiary outline-none focus:border-hf-accent focus:ring-1 focus:ring-hf-accent transition-all"
+            onValueChange={setFreeText}
+            minLines={5}
+            maxLines={20}
           />
-          <div className="text-right text-[11px] text-hf-text-secondary">
+          <div className="text-right text-hf-label-sm text-hf-text-tertiary mt-1.5">
             {t('journalEditCharCount', { count: freeText.length })}
           </div>
         </div>
 
-        {/* Change template links */}
+        <button
+          type="button"
+          onClick={() => setShowQuestions(!showQuestions)}
+          className="flex justify-between items-center bg-hf-bg-secondary p-3.5 rounded-hf-md hover:opacity-95 active:scale-[0.99] transition-all"
+        >
+          <span className="text-hf-body-md font-semibold text-hf-text-primary">
+            {showQuestions
+              ? t('journalEditQuestionsHide')
+              : t('journalEditQuestionsShow')}
+          </span>
+          <ChevronDown
+            className={`w-4 h-4 text-hf-text-secondary transition-transform duration-200 ${
+              showQuestions ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+
+        {showQuestions && (
+          <div className="flex flex-col gap-3.5">
+            {templateQuestions.map((q, idx) => (
+              <div key={idx} className="flex flex-col gap-1.5">
+                <span className="text-hf-label-sm font-medium text-hf-text-secondary">
+                  {idx + 1}. {q}
+                </span>
+                <Input
+                  hint={t('journalEditQuestionPlaceholder')}
+                  value={answers[q] || ''}
+                  onValueChange={(v) => handleAnswerChange(q, v)}
+                  minLines={2}
+                  maxLines={6}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => navigate('/profile/reflection-template')}
-          className="text-hf-accent text-center text-[13px] font-medium hover:underline self-center"
+          className="text-hf-accent text-center text-hf-body-sm font-medium hover:underline self-center"
         >
           {t('journalEditChangeTemplate')}
         </button>
 
-        {/* Save Button */}
-        <div className="mt-4 shrink-0 pb-6">
+        <div className="mt-2 shrink-0 pb-8">
           <Button
-            label={upsertMutation.isPending ? t('journalEditSaving') : t('journalEditSave')}
+            label={
+              upsertMutation.isPending
+                ? t('journalEditSaving')
+                : t('journalEditSave')
+            }
             onClick={handleSave}
             disabled={upsertMutation.isPending}
-            className="w-full"
+            fullWidth
           />
         </div>
       </div>

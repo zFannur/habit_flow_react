@@ -1,44 +1,53 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
-import { ArrowLeft } from 'lucide-react';
+import { HeaderBar } from '@/shared/ui';
 
 export default function AboutPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
-        >
-          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
-        </button>
-        <h2 className="text-[17px] font-bold">
-          {t('profileMenuAbout')}
-        </h2>
-        <div className="w-9" />
-      </div>
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto">
+      <HeaderBar title={t('aboutTitle')} onBack={() => navigate(-1)} />
 
-      <div className="flex-1 p-5 flex flex-col gap-4 max-w-md mx-auto w-full text-[14px] leading-relaxed text-hf-text-secondary">
-        <h3 className="text-lg font-bold text-hf-text-primary">HabitFlow v1.0.0</h3>
-        <p>
-          HabitFlow is a modern Telegram Mini App designed to help you build stable habits, write daily reflections, and gain AI-powered insights about your routines.
-        </p>
-        <p>
-          By combining behavioral science rules (like James Clear's Atomic Habits: Habit Stacking, Implementation Intentions, and the 2-Minute Rule) with modern LLM analysis, HabitFlow guides you step-by-step to permanent personal growth.
-        </p>
-        <h4 className="font-bold text-hf-text-primary mt-3">Features:</h4>
-        <ul className="list-disc list-inside flex flex-col gap-1.5 pl-1.5">
-          <li>Atomic habits configuration (Anchors, 2-Min fallbacks).</li>
-          <li>Detailed daily reflection journal (Mood & Energy).</li>
-          <li>Bring Your Own Key (BYO-Key) OpenRouter AI assistant chat.</li>
-          <li>Aggregated completion analytics and weekly reviews.</li>
-          <li>Fully integrated with Telegram Webview safe areas and haptics.</li>
-        </ul>
+      <div className="flex-1 p-4 flex flex-col gap-4 max-w-md mx-auto w-full items-center">
+        {/* App Icon */}
+        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-hf-accent to-[#7C3AED] shadow-[0_8px_24px_rgba(0,0,0,0.15)] flex items-center justify-center mt-6">
+          <span className="text-[44px] leading-none">🌱</span>
+        </div>
+
+        {/* Title & Version */}
+        <h2 className="text-[26px] font-bold text-hf-text-primary tracking-tight">HabitFlow</h2>
+        <p className="text-[12px] text-hf-text-tertiary -mt-3">{t('aboutVersion', { version: '1.0.0' })}</p>
+
+        {/* What is HabitFlow */}
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 w-full mt-2">
+          <p className="text-[11px] uppercase tracking-wider text-hf-text-tertiary font-semibold mb-2">{t('aboutWhatLabel')}</p>
+          <p className="text-[14px] text-hf-text-primary leading-relaxed">{t('aboutWhatText')}</p>
+        </div>
+
+        {/* Principles */}
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 w-full">
+          <p className="text-[11px] uppercase tracking-wider text-hf-text-tertiary font-semibold mb-2">{t('aboutPrinciplesLabel')}</p>
+          <p className="text-[14px] text-hf-text-primary leading-relaxed">{t('aboutPrinciplesText')}</p>
+        </div>
+
+        {/* Tech Stack */}
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 w-full">
+          <p className="text-[11px] uppercase tracking-wider text-hf-text-tertiary font-semibold mb-2">{t('privacyStorageLabel')}</p>
+          <p className="text-[14px] text-hf-text-primary leading-relaxed">
+            Flutter 3.27+ · Riverpod · go_router · Supabase · Edge Functions (Deno) · OpenRouter API · pg_cron · aiogram 3 · freezed
+          </p>
+        </div>
+
+        {/* Open Source */}
+        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 w-full">
+          <p className="text-[11px] uppercase tracking-wider text-hf-text-tertiary font-semibold mb-2">{t('aboutSourceLink')}</p>
+          <p className="text-[14px] text-hf-text-primary leading-relaxed">
+            {t('aboutSpecHint')} ·{' '}
+            <a href="https://t.me/habitflow_dev" target="_blank" rel="noopener noreferrer" className="text-hf-accent underline">{t('aboutChannelLink')}</a>
+          </p>
+        </div>
       </div>
     </div>
   );

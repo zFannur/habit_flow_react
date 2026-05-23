@@ -8,10 +8,74 @@ import {
   useUpdateHabitMutation,
   type HabitType,
   type ScheduleType,
-  type ScheduleConfig
+  type ScheduleConfig,
 } from '@/entities/habit';
-import { Input } from '@/shared/ui';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { Input } from '@/shared/ui/input';
+import { Chip } from '@/shared/ui/chip';
+import { Slider } from '@/shared/ui/slider';
+import {
+  CheckSquare,
+  Hash,
+  Clock,
+  Shield,
+  Check,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Plus,
+  Calendar,
+  Bell,
+  RefreshCw,
+} from 'lucide-react';
+
+const ACCENT_COLORS = [
+  { name: 'accentBlue', color: '#3B82F6' },
+  { name: 'accentGreen', color: '#22C55E' },
+  { name: 'accentAmber', color: '#F59E0B' },
+  { name: 'accentRed', color: '#EF4444' },
+  { name: 'accentViolet', color: '#A855F7' },
+  { name: 'accentPink', color: '#EC4899' },
+  { name: 'accentTeal', color: '#06B6D4' },
+  { name: 'accentGray', color: '#6B7785' },
+];
+
+const WEEKDAY_KEYS = [
+  'habitWeekMon', 'habitWeekTue', 'habitWeekWed', 'habitWeekThu',
+  'habitWeekFri', 'habitWeekSat', 'habitWeekSun',
+];
+
+const CATEGORIES = [
+  'habitCatHealth', 'habitCatSport', 'habitCatStudy', 'habitCatWork',
+  'habitCatRelationships', 'habitCatFinance', 'habitCatHobby', 'habitCatMental',
+];
+
+const DEFAULT_EMOJIS = ['💪', '🌟', '⚡', '🎯', '🌱', '✨', '🔥', '💡', '🎨', '📚', '🧘', '🌊', '❤️', '🏃', '💎', '🌿'];
+
+const CATEGORY_EMOJI_SETS: Record<string, string[]> = {
+  habitCatHealth: ['🥗', '🥦', '💊', '🩺', '🫀', '🩹', '🧬', '💉', '🫁', '🧠', '🦷', '🏥', '🧪', '🍎', '🥑', '🫖'],
+  habitCatSport: ['🏃', '💪', '🧘', '🚴', '🏊', '⚽', '🎾', '🏋️', '🤸', '🥊', '🏅', '🎯', '🧗', '🛹', '⛷️', '🏄'],
+  habitCatStudy: ['📚', '✏️', '🎓', '📖', '🔬', '🔭', '💻', '📝', '🗂️', '📐', '📓', '🧮', '📊', '🖊️', '🗃️', '📜'],
+  habitCatWork: ['💼', '📧', '🖥️', '📱', '📅', '⏰', '💡', '📈', '🗓️', '🖨️', '☕', '🧑‍💼', '📞', '🔧', '📌', '🗝️'],
+  habitCatRelationships: ['❤️', '👨‍👩‍👧', '🤝', '💌', '🎁', '🥂', '💑', '👨‍👩‍👦', '🫂', '💬', '📸', '🌹', '💍', '🏡', '🫶', '✨'],
+  habitCatFinance: ['💰', '📉', '💳', '🏦', '💵', '📊', '🪙', '💹', '🏧', '💎', '🤑', '📑', '💸', '🔐', '📒', '🎰'],
+  habitCatHobby: ['🎨', '🎸', '📷', '✂️', '🧩', '🎮', '📻', '🎭', '🖌️', '🎼', '🧵', '🪴', '♟️', '🎲', '🪁', '🎻'],
+  habitCatMental: ['🧘', '😌', '🌿', '🕯️', '📔', '🫧', '🌊', '☁️', '🌙', '⭐', '🦋', '🌸', '🔮', '🫁', '🌱', '💆'],
+};
+
+const GOAL_UNITS: Record<HabitType, string[]> = {
+  binary: ['times'],
+  countable: ['times', 'glass', 'pages', 'set', 'km'],
+  timed: ['min', 'hours'],
+  anti: ['times'],
+};
+
+const TYPE_OPTIONS: { type: HabitType; icon: typeof CheckSquare; labelKey: string; descKey: string; example: string }[] = [
+  { type: 'binary', icon: CheckSquare, labelKey: 'habitTypeBinary', descKey: 'habitTypeBinaryDesc', example: 'Принял витамины' },
+  { type: 'countable', icon: Hash, labelKey: 'habitTypeCountable', descKey: 'habitTypeCountableDesc', example: '8 стаканов воды' },
+  { type: 'timed', icon: Clock, labelKey: 'habitTypeTimed', descKey: 'habitTypeTimedDesc', example: 'Медитация 10 минут' },
+  { type: 'anti', icon: Shield, labelKey: 'habitTypeAnti', descKey: 'habitTypeAntiDesc', example: 'Не пить алкоголь' },
+];
 
 export default function HabitFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,81 +84,76 @@ export default function HabitFormPage() {
   const { state: session } = useSessionStore();
   const userId = session.status === 'authenticated' ? session.user.id : undefined;
 
-  // Queries & Mutations
   const { data: habits } = useHabitsQuery(userId);
   const createMutation = useCreateHabitMutation(userId || '');
   const updateMutation = useUpdateHabitMutation(userId || '');
 
-  // Edit Mode detection
   const isEditMode = !!id;
   const editHabit = habits?.find((h) => h.id === id);
 
-  // Wizard Step State (1 to 4)
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(isEditMode ? 2 : 1);
 
-  // Form Fields State
   const [habitType, setHabitType] = useState<HabitType>('binary');
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
-  const [iconEmoji, setIconEmoji] = useState('🧘');
-  const [color, setColor] = useState('#2481cc');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryText, setCustomCategoryText] = useState('');
+  const [iconEmoji, setIconEmoji] = useState('🌟');
+  const [color, setColor] = useState('#3B82F6');
+  const [accentOpen, setAccentOpen] = useState(false);
+  const [periodOpen, setPeriodOpen] = useState(false);
 
-  // Countable/Timed settings
   const [targetValue, setTargetValue] = useState<number>(1);
-  const [targetUnit, setTargetUnit] = useState('');
+  const [goalUnit, setGoalUnit] = useState('times');
 
-  // Schedule settings
   const [scheduleType, setScheduleType] = useState<ScheduleType>('daily');
-  const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri
+  const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [everyN, setEveryN] = useState<number>(2);
+  const [timesPerWeek, setTimesPerWeek] = useState<number>(3);
   const [monthlyDates, setMonthlyDates] = useState<number[]>([1]);
-  const [reminderTimes, setReminderTimes] = useState<string[]>(['08:00']);
-  const [newReminderTime, setNewReminderTime] = useState('08:00');
+  const [reminders, setReminders] = useState<string[]>(['08:00']);
+  const [endless, setEndless] = useState(true);
 
-  // Reinforcement settings
-  const [stackAfterHabitId, setStackAfterHabitId] = useState('');
-  const [implementationWhen, setImplementationWhen] = useState('');
-  const [implementationWhere, setImplementationWhere] = useState('');
-  const [identityStatement, setIdentityStatement] = useState('');
-  const [twoMinuteVersion, setTwoMinuteVersion] = useState('');
-  const [reward, setReward] = useState('');
+  const [stackingText, setStackingText] = useState('');
+  const [whenText, setWhenText] = useState('');
+  const [whereText, setWhereText] = useState('');
+  const [identityText, setIdentityText] = useState('');
+  const [twoMinText, setTwoMinText] = useState('');
+  const [rewardText, setRewardText] = useState('');
 
-  // Initialize form if editing
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
     if (isEditMode && editHabit) {
       setHabitType(editHabit.habit_type);
       setName(editHabit.name);
       setCategory(editHabit.category || '');
-      setIconEmoji(editHabit.icon_emoji || '🧘');
-      setColor(editHabit.color || '#2481cc');
+      setIsCustomCategory(false);
+      if (editHabit.category && !CATEGORIES.some((k) => editHabit.category === t(k))) {
+        setIsCustomCategory(true);
+        setCustomCategoryText(editHabit.category);
+      }
+      setIconEmoji(editHabit.icon_emoji || '🌟');
+      setColor(editHabit.color || '#3B82F6');
       setTargetValue(editHabit.target_value || 1);
-      setTargetUnit(editHabit.target_unit || '');
+      setGoalUnit(editHabit.target_unit || 'times');
       setScheduleType(editHabit.schedule_type);
-      
+
       const config = editHabit.schedule_config;
       if (config.weekdays) setWeekdays(config.weekdays);
       if (config.every_n) setEveryN(config.every_n);
       if (config.dates) setMonthlyDates(config.dates);
-      
-      setReminderTimes(editHabit.reminder_times || []);
-      setStackAfterHabitId(editHabit.stack_after_habit_id || '');
-      setImplementationWhen(editHabit.implementation_when || '');
-      setImplementationWhere(editHabit.implementation_where || '');
-      setIdentityStatement(editHabit.identity_statement || '');
-      setTwoMinuteVersion(editHabit.two_minute_version || '');
-      setReward(editHabit.reward || '');
+
+      setReminders(editHabit.reminder_times || []);
+      setStackingText(editHabit.stack_after_habit_id || '');
+      setWhenText(editHabit.implementation_when || '');
+      setWhereText(editHabit.implementation_where || '');
+      setIdentityText(editHabit.identity_statement || '');
+      setTwoMinText(editHabit.two_minute_version || '');
+      setRewardText(editHabit.reward || '');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditMode, editHabit]);
-
-  const addReminderTime = () => {
-    if (newReminderTime && !reminderTimes.includes(newReminderTime)) {
-      setReminderTimes([...reminderTimes, newReminderTime].sort());
-    }
-  };
-
-  const removeReminderTime = (time: string) => {
-    setReminderTimes(reminderTimes.filter((t) => t !== time));
-  };
 
   const toggleWeekday = (day: number) => {
     if (weekdays.includes(day)) {
@@ -112,20 +171,47 @@ export default function HabitFormPage() {
     }
   };
 
-  const handleNext = () => {
-    if (step === 2 && !name.trim()) {
-      alert('Please enter a name for the habit');
-      return;
+  const addReminder = () => {
+    if (!reminders.includes('08:00')) {
+      setReminders([...reminders, '08:00'].sort());
     }
-    setStep((prev) => Math.min(prev + 1, 4));
+  };
+
+  const removeReminder = (idx: number) => {
+    setReminders(reminders.filter((_, i) => i !== idx));
+  };
+
+  const canNext = (): boolean => {
+    switch (step) {
+      case 1:
+        return true;
+      case 2:
+        return name.trim().length > 0 && name.trim().length <= 60;
+      default:
+        return true;
+    }
   };
 
   const handleBack = () => {
-    setStep((prev) => Math.max(prev - 1, 1));
+    if (step > 1) {
+      setStep(step - 1);
+    } else {
+      navigate(-1);
+    }
   };
 
-  const handleSubmit = async () => {
-    if (!userId) return;
+  const handleNext = () => {
+    if (!canNext()) return;
+    if (step < 4) {
+      setStep(step + 1);
+    } else {
+      submitHabit();
+    }
+  };
+
+  const submitHabit = async () => {
+    if (!userId || submitting) return;
+    setSubmitting(true);
 
     const scheduleConfig: ScheduleConfig = {};
     if (scheduleType === 'weekdays') {
@@ -144,20 +230,20 @@ export default function HabitFormPage() {
       habit_type: habitType,
       icon_emoji: iconEmoji,
       color,
-      target_value: habitType === 'countable' || habitType === 'timed' ? targetValue : undefined,
-      target_unit: habitType === 'countable' ? targetUnit : undefined,
+      target_value: (habitType === 'countable' || habitType === 'timed') ? targetValue : undefined,
+      target_unit: habitType === 'countable' ? goalUnit : undefined,
       schedule_type: scheduleType,
       schedule_config: scheduleConfig,
-      reminder_times: reminderTimes,
+      reminder_times: reminders,
       start_date: editHabit?.start_date || fallbackDate,
       is_archived: editHabit?.is_archived || false,
       position: editHabit?.position || (habits ? habits.length : 0),
-      stack_after_habit_id: stackAfterHabitId || undefined,
-      implementation_when: implementationWhen.trim() || undefined,
-      implementation_where: implementationWhere.trim() || undefined,
-      identity_statement: identityStatement.trim() || undefined,
-      two_minute_version: twoMinuteVersion.trim() || undefined,
-      reward: reward.trim() || undefined,
+      stack_after_habit_id: stackingText.trim() || undefined,
+      implementation_when: whenText.trim() || undefined,
+      implementation_where: whereText.trim() || undefined,
+      identity_statement: identityText.trim() || undefined,
+      two_minute_version: twoMinText.trim() || undefined,
+      reward: rewardText.trim() || undefined,
     };
 
     try {
@@ -169,399 +255,822 @@ export default function HabitFormPage() {
       navigate('/habits');
     } catch (e) {
       console.error(e);
-      alert('Failed to save habit');
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const currentCategory = isCustomCategory ? customCategoryText : (category || t(CATEGORIES[0]!));
+  const categoryKey = !isCustomCategory ? CATEGORIES.find((k) => t(k) === category) || CATEGORIES[0]! : CATEGORIES[0]!;
+  const emojiSet = CATEGORY_EMOJI_SETS[categoryKey] ?? DEFAULT_EMOJIS;
+
   const otherHabits = habits?.filter((h) => h.id !== id && !h.is_archived) || [];
 
+  const repeatLabel = (): string => {
+    if (scheduleType === 'weekdays' && weekdays.length > 0) {
+      return weekdays.map((d) => t(WEEKDAY_KEYS[d - 1]!)).join(', ');
+    }
+    switch (scheduleType) {
+      case 'daily': return t('habitRepeatDaily');
+      case 'weekdays': return t('habitRepeatWeekdays');
+      case 'n_per_week': return t('habitCreateStep3FrequencyValue', { value: timesPerWeek });
+      case 'every_n_days': return t('habitRepeatEveryN');
+      case 'monthly_dates': return t('habitRepeatMonthly');
+    }
+  };
+
+  const typeLabel = (): string => {
+    switch (habitType) {
+      case 'binary': return t('habitTypeBinary');
+      case 'countable': return t('habitTypeCountable');
+      case 'timed': return t('habitTypeTimed');
+      case 'anti': return t('habitTypeAnti');
+    }
+  };
+
+  const todayActionLabel = (): string => {
+    switch (habitType) {
+      case 'binary': return t('habitCreateStep4ActionBinary');
+      case 'anti': return t('habitCreateStep4ActionAnti');
+      default: return t('habitCreateStep4ActionOther');
+    }
+  };
+
+  const isCountable = habitType === 'countable' || habitType === 'timed';
+  const units = GOAL_UNITS[habitType] || ['times'];
+
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
-      {/* Top Header */}
-      <div className="flex justify-between items-center p-4 border-b border-hf-border/10 shrink-0">
-        <button
-          type="button"
-          onClick={step > 1 ? handleBack : () => navigate(-1)}
-          className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
-        >
-          <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
-        </button>
-        <h2 className="text-[15px] font-extrabold uppercase tracking-wider text-hf-text-secondary">
-          {t('habitCreateStepCounter', { step, total: 4 })}
-        </h2>
-        <div className="w-9" />
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary">
+      {/* Wizard Header */}
+      <div className="shrink-0 bg-hf-bg-primary border-b border-hf-border pb-[10px]">
+        <div className="flex items-center px-4 pt-[14px] pb-[10px]">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="w-9 h-9 rounded-[10px] bg-hf-card border-[1.5px] border-hf-border flex items-center justify-center active:scale-95 transition-all"
+          >
+            {step === 1 && !isEditMode ? (
+              <X className="w-[18px] h-[18px] text-hf-text-secondary" />
+            ) : (
+              <X className="w-[18px] h-[18px] text-hf-text-secondary" style={{ transform: 'scaleX(-1)' }} />
+            )}
+          </button>
+          <div className="flex-1 text-center">
+            <span className="text-hf-label-md text-hf-text-tertiary tracking-[0.02em] uppercase">
+              {t('habitCreateStepCounter', { step, total: 4 })}
+            </span>
+          </div>
+          <div className="w-9" />
+        </div>
+        <div className="flex px-4 gap-1">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className={`flex-1 h-[3px] rounded-[2px] ${i < 4 ? 'mr-1' : ''} ${
+                i <= step ? 'bg-hf-accent' : 'bg-hf-bg-tertiary'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="flex-1 p-4 flex flex-col gap-6 max-w-md mx-auto w-full">
-        {/* Step 1: Type selection */}
-        {step === 1 && (
-          <div className="flex flex-col gap-4">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-4 pt-6 pb-4">
+          {/* ── Step 1: Habit Type ── */}
+          {step === 1 && (
             <div>
-              <h3 className="text-xl font-bold">{t('habitCreateStep1Title')}</h3>
-              <p className="text-hf-text-secondary text-[13px] mt-1">{t('habitCreateStep1Subtitle')}</p>
-            </div>
+              <div className="mb-6">
+                <h3 className="text-[24px] font-bold text-hf-text-primary leading-[1.2] tracking-[-0.03em]">
+                  {t('habitCreateStep1Title')}
+                </h3>
+                <p className="text-hf-body-md text-hf-text-tertiary leading-[1.5] mt-1.5">
+                  {t('habitCreateStep1Subtitle')}
+                </p>
+              </div>
 
-            <div className="flex flex-col gap-3">
-              {[
-                { type: 'binary' as HabitType, label: t('habitTypeBinary'), desc: t('habitTypeBinaryDesc'), emoji: '✅' },
-                { type: 'countable' as HabitType, label: t('habitTypeCountable'), desc: t('habitTypeCountableDesc'), emoji: '🔢' },
-                { type: 'timed' as HabitType, label: t('habitTypeTimed'), desc: t('habitTypeTimedDesc'), emoji: '⏱' },
-                { type: 'anti' as HabitType, label: t('habitTypeAnti'), desc: t('habitTypeAntiDesc'), emoji: '🛡' },
-              ].map((item) => (
-                <button
-                  key={item.type}
-                  type="button"
-                  onClick={() => setHabitType(item.type)}
-                  className={`w-full text-left p-4 rounded-2xl border transition-all flex gap-3.5 items-start ${
-                    habitType === item.type
-                      ? 'border-hf-accent bg-hf-accent/8 ring-1 ring-hf-accent'
-                      : 'border-hf-border/15 bg-hf-bg-secondary/50 hover:bg-hf-bg-secondary'
-                  }`}
-                >
-                  <span className="text-2xl mt-0.5">{item.emoji}</span>
-                  <div>
-                    <h4 className="font-bold text-[15px]">{item.label}</h4>
-                    <p className="text-[12px] text-hf-text-secondary mt-0.5">{item.desc}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+              <div className="flex flex-col gap-2.5">
+                {TYPE_OPTIONS.map((opt) => {
+                  const selected = habitType === opt.type;
+                  const isAnti = opt.type === 'anti';
+                  const accentColor = isAnti ? '#EF4444' : '#3B82F6';
+                  const IconComp = opt.icon;
 
-        {/* Step 2: Name and Icon */}
-        {step === 2 && (
-          <div className="flex flex-col gap-5">
+                  return (
+                    <button
+                      key={opt.type}
+                      type="button"
+                      onClick={() => setHabitType(opt.type)}
+                      className={`relative text-left p-4 rounded-2xl transition-all active:scale-[0.99] ${
+                        isAnti ? 'bg-red-500/5' : 'bg-hf-card'
+                      } ${
+                        selected
+                          ? `border-2 ${isAnti ? 'border-red-500' : 'border-hf-accent'}` + ` shadow-[0_0_0_4px_${isAnti ? 'rgb(239,68,68,0.08)' : 'rgb(59,130,246,0.08)'}]`
+                          : `border-[1.5px] ${isAnti ? 'border-red-500/25' : 'border-hf-border'}`
+                      }`}
+                    >
+                      <div className="flex gap-3.5 items-start">
+                        <div
+                          className="w-12 h-12 rounded-[14px] flex items-center justify-center shrink-0"
+                          style={{
+                            backgroundColor: selected
+                              ? isAnti ? 'rgb(239,68,68,0.15)' : 'rgb(59,130,246,0.1)'
+                              : isAnti ? 'rgb(239,68,68,0.08)' : undefined,
+                          }}
+                        >
+                          <IconComp
+                            className="w-[22px] h-[22px]"
+                            style={{ color: selected || isAnti ? accentColor : '#8E8E93' }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-hf-body-lg font-semibold text-hf-text-primary leading-[1.2]">
+                            {t(opt.labelKey)}
+                          </h4>
+                          <p
+                            className="text-hf-body-sm leading-[1.3] mt-0.5"
+                            style={{ color: isAnti ? (selected ? '#EF4444' : undefined) : undefined }}
+                          >
+                            {t(opt.descKey)}
+                          </p>
+                          <p className="text-hf-body-sm text-hf-text-tertiary leading-[1.3] text-[12px] mt-[3px]">
+                            Пример: {opt.example}
+                          </p>
+                        </div>
+                      </div>
+                      {selected && (
+                        <div
+                          className="absolute top-0 right-0 w-[22px] h-[22px] rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="text-[0px] leading-none select-none">Выбор недоступен — выберите тип ниже.</p>
+            </div>
+          )}
+
+          {/* ── Step 2: Name & Icon ── */}
+          {step === 2 && (
             <div>
-              <h3 className="text-xl font-bold">{t('habitCreateStep2Title')}</h3>
-              <p className="text-hf-text-secondary text-[13px] mt-1">{t('habitCreateStep2Subtitle')}</p>
-            </div>
+              <div className="mb-6">
+                <h3 className="text-[24px] font-bold text-hf-text-primary leading-[1.2] tracking-[-0.03em]">
+                  {t('habitCreateStep2Title')}
+                </h3>
+                <p className="text-hf-body-md text-hf-text-tertiary leading-[1.5] mt-1.5">
+                  {t('habitCreateStep2Subtitle')}
+                </p>
+              </div>
 
-            <div className="flex flex-col gap-4">
               {/* Name */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-hf-text-secondary">{t('commonNameLabel')}</label>
-                <Input
-                  placeholder={t('habitCreateStep2NameHint')}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+              <div className="mb-5">
+                <span className="text-hf-label-md text-hf-text-secondary tracking-[0.04em] uppercase">
+                  {t('commonNameLabel')}
+                </span>
+                <div className="mt-2">
+                  <Input
+                    placeholder={t('habitCreateStep2NameHint')}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    maxLength={60}
+                  />
+                </div>
               </div>
 
               {/* Category */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-hf-text-secondary">{t('commonCategoryLabel')}</label>
-                <Input
-                  placeholder="E.g. Health, Work, Mind"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                />
+              <div className="mb-6">
+                <span className="text-hf-label-md text-hf-text-secondary tracking-[0.04em] uppercase">
+                  {t('commonCategoryLabel')}
+                </span>
+                <div className="flex flex-wrap gap-2 mt-2.5">
+                  {CATEGORIES.map((catKey) => (
+                    <Chip
+                      key={catKey}
+                      label={t(catKey)}
+                      selected={!isCustomCategory && category === t(catKey)}
+                      onTap={() => {
+                        setIsCustomCategory(false);
+                        setCustomCategoryText('');
+                        setCategory(t(catKey));
+                      }}
+                    />
+                  ))}
+                  <Chip
+                    label={t('habitCategoryNew')}
+                    selected={isCustomCategory}
+                    onTap={() => {
+                      setIsCustomCategory(true);
+                      setCategory(customCategoryText);
+                    }}
+                  />
+                </div>
+                {isCustomCategory && (
+                  <div className="mt-3">
+                    <Input
+                      placeholder="Название новой категории..."
+                      value={customCategoryText}
+                      onChange={(e) => {
+                        setCustomCategoryText(e.target.value);
+                        setCategory(e.target.value);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Emoji Icon picker */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[13px] font-semibold text-hf-text-secondary">{t('habitCreateStep2IconLabel')}</label>
-                <div className="flex gap-2.5 flex-wrap bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-3.5">
-                  {['🧘', '💧', '🏃', '📚', '🍎', '🚭', '💻', '⏰', '💪', '🧠', '✍️', '🥦'].map((emoji) => (
+              {/* Icon */}
+              <div className="mb-6">
+                <span className="text-hf-label-md text-hf-text-secondary tracking-[0.04em] uppercase">
+                  {t('habitCreateStep2IconLabel')}
+                </span>
+
+                {/* Preview circle */}
+                <div className="flex justify-center my-6">
+                  <div
+                    className="w-24 h-24 rounded-full border-[2.5px] flex items-center justify-center"
+                    style={{ backgroundColor: `${color}1F`, borderColor: color }}
+                  >
+                    <span className="text-[44px] leading-none">{iconEmoji}</span>
+                  </div>
+                </div>
+
+                {/* Emoji grid */}
+                <div className="grid grid-cols-8 gap-1.5">
+                  {emojiSet.map((em) => (
                     <button
-                      key={emoji}
+                      key={em}
                       type="button"
-                      onClick={() => setIconEmoji(emoji)}
-                      className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
-                        iconEmoji === emoji
-                          ? 'bg-hf-accent text-white scale-110 shadow'
-                          : 'bg-hf-bg-secondary hover:opacity-90'
+                      onClick={() => setIconEmoji(em)}
+                      className={`w-full aspect-square rounded-[10px] border-[1.5px] flex items-center justify-center text-lg transition-all active:scale-95 ${
+                        iconEmoji === em
+                          ? 'bg-hf-accent/10 border-hf-accent'
+                          : 'bg-hf-bg-secondary border-transparent'
                       }`}
                     >
-                      {emoji}
+                      {em}
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* Step 3: Schedule and Goal */}
-        {step === 3 && (
-          <div className="flex flex-col gap-5">
-            <div>
-              <h3 className="text-xl font-bold">{t('habitCreateStep3Title')}</h3>
-              <p className="text-hf-text-secondary text-[13px] mt-1">{t('habitCreateStep3Subtitle')}</p>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              {/* Type-Specific goals */}
-              {habitType === 'countable' && (
-                <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex flex-col gap-4">
-                  <h4 className="text-[13px] font-bold text-hf-text-secondary uppercase tracking-wider">{t('habitCreateStep3GoalLabel')}</h4>
-                  <div className="flex gap-3">
-                    <div className="flex-1 flex flex-col gap-1.5">
-                      <label className="text-[12px] font-medium text-hf-text-secondary">Value</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={targetValue}
-                        onChange={(e) => setTargetValue(parseInt(e.target.value) || 1)}
-                      />
-                    </div>
-                    <div className="flex-1 flex flex-col gap-1.5">
-                      <label className="text-[12px] font-medium text-hf-text-secondary">Unit</label>
-                      <Input
-                        placeholder="e.g. glass, page"
-                        value={targetUnit}
-                        onChange={(e) => setTargetUnit(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {habitType === 'timed' && (
-                <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex flex-col gap-2.5">
-                  <h4 className="text-[13px] font-bold text-hf-text-secondary uppercase tracking-wider">{t('habitCreateStep3GoalLabel')}</h4>
-                  <label className="text-[12px] font-medium text-hf-text-secondary">Duration (Minutes)</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={targetValue}
-                    onChange={(e) => setTargetValue(parseInt(e.target.value) || 1)}
-                  />
-                </div>
-              )}
-
-              {/* Schedule Repeat Type */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-hf-text-secondary">{t('habitCreateStep3RepeatTypeLabel')}</label>
-                <select
-                  value={scheduleType}
-                  onChange={(e) => setScheduleType(e.target.value as ScheduleType)}
-                  className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3.5 text-[14px] text-hf-text-primary outline-none focus:border-hf-accent transition-all"
+              {/* Accent color */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setAccentOpen(!accentOpen)}
+                  className="w-full flex items-center gap-2.5 py-2.5"
                 >
-                  <option value="daily">Daily</option>
-                  <option value="weekdays">Selected Weekdays</option>
-                  <option value="every_n_days">Every N Days</option>
-                  <option value="monthly_dates">Monthly Dates</option>
-                </select>
+                  <div className="w-[22px] h-[22px] rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-hf-label-lg text-hf-text-primary">
+                    {t('habitCreateStep2AccentColorLabel')}
+                  </span>
+                  <span className="text-hf-body-sm text-hf-text-tertiary text-[12px]">
+                    {t(ACCENT_COLORS.find((a) => a.color === color)?.name || 'accentBlue')}
+                  </span>
+                  <div className="flex-1" />
+                  {accentOpen ? (
+                    <ChevronUp className="w-4 h-4 text-hf-text-tertiary" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-hf-text-tertiary" />
+                  )}
+                </button>
+                {accentOpen && (
+                  <div className="flex flex-wrap gap-2.5 pb-2">
+                    {ACCENT_COLORS.map((ac) => {
+                      const isSelected = color === ac.color;
+                      return (
+                        <button
+                          key={ac.color}
+                          type="button"
+                          onClick={() => setColor(ac.color)}
+                          className="relative w-9 h-9 rounded-full transition-all"
+                          style={{
+                            backgroundColor: ac.color,
+                            border: isSelected
+                              ? '3px solid var(--color-hf-bg-primary)'
+                              : '3px solid transparent',
+                            boxShadow: isSelected
+                              ? `0 0 0 2.5px ${ac.color}`
+                              : 'none',
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 3: Schedule ── */}
+          {step === 3 && (
+            <div>
+              <div className="mb-6">
+                <h3 className="text-[24px] font-bold text-hf-text-primary leading-[1.2] tracking-[-0.03em]">
+                  {t('habitCreateStep3Title')}
+                </h3>
+                <p className="text-hf-body-md text-hf-text-tertiary leading-[1.5] mt-1.5">
+                  {t('habitCreateStep3Subtitle')}
+                </p>
               </div>
 
-              {/* Conditional schedule options */}
+              {/* Repeat type */}
+              <div className="mb-5">
+                <span className="text-hf-label-md text-hf-text-secondary tracking-[0.04em] uppercase">
+                  {t('habitCreateStep3RepeatTypeLabel')}
+                </span>
+                <div className="mt-2">
+                  <select
+                    value={scheduleType}
+                    onChange={(e) => setScheduleType(e.target.value as ScheduleType)}
+                    className="w-full bg-hf-card border-[1.5px] border-hf-border rounded-xl px-3.5 py-3 text-hf-body-md text-hf-text-primary outline-none focus:border-hf-accent transition-all"
+                  >
+                    <option value="daily">{t('habitRepeatDaily')}</option>
+                    <option value="weekdays">{t('habitRepeatWeekdays')}</option>
+                    <option value="n_per_week">{t('habitRepeatNPerWeek')}</option>
+                    <option value="every_n_days">{t('habitRepeatEveryN')}</option>
+                    <option value="monthly_dates">{t('habitRepeatMonthly')}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Weekdays */}
               {scheduleType === 'weekdays' && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-[13px] font-semibold text-hf-text-secondary">Select days</label>
-                  <div className="flex justify-between bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-2.5">
-                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
-                      const dayVal = idx + 1;
-                      const active = weekdays.includes(dayVal);
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => toggleWeekday(dayVal)}
-                          className={`w-9 h-9 rounded-full font-bold text-[13px] flex items-center justify-center transition-all ${
-                            active
-                              ? 'bg-hf-accent text-white scale-105'
-                              : 'bg-hf-bg-secondary text-hf-text-primary hover:opacity-90'
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
+                <div className="flex gap-1.5 mb-5">
+                  {WEEKDAY_KEYS.map((key, i) => {
+                    const active = weekdays.includes(i + 1);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => toggleWeekday(i + 1)}
+                        className={`flex-1 py-2 rounded-[10px] text-hf-label-md font-semibold transition-all active:scale-95 ${
+                          active
+                            ? 'bg-hf-accent text-white'
+                            : 'bg-hf-bg-secondary border-[1.5px] border-hf-border text-hf-text-secondary'
+                        }`}
+                      >
+                        {t(key)}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* N per week */}
+              {scheduleType === 'n_per_week' && (
+                <div className="bg-hf-bg-secondary rounded-[14px] p-4 mb-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-hf-body-md text-hf-text-secondary">
+                      {t('habitCreateStep3FrequencyLabel')}
+                    </span>
+                    <span className="text-hf-headline-sm font-bold text-hf-accent">
+                      {t('habitCreateStep3FrequencyValue', { value: timesPerWeek })}
+                    </span>
+                  </div>
+                  <Slider
+                    value={timesPerWeek}
+                    onChanged={(v) => setTimesPerWeek(Math.round(v))}
+                    min={1}
+                    max={7}
+                    step={1}
+                  />
+                  <div className="flex justify-between mt-1">
+                    <span className="text-hf-label-sm text-hf-text-tertiary">1</span>
+                    <span className="text-hf-label-sm text-hf-text-tertiary">7</span>
                   </div>
                 </div>
               )}
 
+              {/* Every N days */}
               {scheduleType === 'every_n_days' && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-hf-text-secondary">Every N days</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={everyN}
-                    onChange={(e) => setEveryN(parseInt(e.target.value) || 2)}
-                  />
-                </div>
-              )}
-
-              {scheduleType === 'monthly_dates' && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-[13px] font-semibold text-hf-text-secondary">Select dates of month</label>
-                  <div className="grid grid-cols-7 gap-1.5 bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-3 max-h-[160px] overflow-y-auto">
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => {
-                      const active = monthlyDates.includes(date);
-                      return (
-                        <button
-                          key={date}
-                          type="button"
-                          onClick={() => toggleMonthlyDate(date)}
-                          className={`h-8 rounded-lg font-bold text-[12px] flex items-center justify-center transition-all ${
-                            active
-                              ? 'bg-hf-accent text-white'
-                              : 'bg-hf-bg-secondary text-hf-text-primary'
-                          }`}
-                        >
-                          {date}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Reminders list */}
-              <div className="bg-hf-bg-secondary/50 border border-hf-border/10 rounded-2xl p-4 flex flex-col gap-3">
-                <label className="text-[13px] font-bold text-hf-text-secondary uppercase tracking-wider">{t('habitCreateStep3RemindersLabel')}</label>
-                <div className="flex gap-2">
-                  <input
-                    type="time"
-                    value={newReminderTime}
-                    onChange={(e) => setNewReminderTime(e.target.value)}
-                    className="flex-1 bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-2.5 text-[14px] text-hf-text-primary outline-none"
-                  />
+                <div className="bg-hf-bg-secondary rounded-[14px] px-4 py-3.5 flex items-center gap-2 mb-5">
+                  <span className="text-hf-body-md text-hf-text-secondary flex-1">Каждые</span>
                   <button
                     type="button"
-                    onClick={addReminderTime}
-                    className="px-4 bg-hf-accent text-white font-bold rounded-xl text-[14px] flex items-center justify-center"
+                    onClick={() => setEveryN(Math.max(1, everyN - 1))}
+                    className="w-[34px] h-[34px] rounded-[10px] bg-hf-card border-[1.5px] border-hf-border flex items-center justify-center text-hf-body-md text-hf-text-primary active:scale-95"
                   >
-                    Add
+                    −
+                  </button>
+                  <span className="w-6 text-center text-hf-headline-sm font-bold text-hf-text-primary">
+                    {everyN}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEveryN(everyN + 1)}
+                    className="w-[34px] h-[34px] rounded-[10px] bg-hf-card border-[1.5px] border-hf-border flex items-center justify-center text-hf-body-md text-hf-text-primary active:scale-95"
+                  >
+                    +
+                  </button>
+                  <span className="text-hf-body-md text-hf-text-secondary">дней</span>
+                </div>
+              )}
+
+              {/* Monthly dates */}
+              {scheduleType === 'monthly_dates' && (
+                <div className="bg-hf-bg-secondary rounded-[14px] p-3.5 mb-5">
+                  <span className="text-hf-label-md text-hf-text-tertiary tracking-[0.05em] uppercase">
+                    {t('habitCreateStep3SelectDays')}
+                  </span>
+                  <div className="grid grid-cols-7 gap-[5px] mt-2.5">
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => {
+                      const active = monthlyDates.includes(d);
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => toggleMonthlyDate(d)}
+                          className={`aspect-square rounded-lg text-hf-label-md font-semibold flex items-center justify-center transition-all active:scale-95 ${
+                            active
+                              ? 'bg-hf-accent text-white'
+                              : 'bg-hf-card border border-hf-border text-hf-text-secondary'
+                          }`}
+                        >
+                          {d}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Goal (countable/timed) */}
+              {isCountable && (
+                <div className="mb-5">
+                  <span className="text-hf-label-md text-hf-text-secondary tracking-[0.04em] uppercase">
+                    {t('habitCreateStep3GoalLabel')}
+                  </span>
+                  <div className="bg-hf-bg-secondary rounded-[14px] px-4 py-3.5 flex items-center gap-2.5 mt-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setTargetValue(Math.max(1, targetValue - 1))}
+                      className="w-9 h-9 rounded-[10px] bg-hf-card border-[1.5px] border-hf-border flex items-center justify-center text-hf-body-md text-hf-text-primary active:scale-95"
+                    >
+                      −
+                    </button>
+                    <span className="w-9 text-center text-[24px] font-bold text-hf-text-primary">
+                      {targetValue}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setTargetValue(targetValue + 1)}
+                      className="w-9 h-9 rounded-[10px] bg-hf-card border-[1.5px] border-hf-border flex items-center justify-center text-hf-body-md text-hf-text-primary active:scale-95"
+                    >
+                      +
+                    </button>
+                    <div className="flex-1" />
+                    <select
+                      value={goalUnit}
+                      onChange={(e) => setGoalUnit(e.target.value)}
+                      className="bg-hf-card border-[1.5px] border-hf-border rounded-[10px] px-3 py-2 text-hf-body-md text-hf-text-primary outline-none"
+                    >
+                      {units.map((u) => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Reminders */}
+              <div className="mb-5">
+                <span className="text-hf-label-md text-hf-text-secondary tracking-[0.04em] uppercase">
+                  {t('habitCreateStep3RemindersLabel')}
+                </span>
+                <div className="bg-hf-bg-secondary rounded-[14px] mt-2.5">
+                  {reminders.length > 0 && (
+                    <div className="p-3 border-b border-hf-border">
+                      <div className="flex flex-wrap gap-2">
+                        {reminders.map((time, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 bg-hf-card border-[1.5px] border-hf-border rounded-full text-hf-body-sm text-hf-text-primary"
+                          >
+                            <Clock className="w-[13px] h-[13px] text-hf-accent" />
+                            {time}
+                            <button
+                              type="button"
+                              onClick={() => removeReminder(i)}
+                            >
+                              <X className="w-[13px] h-[13px] text-hf-text-tertiary" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={addReminder}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-3.5 active:opacity-70"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-hf-accent/10 flex items-center justify-center">
+                      <Plus className="w-4 h-4 text-hf-accent" />
+                    </div>
+                    <span className="text-hf-label-lg text-hf-accent">{t('habitCreateStep3AddReminder')}</span>
                   </button>
                 </div>
+                <p className="text-hf-body-sm text-hf-text-tertiary leading-[1.5] text-[12px] mt-2">
+                  {t('habitCreateStep3RemindersHint')}
+                </p>
+              </div>
 
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {reminderTimes.map((time) => (
-                    <span
-                      key={time}
-                      className="bg-hf-bg-secondary border border-hf-border/15 text-hf-text-primary text-[13px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5"
-                    >
-                      {time}
+              {/* Period accordion */}
+              <div className="bg-hf-bg-secondary rounded-[14px] mb-5">
+                <button
+                  type="button"
+                  onClick={() => setPeriodOpen(!periodOpen)}
+                  className="w-full flex items-center gap-2.5 px-4 py-3.5"
+                >
+                  <Calendar className="w-4 h-4 text-hf-text-tertiary" />
+                  <span className="text-hf-label-lg text-hf-text-primary">
+                    {t('habitCreateStep3PeriodLabel')}
+                  </span>
+                  <div className="flex-1" />
+                  {periodOpen ? (
+                    <ChevronUp className="w-4 h-4 text-hf-text-tertiary" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-hf-text-tertiary" />
+                  )}
+                </button>
+                {periodOpen && (
+                  <div className="border-t border-hf-border px-4 py-3 pb-4">
+                    <span className="text-hf-label-md text-hf-text-secondary">
+                      {t('habitCreateStep3StartDateLabel')}
+                    </span>
+                    <div className="mt-1.5 px-3.5 py-2.5 bg-hf-card border-[1.5px] border-hf-border rounded-[10px] text-hf-body-md text-hf-text-primary">
+                      07.05.2026
+                    </div>
+                    <div className="mt-3 flex items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => removeReminderTime(time)}
-                        className="text-red-500 font-extrabold hover:text-red-700"
+                        onClick={() => setEndless(!endless)}
+                        className={`w-[22px] h-[22px] rounded-md border-2 flex items-center justify-center transition-all ${
+                          endless ? 'bg-hf-accent border-hf-accent' : 'border-hf-border'
+                        }`}
                       >
-                        ×
+                        {endless && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
                       </button>
-                    </span>
-                  ))}
-                </div>
+                      <span className="text-hf-body-md text-hf-text-primary">{t('habitCreateStep3Endless')}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Step 4: Behavioral Reinforcement */}
-        {step === 4 && (
-          <div className="flex flex-col gap-5">
+          {/* ── Step 4: Reinforcement ── */}
+          {step === 4 && (
             <div>
-              <h3 className="text-xl font-bold">{t('habitCreateStep4Title')}</h3>
-              <p className="text-hf-text-secondary text-[13px] mt-1">{t('habitCreateStep4Subtitle')}</p>
-            </div>
+              <div className="mb-6">
+                <h3 className="text-[24px] font-bold text-hf-text-primary leading-[1.2] tracking-[-0.03em]">
+                  {t('habitCreateStep4Title')}
+                </h3>
+                <p className="text-hf-body-sm text-hf-text-tertiary leading-[1.6] mt-1.5">
+                  {t('habitCreateStep4Subtitle')}
+                </p>
+              </div>
 
-            <div className="flex flex-col gap-4">
               {/* Habit Stacking */}
-              {otherHabits.length > 0 && (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[13px] font-semibold text-hf-text-secondary">Habit Stacking (After which habit?)</label>
+              <AccordionSection emoji="🧱" title={t('habitCreateStep4StackingTitle')} subtitle={t('habitCreateStep4StackingSubtitle')}>
+                {otherHabits.length === 0 ? (
+                  <div className="px-3.5 py-3 bg-hf-bg-secondary border-[1.5px] border-hf-border rounded-xl text-hf-body-sm text-hf-text-tertiary italic">
+                    {t('habitStackingNoHabits')}
+                  </div>
+                ) : (
                   <select
-                    value={stackAfterHabitId}
-                    onChange={(e) => setStackAfterHabitId(e.target.value)}
-                    className="w-full bg-hf-bg-secondary border border-hf-border/15 rounded-xl p-3.5 text-[14px] text-hf-text-primary outline-none"
+                    value={stackingText}
+                    onChange={(e) => setStackingText(e.target.value)}
+                    className="w-full bg-hf-bg-secondary border-[1.5px] border-hf-border rounded-xl px-3.5 py-3 text-hf-body-md text-hf-text-primary outline-none focus:border-hf-accent transition-all"
                   >
-                    <option value="">None</option>
+                    <option value="">—</option>
                     {otherHabits.map((h) => (
-                      <option key={h.id} value={h.id}>
+                      <option key={h.id} value={h.name}>
                         {h.icon_emoji} {h.name}
                       </option>
                     ))}
                   </select>
-                </div>
-              )}
+                )}
+              </AccordionSection>
 
-              {/* Intentions: When / Where */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[13px] font-semibold text-hf-text-secondary">Implementation Intention</label>
-                <div className="flex gap-3">
-                  <Input
-                    placeholder="When (e.g. after morning shower)"
-                    value={implementationWhen}
-                    onChange={(e) => setImplementationWhen(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Where (e.g. bedroom mat)"
-                    value={implementationWhere}
-                    onChange={(e) => setImplementationWhere(e.target.value)}
-                  />
-                </div>
+              {/* Implementation Intention */}
+              <div className="mt-2.5">
+                <AccordionSection emoji="📍" title={t('habitCreateStep4IntentionTitle')} subtitle={t('habitCreateStep4IntentionSubtitle')}>
+                  <div className="flex flex-col gap-2.5">
+                    <Input
+                      placeholder={t('habitCreateStep4IntentionWhenHint')}
+                      value={whenText}
+                      onChange={(e) => setWhenText(e.target.value)}
+                    />
+                    <Input
+                      placeholder={t('habitCreateStep4IntentionWhereHint')}
+                      value={whereText}
+                      onChange={(e) => setWhereText(e.target.value)}
+                    />
+                  </div>
+                </AccordionSection>
               </div>
 
-              {/* Identity statement */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-hf-text-secondary">Identity ("I am a person who...")</label>
-                <Input
-                  placeholder="e.g. cares for my physical health"
-                  value={identityStatement}
-                  onChange={(e) => setIdentityStatement(e.target.value)}
-                />
+              {/* Identity */}
+              <div className="mt-2.5">
+                <AccordionSection emoji="🎭" title={t('habitCreateStep4IdentityTitle')} subtitle={t('habitCreateStep4IdentitySubtitle')}>
+                  <Input
+                    placeholder={t('habitCreateStep4IdentityHint')}
+                    value={identityText}
+                    onChange={(e) => setIdentityText(e.target.value)}
+                    minLines={3}
+                    maxLines={5}
+                  />
+                  <p className="text-hf-body-sm text-hf-text-tertiary leading-[1.5] text-[12px] mt-2">
+                    {t('habitCreateStep4IdentityNote')}
+                  </p>
+                </AccordionSection>
               </div>
 
-              {/* 2 Minute Version */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-hf-text-secondary">2-Minute Version (Fallback for hard days)</label>
-                <Input
-                  placeholder="e.g. drink one sip of water instead of whole glass"
-                  value={twoMinuteVersion}
-                  onChange={(e) => setTwoMinuteVersion(e.target.value)}
-                />
+              {/* 2-minute version */}
+              <div className="mt-2.5">
+                <AccordionSection emoji="⚡" title={t('habitCreateStep4TwoMinTitle')} subtitle={t('habitCreateStep4TwoMinSubtitle')}>
+                  <Input
+                    placeholder={t('habitCreateStep4TwoMinHint')}
+                    value={twoMinText}
+                    onChange={(e) => setTwoMinText(e.target.value)}
+                  />
+                </AccordionSection>
               </div>
 
               {/* Reward */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-hf-text-secondary">Reward</label>
-                <Input
-                  placeholder="e.g. a cup of good espresso after"
-                  value={reward}
-                  onChange={(e) => setReward(e.target.value)}
-                />
+              <div className="mt-2.5">
+                <AccordionSection emoji="🍰" title={t('habitCreateStep4RewardTitle')} subtitle={t('habitCreateStep4RewardSubtitle')}>
+                  <Input
+                    placeholder={t('habitCreateStep4RewardHint')}
+                    value={rewardText}
+                    onChange={(e) => setRewardText(e.target.value)}
+                  />
+                </AccordionSection>
               </div>
+
+              {/* Preview card */}
+              <div className="mt-7">
+                <span className="text-hf-label-md text-hf-text-tertiary tracking-[0.06em] uppercase">
+                  {t('habitCreateStep4PreviewLabel')}
+                </span>
+                <div className="mt-2.5 bg-hf-bg-secondary rounded-[18px] border-[1.5px] border-hf-border p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                  {/* Top row */}
+                  <div className="flex items-start gap-3 mb-3">
+                    <div
+                      className="w-[52px] h-[52px] rounded-2xl border-2 flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `${color}1F`, borderColor: color }}
+                    >
+                      <span className="text-2xl">{iconEmoji || '🌟'}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-hf-body-lg font-extrabold text-hf-text-primary tracking-[-0.02em]">
+                        {name || t('habitCreateStep4PreviewName')}
+                      </h4>
+                      <p className="text-hf-body-sm text-hf-text-secondary mt-0.5">
+                        {currentCategory} · {typeLabel()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[11px] font-semibold text-hf-text-tertiary tracking-[0.04em] uppercase">
+                        {t('habitCreateStep4PreviewStreak')}
+                      </span>
+                      <p
+                        className="text-hf-headline-md font-bold leading-none mt-0.5"
+                        style={{ color }}
+                      >
+                        0
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-hf-border mb-3" />
+
+                  {/* Meta pills */}
+                  <div className="flex flex-wrap gap-2 mb-3.5">
+                    <span className="inline-flex items-center gap-[5px] px-2.5 py-1.5 bg-hf-card border border-hf-border rounded-lg text-[12px] text-hf-text-secondary">
+                      <RefreshCw className="w-3 h-3 text-hf-text-tertiary" />
+                      {repeatLabel()}
+                    </span>
+                    {reminders.length > 0 && (
+                      <span className="inline-flex items-center gap-[5px] px-2.5 py-1.5 bg-hf-card border border-hf-border rounded-lg text-[12px] text-hf-text-secondary">
+                        <Bell className="w-3 h-3 text-hf-text-tertiary" />
+                        {reminders.length > 1 ? `${reminders[0]} +${reminders.length - 1}` : reminders[0]}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center px-2.5 py-1.5 rounded-lg text-hf-label-md text-hf-accent"
+                      style={{ backgroundColor: `${color}14`, border: `1px solid ${color}33` }}>
+                      {t('commonNewBadge')}
+                    </span>
+                  </div>
+
+                  {/* Today action */}
+                  <div className="flex items-center bg-hf-card border-[1.5px] border-hf-border rounded-xl px-3.5 py-3">
+                    <div className="flex-1">
+                      <span className="text-[11px] font-semibold text-hf-text-tertiary tracking-[0.04em] uppercase">
+                        {t('habitCreateStep4PreviewToday')}
+                      </span>
+                      <p className="text-hf-body-sm text-hf-text-secondary mt-0.5">{todayActionLabel()}</p>
+                    </div>
+                    <div
+                      className="w-[38px] h-[38px] rounded-[10px] border-[1.5px] flex items-center justify-center"
+                      style={{ backgroundColor: `${color}1F`, borderColor: color }}
+                    >
+                      {habitType === 'anti' ? (
+                        <ShieldCheck className="w-5 h-5" style={{ color }} />
+                      ) : (
+                        <Check className="w-5 h-5" style={{ color }} strokeWidth={2.5} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reset button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setStackingText('');
+                  setWhenText('');
+                  setWhereText('');
+                  setIdentityText('');
+                  setTwoMinText('');
+                  setRewardText('');
+                }}
+                className="w-full mt-4 py-2.5 text-hf-label-lg font-semibold text-hf-text-secondary active:text-hf-text-primary rounded-xl transition-all"
+              >
+                {t('habitCreateStep4Reset')}
+              </button>
             </div>
-          </div>
-        )}
-
-        {/* Wizard Navigation Footer */}
-        <div className="mt-8 shrink-0 pb-6 flex gap-3.5 justify-between">
-          {step > 1 && (
-            <button
-              type="button"
-              onClick={handleBack}
-              className="flex-1 py-3.5 rounded-xl border border-hf-border/20 font-semibold text-[14px] text-hf-text-primary hover:bg-hf-bg-secondary active:scale-[0.98] transition-all"
-            >
-              Back
-            </button>
-          )}
-
-          {step < 4 ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="flex-1 py-3.5 rounded-xl bg-hf-accent text-white font-semibold text-[14px] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
-            >
-              Next
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="flex-1 py-3.5 rounded-xl bg-hf-accent text-white font-semibold text-[14px] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
-            >
-              <Check className="w-4 h-4 stroke-[2.5]" />
-              {isEditMode ? t('habitEditSubmit') : t('habitCreateSubmit')}
-            </button>
           )}
         </div>
       </div>
+
+      {/* Footer */}
+      <div className="shrink-0 bg-hf-bg-primary border-t border-hf-border px-4 py-3 pb-5">
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={!canNext() || submitting}
+          className={`w-full py-[15px] rounded-[14px] text-hf-body-lg font-bold text-center transition-all active:scale-[0.99] tracking-[-0.01em] ${
+            !canNext() || submitting
+              ? 'bg-hf-bg-tertiary text-hf-text-tertiary cursor-not-allowed'
+              : 'bg-hf-accent text-white'
+          }`}
+        >
+          {step < 4 ? t('commonNext') : (isEditMode ? t('habitEditSubmit') : t('habitCreateSubmit'))}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Accordion section for Step 4 ── */
+function AccordionSection({
+  emoji,
+  title,
+  subtitle,
+  children,
+}: {
+  emoji: string;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="bg-hf-card border-[1.5px] border-hf-border rounded-[14px]">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+      >
+        <span className="text-xl leading-none">{emoji}</span>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-hf-label-lg text-hf-text-primary">{title}</h4>
+          {!open && (
+            <p className="text-hf-body-sm text-hf-text-tertiary text-[12px] mt-0.5">{subtitle}</p>
+          )}
+        </div>
+        {open ? (
+          <ChevronUp className="w-[18px] h-[18px] text-hf-text-tertiary shrink-0" />
+        ) : (
+          <ChevronDown className="w-[18px] h-[18px] text-hf-text-tertiary shrink-0" />
+        )}
+      </button>
+      {open && (
+        <div className="border-t border-hf-border px-4 pt-3 pb-4">
+          <p className="text-hf-body-sm text-hf-text-secondary leading-[1.5] mb-3">{subtitle}</p>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
