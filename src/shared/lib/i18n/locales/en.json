@@ -282,6 +282,8 @@
   "analyticsTopHabitsSubtitle": "BY COMPLETION",
   "analyticsAiCorrelationsTitle": "AI correlations",
   "analyticsAiCorrelationsMessage": "Add an OpenRouter key to see personal correlations and insights about your habits.",
+  "analyticsNoData": "No data for this period",
+  "analyticsNoJournalData": "No journal data",
   "analyticsSettings": "Settings",
   "weeklyReviewTitle": "Weekly review",
   "weeklyReviewSubtitle": "A short Sunday checklist to close the week.",

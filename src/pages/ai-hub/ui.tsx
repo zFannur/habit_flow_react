@@ -120,32 +120,18 @@ export default function AiHubPage() {
 
   // AI Style
   const [aiStyle, setAiStyle] = useState<AiStyleType>('coach');
-  const [isSupporter, setIsSupporter] = useState(false);
+
   useEffect(() => {
     if (!userId) return;
     supabase
       .from('users')
-      .select('ai_style, is_supporter')
+      .select('ai_style')
       .eq('id', userId)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) {
-          if (data.ai_style) setAiStyle(data.ai_style as AiStyleType);
-          if (data.is_supporter) setIsSupporter(data.is_supporter);
-        }
+        if (data?.ai_style) setAiStyle(data.ai_style as AiStyleType);
       });
   }, [userId]);
-
-  const handleStyleChange = async (style: AiStyleType) => {
-    if (style === 'poet' && !isSupporter) {
-      alert('Poet style is locked for supporters. Please support the project!');
-      return;
-    }
-    setAiStyle(style);
-    if (userId) {
-      await supabase.from('users').update({ ai_style: style }).eq('id', userId);
-    }
-  };
 
   // Chat mutations
   const createChatMutation = useCreateAiChatMutation(userId || '');
@@ -374,29 +360,6 @@ export default function AiHubPage() {
               >
                 <Plus className="w-5 h-5" />
               </button>
-            </div>
-
-            {/* AI Style chips */}
-            <div className="px-4 py-2 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
-              {([
-                { type: 'coach' as AiStyleType, label: t('aiStyleCoachName') },
-                { type: 'sergeant' as AiStyleType, label: t('aiStyleSergeantName') },
-                { type: 'buddy' as AiStyleType, label: t('aiStyleBuddyName') },
-                { type: 'sage' as AiStyleType, label: t('aiStyleSageName') },
-                { type: 'poet' as AiStyleType, label: `${t('aiStylePoetName')}💎` },
-              ] as const).map((style) => (
-                <button
-                  key={style.type}
-                  onClick={() => handleStyleChange(style.type)}
-                  className={`px-3 py-1.5 rounded-hf-full text-hf-label-sm whitespace-nowrap transition-all shrink-0 ${
-                    aiStyle === style.type
-                      ? 'bg-hf-accent text-white'
-                      : 'bg-hf-bg-secondary text-hf-text-primary'
-                  }`}
-                >
-                  {style.label}
-                </button>
-              ))}
             </div>
 
             {/* API Key warning */}

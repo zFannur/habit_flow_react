@@ -282,6 +282,8 @@
   "analyticsTopHabitsSubtitle": "ПО ВЫПОЛНЕНИЮ",
   "analyticsAiCorrelationsTitle": "ИИ-корреляции",
   "analyticsAiCorrelationsMessage": "Введи ключ OpenRouter, чтобы видеть персональные корреляции и инсайты по твоим привычкам.",
+  "analyticsNoData": "Нет данных за этот период",
+  "analyticsNoJournalData": "Нет записей в дневнике",
   "analyticsSettings": "Настройки",
   "weeklyReviewTitle": "Обзор недели",
   "weeklyReviewSubtitle": "Короткий воскресный чеклист, чтобы закрыть неделю.",

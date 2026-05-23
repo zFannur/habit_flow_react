@@ -720,6 +720,7 @@ function BarChartCard({
   t: (key: string) => string;
 }) {
   const isWeek = data.length <= 7;
+  const hasData = data.some((d) => d.value > 0);
 
   return (
     <SectionCard>
@@ -727,7 +728,7 @@ function BarChartCard({
         <h3 className="text-[15px] font-semibold text-hf-text-primary leading-tight">
           {t('analyticsBarChartTitle')}
         </h3>
-        {selectedIdx !== null && (
+        {selectedIdx !== null && hasData && (
           <div className="text-xs leading-tight text-hf-text-secondary">
             <span>{data[selectedIdx]!.label}: </span>
             <span
@@ -740,70 +741,80 @@ function BarChartCard({
         )}
       </div>
 
-      <div className="mt-3.5 h-[130px] flex items-end relative">
-        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-          {[75, 50, 25].map((p) => (
-            <div
-              key={p}
-              className="w-full border-t border-dashed border-hf-border opacity-50"
-              style={{ height: 0 }}
-            />
-          ))}
+      {!hasData ? (
+        <div className="flex items-center justify-center h-[130px] mt-2">
+          <p className="text-xs text-hf-text-tertiary leading-tight text-center px-2">
+            {t('analyticsNoData')}
+          </p>
         </div>
-        <div className="absolute left-0 -top-1 bottom-5 w-7 flex flex-col justify-between items-end pointer-events-none">
-          {[75, 50, 25].map((p) => (
-            <span
-              key={p}
-              className="text-[9px] text-hf-text-tertiary leading-none pr-1"
-            >
-              {p}%
-            </span>
-          ))}
-        </div>
-        <div className="flex-1 flex items-end ml-7 h-full">
-          {data.map((d, i) => {
-            const color = barColor(d.value);
-            const dimmed = selectedIdx !== null && selectedIdx !== i;
-            const barW = isWeek ? '28px' : `${Math.max(4, 92 / data.length)}%`;
-            return (
-              <button
-                key={i}
-                onClick={() => onSelect(selectedIdx === i ? null : i)}
-                className={`flex flex-col items-center justify-end ${isWeek ? 'flex-1' : ''}`}
-                style={{ flex: isWeek ? 1 : undefined }}
+      ) : (
+        <div className="mt-3.5 h-[130px] flex items-end relative">
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+            {[75, 50, 25].map((p) => (
+              <div
+                key={p}
+                className="w-full border-t border-dashed border-hf-border opacity-50"
+                style={{ height: 0 }}
+              />
+            ))}
+          </div>
+          <div className="absolute left-0 -top-1 bottom-5 w-7 flex flex-col justify-between items-end pointer-events-none">
+            {[75, 50, 25].map((p) => (
+              <span
+                key={p}
+                className="text-[9px] text-hf-text-tertiary leading-none pr-1"
               >
-                <div
-                  className="rounded-t transition-all"
-                  style={{
-                    width: barW,
-                    height: `${Math.max(4, d.value)}%`,
-                    minHeight: 4,
-                    backgroundColor: color,
-                    opacity: dimmed ? 0.25 : 1,
-                    borderRadius: isWeek ? '5px 5px 0 0' : '2px 2px 0 0',
-                    border: selectedIdx === i ? `2px solid ${color}80` : 'none',
-                    borderBottom: 'none',
-                  }}
-                />
-                {isWeek && (
-                  <span
-                    className="text-hf-label-sm leading-none mt-1.5"
-                    style={{ color: selectedIdx === i ? 'var(--hf-text-primary)' : 'var(--hf-text-tertiary)' }}
-                  >
-                    {d.label.substring(0, 3)}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                {p}%
+              </span>
+            ))}
+          </div>
+          <div className="flex-1 flex items-end ml-7 h-full">
+            {data.map((d, i) => {
+              const color = barColor(d.value);
+              const dimmed = selectedIdx !== null && selectedIdx !== i;
+              const barW = isWeek ? '28px' : `${Math.max(4, 92 / data.length)}%`;
+              return (
+                <button
+                  key={i}
+                  onClick={() => onSelect(selectedIdx === i ? null : i)}
+                  className={`flex flex-col items-center justify-end ${isWeek ? 'flex-1' : ''}`}
+                  style={{ flex: isWeek ? 1 : undefined }}
+                >
+                  <div
+                    className="rounded-t transition-all"
+                    style={{
+                      width: barW,
+                      height: `${Math.max(4, d.value)}%`,
+                      minHeight: 4,
+                      backgroundColor: color,
+                      opacity: dimmed ? 0.25 : 1,
+                      borderRadius: isWeek ? '5px 5px 0 0' : '2px 2px 0 0',
+                      border: selectedIdx === i ? `2px solid ${color}80` : 'none',
+                      borderBottom: 'none',
+                    }}
+                  />
+                  {isWeek && (
+                    <span
+                      className="text-hf-label-sm leading-none mt-1.5"
+                      style={{ color: selectedIdx === i ? 'var(--hf-text-primary)' : 'var(--hf-text-tertiary)' }}
+                    >
+                      {d.label.substring(0, 3)}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex justify-center gap-3 mt-3">
-        <LegendDot color="var(--hf-danger)" label={t('analyticsLegendLow')} />
-        <LegendDot color="var(--hf-warning)" label={t('analyticsLegendMedium')} />
-        <LegendDot color="var(--hf-success)" label={t('analyticsLegendHigh')} />
-      </div>
+      {hasData && (
+        <div className="flex justify-center gap-3 mt-3">
+          <LegendDot color="var(--hf-danger)" label={t('analyticsLegendLow')} />
+          <LegendDot color="var(--hf-warning)" label={t('analyticsLegendMedium')} />
+          <LegendDot color="var(--hf-success)" label={t('analyticsLegendHigh')} />
+        </div>
+      )}
     </SectionCard>
   );
 }
@@ -925,8 +936,10 @@ function PieCard({
         <h3 className="text-[15px] font-semibold text-hf-text-primary leading-tight">
           {t('analyticsPieTitle')}
         </h3>
-        <div className="flex justify-center py-4">
-          <span className="text-xl text-hf-text-tertiary leading-none">—</span>
+        <div className="flex items-center justify-center py-5">
+          <p className="text-xs text-hf-text-tertiary leading-tight">
+            {t('analyticsNoData')}
+          </p>
         </div>
       </SectionCard>
     );
@@ -948,36 +961,36 @@ function PieCard({
       <h3 className="text-[15px] font-semibold text-hf-text-primary leading-tight">
         {t('analyticsPieTitle')}
       </h3>
-      <div className="flex items-center gap-4 mt-3.5">
-        <svg width="120" height="120" viewBox="0 0 120 120" className="shrink-0">
-          <circle cx="60" cy="60" r="28" fill="none" stroke="var(--hf-card)" strokeWidth="2" />
+      <div className="flex items-center gap-3 mt-3.5">
+        <svg width="100" height="100" viewBox="0 0 100 100" className="shrink-0">
+          <circle cx="50" cy="50" r="24" fill="none" stroke="var(--hf-card)" strokeWidth="2" />
           {arcs.map((arc, i) => (
             <circle
               key={i}
-              cx="60"
-              cy="60"
-              r={r}
+              cx="50"
+              cy="50"
+              r={r - 10}
               fill="none"
               stroke={arc.color}
-              strokeWidth="44"
-              strokeDasharray={`${arc.dasharray} ${circumference - arc.dasharray}`}
-              strokeDashoffset={-arc.offset}
-              transform="rotate(-90 60 60)"
+              strokeWidth="38"
+              strokeDasharray={`${arc.dasharray * 0.78} ${(circumference - arc.dasharray) * 0.78}`}
+              strokeDashoffset={-arc.offset * 0.78}
+              transform="rotate(-90 50 50)"
             />
           ))}
         </svg>
 
-        <div className="flex-1 flex flex-col gap-1.5">
+        <div className="flex-1 flex flex-col gap-1 min-w-0">
           {slices.map((sl, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="flex items-center gap-1.5">
               <div
-                className="w-2.5 h-2.5 rounded-full shrink-0"
+                className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: sl.color }}
               />
-              <span className="flex-1 text-xs text-hf-text-secondary leading-tight truncate">
+              <span className="flex-1 text-[11px] text-hf-text-secondary leading-tight truncate">
                 {sl.label}
               </span>
-              <span className="text-[13px] font-semibold text-hf-text-primary leading-tight">
+              <span className="text-xs font-semibold text-hf-text-primary leading-tight shrink-0">
                 {sl.pct}%
               </span>
             </div>
@@ -1003,101 +1016,115 @@ function MoodLineCard({
         {t('analyticsMoodLineTitle')}
       </h3>
       {!hasData ? (
-        <div className="flex justify-center py-4">
-          <span className="text-xl text-hf-text-tertiary leading-none">—</span>
+        <div className="flex items-center justify-center py-5">
+          <p className="text-xs text-hf-text-tertiary leading-tight">
+            {t('analyticsNoJournalData')}
+          </p>
         </div>
       ) : (
         <>
-          <div className="mt-3.5 h-[130px]">
-            <svg
-              width="100%"
-              height="100%"
-              viewBox={`0 0 ${data.length} 10`}
-              preserveAspectRatio="none"
-              className="overflow-visible"
-            >
-              {[3, 5, 7, 10].map((v) => (
-                <line
+          <div className="mt-3.5 h-[140px] flex">
+            <div className="flex flex-col justify-between py-1 pr-1.5 shrink-0">
+              {[10, 8, 6, 4, 2].map((v) => (
+                <span
                   key={v}
-                  x1="0"
-                  y1={10 - v}
-                  x2={data.length - 1}
-                  y2={10 - v}
-                  stroke="var(--hf-border)"
-                  strokeWidth="0.1"
-                  strokeDasharray="0.3 0.4"
-                />
+                  className="text-[9px] text-hf-text-tertiary leading-none text-right"
+                >
+                  {v}
+                </span>
               ))}
-              {data.map((p, i) => {
-                if (p.mood <= 0 && p.energy <= 0) return null;
-                return (
-                  <g key={i}>
-                    {p.mood > 0 && i < data.length - 1 && (() => {
-                      const nextMood = data.slice(i + 1).find((x) => x.mood > 0);
-                      if (nextMood) {
-                        const nextI = data.indexOf(nextMood);
-                        return (
-                          <line
-                            x1={i}
-                            y1={10 - p.mood}
-                            x2={nextI}
-                            y2={10 - nextMood.mood}
-                            stroke="var(--hf-accent)"
-                            strokeWidth="0.25"
-                            strokeLinecap="round"
-                          />
-                        );
-                      }
-                      return null;
-                    })()}
-                    {p.energy > 0 && i < data.length - 1 && (() => {
-                      const nextEnergy = data.slice(i + 1).find((x) => x.energy > 0);
-                      if (nextEnergy) {
-                        const nextI = data.indexOf(nextEnergy);
-                        return (
-                          <line
-                            x1={i}
-                            y1={10 - p.energy}
-                            x2={nextI}
-                            y2={10 - nextEnergy.energy}
-                            stroke="var(--hf-warning)"
-                            strokeWidth="0.25"
-                            strokeLinecap="round"
-                          />
-                        );
-                      }
-                      return null;
-                    })()}
+            </div>
+            <div className="flex-1 h-full">
+              <svg
+                width="100%"
+                height="100%"
+                viewBox={`0 0 ${data.length} 10`}
+                preserveAspectRatio="xMidYMid meet"
+                className="overflow-visible"
+              >
+                {[2, 4, 6, 8].map((v) => (
+                  <line
+                    key={v}
+                    x1="0"
+                    y1={10 - v}
+                    x2={data.length - 1}
+                    y2={10 - v}
+                    stroke="var(--hf-border)"
+                    strokeWidth="0.08"
+                    strokeDasharray="0.2 0.3"
+                  />
+                ))}
+                {data.map((p, i) => {
+                  if (p.mood <= 0 && p.energy <= 0) return null;
+                  return (
+                    <g key={i}>
+                      {p.mood > 0 && i < data.length - 1 && (() => {
+                        const nextMood = data.slice(i + 1).find((x) => x.mood > 0);
+                        if (nextMood) {
+                          const nextI = data.indexOf(nextMood);
+                          return (
+                            <line
+                              x1={i}
+                              y1={10 - p.mood}
+                              x2={nextI}
+                              y2={10 - nextMood.mood}
+                              stroke="var(--hf-accent)"
+                              strokeWidth="0.25"
+                              strokeLinecap="round"
+                            />
+                          );
+                        }
+                        return null;
+                      })()}
+                      {p.energy > 0 && i < data.length - 1 && (() => {
+                        const nextEnergy = data.slice(i + 1).find((x) => x.energy > 0);
+                        if (nextEnergy) {
+                          const nextI = data.indexOf(nextEnergy);
+                          return (
+                            <line
+                              x1={i}
+                              y1={10 - p.energy}
+                              x2={nextI}
+                              y2={10 - nextEnergy.energy}
+                              stroke="var(--hf-warning)"
+                              strokeWidth="0.25"
+                              strokeLinecap="round"
+                            />
+                          );
+                        }
+                        return null;
+                      })()}
+                    </g>
+                  );
+                })}
+                {data.map((p, i) => (
+                  <g key={`dots-${i}`}>
+                    {p.mood > 0 && (
+                      <circle
+                        cx={i}
+                        cy={10 - p.mood}
+                        r="0.35"
+                        fill="var(--hf-accent)"
+                        stroke="var(--hf-card)"
+                        strokeWidth="0.2"
+                      />
+                    )}
+                    {p.energy > 0 && (
+                      <circle
+                        cx={i}
+                        cy={10 - p.energy}
+                        r="0.35"
+                        fill="var(--hf-warning)"
+                        stroke="var(--hf-card)"
+                        strokeWidth="0.2"
+                      />
+                    )}
                   </g>
-                );
-              })}
-              {data.map((p, i) => (
-                <g key={`dots-${i}`}>
-                  {p.mood > 0 && (
-                    <circle
-                      cx={i}
-                      cy={10 - p.mood}
-                      r="0.35"
-                      fill="var(--hf-accent)"
-                      stroke="var(--hf-card)"
-                      strokeWidth="0.2"
-                    />
-                  )}
-                  {p.energy > 0 && (
-                    <circle
-                      cx={i}
-                      cy={10 - p.energy}
-                      r="0.35"
-                      fill="var(--hf-warning)"
-                      stroke="var(--hf-card)"
-                      strokeWidth="0.2"
-                    />
-                  )}
-                </g>
-              ))}
-            </svg>
+                ))}
+              </svg>
+            </div>
           </div>
-          <div className="flex gap-4 mt-2">
+          <div className="flex gap-4 mt-2 ml-6">
             <LineLegend color="var(--hf-accent)" label={t('analyticsMoodLine')} />
             <LineLegend color="var(--hf-warning)" label={t('analyticsEnergyLine')} />
           </div>
@@ -1139,8 +1166,10 @@ function TopHabitsCard({
         </span>
       </div>
       {habits.length === 0 ? (
-        <div className="flex justify-center py-4">
-          <span className="text-xl text-hf-text-tertiary leading-none">—</span>
+        <div className="flex items-center justify-center py-5">
+          <p className="text-xs text-hf-text-tertiary leading-tight">
+            {t('analyticsNoData')}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3.5 mt-3.5">

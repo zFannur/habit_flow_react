@@ -11,7 +11,7 @@ import {
   dateOnly,
 } from '@/entities/habit';
 import { EmptyState, BottomSheet } from '@/shared/ui';
-import { Search, SlidersHorizontal, ChevronDown, Check, Plus, Archive, Trash2 } from 'lucide-react';
+import { Search, SlidersHorizontal, Check, Plus, Archive, Trash2 } from 'lucide-react';
 import type { HabitModel, HabitLogModel, HabitLogStatus } from '@/entities/habit';
 
 type SortOrder = 'byCreated' | 'byStreak' | 'byRate';
@@ -188,27 +188,6 @@ export default function HabitsPage() {
             {cat}
           </button>
         ))}
-      </div>
-
-      <div className="flex justify-between items-center px-4 py-1 shrink-0">
-        <span className="text-hf-label-md text-hf-text-secondary">
-          {t('habitsListCount', { count: filteredHabits.length })}
-        </span>
-        <button
-          type="button"
-          onClick={() => setIsSortOpen(true)}
-          className="flex items-center gap-1 text-hf-body-sm font-semibold text-hf-accent"
-        >
-          <span>
-            {t('habitsListSortLabel')}:{' '}
-            {sortOrder === 'byCreated'
-              ? t('habitsListSortByCreated')
-              : sortOrder === 'byStreak'
-              ? t('habitsListSortByStreak')
-              : t('habitsListSortByProgress')}
-          </span>
-          <ChevronDown className="w-3.5 h-3.5" />
-        </button>
       </div>
 
       <div className="flex-1 p-4 flex flex-col gap-3">
