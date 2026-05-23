@@ -12,6 +12,7 @@ import {
   deleteLog,
   subscribeToHabits,
   subscribeToLogs,
+  unsubscribeFromRealtime,
 } from './api';
 import type { HabitModel, HabitLogStatus } from '../model/types';
 
@@ -33,7 +34,7 @@ export function useHabitsQuery(userId?: string) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribeFromRealtime(subscription);
     };
   }, [userId, queryClient]);
 
@@ -57,7 +58,7 @@ export function useLogsQuery(userId?: string, fromDate?: string, toDate?: string
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribeFromRealtime(subscription);
     };
   }, [userId, queryClient]);
 
@@ -82,7 +83,7 @@ export function useHabitLogsQuery(userId?: string, habitId?: string) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribeFromRealtime(subscription);
     };
   }, [userId, habitId, queryClient]);
 

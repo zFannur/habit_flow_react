@@ -29,7 +29,7 @@ export function useAiChatsQuery(userId?: string) {
     if (!userId) return;
 
     const channel = supabase
-      .channel('realtime:ai_chats')
+      .channel(`realtime:ai_chats:${userId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         { event: '*', filter: `user_id=eq.${userId}`, schema: 'public', table: 'ai_chats' },
@@ -40,7 +40,7 @@ export function useAiChatsQuery(userId?: string) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [userId, queryClient]);
 
@@ -131,7 +131,7 @@ export function useAiMessagesQuery(chatId?: string, userId?: string) {
     if (!chatId || !userId) return;
 
     const channel = supabase
-      .channel(`realtime:ai_messages:${chatId}`)
+      .channel(`realtime:ai_messages:${chatId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         { event: '*', filter: `chat_id=eq.${chatId}`, schema: 'public', table: 'ai_messages' },
@@ -142,7 +142,7 @@ export function useAiMessagesQuery(chatId?: string, userId?: string) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [chatId, userId, queryClient]);
 
@@ -206,7 +206,7 @@ export function useAiSummariesQuery(userId?: string) {
     if (!userId) return;
 
     const channel = supabase
-      .channel('realtime:ai_summaries')
+      .channel(`realtime:ai_summaries:${userId}:${crypto.randomUUID()}`)
       .on(
         'postgres_changes',
         { event: '*', filter: `user_id=eq.${userId}`, schema: 'public', table: 'ai_summaries' },
@@ -217,7 +217,7 @@ export function useAiSummariesQuery(userId?: string) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [userId, queryClient]);
 

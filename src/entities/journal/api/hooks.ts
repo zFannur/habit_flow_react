@@ -7,6 +7,7 @@ import {
   deleteJournalEntry,
   fetchJournalEntryCount,
   subscribeToJournal,
+  unsubscribeFromJournal,
 } from './api';
 import type { JournalEntryModel } from '../model/types';
 
@@ -27,7 +28,7 @@ export function useJournalEntriesQuery(userId?: string) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribeFromJournal(subscription);
     };
   }, [userId, queryClient]);
 
@@ -51,7 +52,7 @@ export function useJournalEntryByDateQuery(userId?: string, dateStr?: string) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribeFromJournal(subscription);
     };
   }, [userId, dateStr, queryClient]);
 
@@ -75,7 +76,7 @@ export function useJournalEntryCountQuery(userId?: string) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribeFromJournal(subscription);
     };
   }, [userId, queryClient]);
 

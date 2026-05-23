@@ -1,3 +1,4 @@
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/shared/api';
 import type { HabitModel, HabitLogModel, HabitLogStatus } from '../model/types';
 
@@ -135,9 +136,12 @@ export async function deleteLog(userId: string, logId: string): Promise<void> {
 // Realtime Subscriptions
 // -------------------------------------------------------------------------
 
+// Channel names MUST be unique per subscriber. supabase-js dedupes channels by
+// topic, so a shared name returns an already-subscribed channel and .on() throws
+// "cannot add postgres_changes callbacks after subscribe()".
 export function subscribeToHabits(userId: string, onChange: () => void) {
   return supabase
-    .channel('realtime:habits')
+    .channel(`realtime:habits:${userId}:${crypto.randomUUID()}`)
     .on(
       'postgres_changes',
       { event: '*', filter: `user_id=eq.${userId}`, schema: 'public', table: 'habits' },
@@ -148,11 +152,17 @@ export function subscribeToHabits(userId: string, onChange: () => void) {
 
 export function subscribeToLogs(userId: string, onChange: () => void) {
   return supabase
-    .channel('realtime:habit_logs')
+    .channel(`realtime:habit_logs:${userId}:${crypto.randomUUID()}`)
     .on(
       'postgres_changes',
       { event: '*', filter: `user_id=eq.${userId}`, schema: 'public', table: 'habit_logs' },
       () => onChange()
     )
     .subscribe();
+}
+
+// removeChannel (not channel.unsubscribe) also drops the channel from the client
+// registry, so repeated mount/unmount cycles don't leak channels.
+export function unsubscribeFromRealtime(channel: RealtimeChannel): void {
+  supabase.removeChannel(channel);
 }

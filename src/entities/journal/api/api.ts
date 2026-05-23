@@ -1,3 +1,4 @@
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/shared/api';
 import type { JournalEntryModel } from '../model/types';
 
@@ -64,12 +65,18 @@ export async function fetchJournalEntryCount(userId: string): Promise<number> {
 }
 
 export function subscribeToJournal(userId: string, onChange: () => void) {
+  // Unique channel name per subscriber — a shared name returns an already-subscribed
+  // channel and .on() throws "cannot add postgres_changes callbacks after subscribe()".
   return supabase
-    .channel('realtime:journal_entries')
+    .channel(`realtime:journal_entries:${userId}:${crypto.randomUUID()}`)
     .on(
       'postgres_changes',
       { event: '*', filter: `user_id=eq.${userId}`, schema: 'public', table: 'journal_entries' },
       () => onChange()
     )
     .subscribe();
+}
+
+export function unsubscribeFromJournal(channel: RealtimeChannel): void {
+  supabase.removeChannel(channel);
 }
