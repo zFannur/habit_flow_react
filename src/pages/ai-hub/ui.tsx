@@ -15,7 +15,10 @@ import {
   type AiStyleType,
   type AiMessageModel,
 } from '@/entities/ai';
-import { useJournalEntryCountQuery } from '@/entities/journal';
+import { useJournalEntryCountQuery, useJournalEntriesQuery } from '@/entities/journal';
+import { useHabitsQuery } from '@/entities/habit';
+import type { HabitModel } from '@/entities/habit';
+import type { JournalEntryModel } from '@/entities/journal';
 import { OpenRouterClient } from '@/shared/api';
 import { supabase } from '@/shared/api';
 import { Button, Input, BottomSheet, EmptyState } from '@/shared/ui';
@@ -65,6 +68,61 @@ const SYSTEM_PROMPTS_META: SystemPromptMeta[] = [
   { titleKey: 'aiPromptSystem13Title', descKey: 'aiPromptSystem13Desc', emoji: '🏛️', category: 'growth' },
   { titleKey: 'aiPromptSystem14Title', descKey: 'aiPromptSystem14Desc', emoji: '💌', category: 'emotions' },
 ];
+
+// ---------------------------------------------------------------------------
+// Context builder (mirrors Flutter's PromptBuilder)
+// ---------------------------------------------------------------------------
+
+function buildContextBlock(habits: HabitModel[], journal: JournalEntryModel[]): string {
+  const lines: string[] = [];
+
+  const active = habits.filter((h) => !h.is_archived);
+  if (active.length > 0) {
+    lines.push(`Active habits (${active.length}):`);
+    for (const h of active) {
+      lines.push(`- ${h.name} [${h.habit_type}]`);
+    }
+    const stacks = active
+      .filter((h) => h.stack_after_habit_id)
+      .map((h) => {
+        const anchor = active.find((a) => a.id === h.stack_after_habit_id);
+        return anchor ? `- ${anchor.name} → ${h.name}` : null;
+      })
+      .filter(Boolean);
+    if (stacks.length > 0) {
+      lines.push('Stacks:');
+      lines.push(...(stacks as string[]));
+    }
+    const identities = active
+      .map((h) => h.identity_statement?.trim())
+      .filter((s): s is string => !!s);
+    if (identities.length > 0) {
+      lines.push('Identity statements:');
+      for (const s of identities) lines.push(`- "${s}"`);
+    }
+  }
+
+  const recent = [...journal]
+    .sort((a, b) => b.entry_date.localeCompare(a.entry_date))
+    .slice(0, 30);
+  if (recent.length > 0) {
+    lines.push(`\nRecent journal entries (${recent.length}):`);
+    for (const e of recent) {
+      const text = (e.free_text || '').trim();
+      const truncated = text.length > 500 ? `${text.slice(0, 500)}…` : text;
+      const mood = e.mood != null ? ` mood=${e.mood}` : '';
+      const energy = e.energy != null ? ` energy=${e.energy}` : '';
+      lines.push(`[${e.entry_date}${mood}${energy}] ${truncated}`);
+      if (e.answers) {
+        for (const [k, v] of Object.entries(e.answers)) {
+          if (v?.trim()) lines.push(`  · ${k}: ${v.trim().slice(0, 300)}`);
+        }
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -120,6 +178,10 @@ export default function AiHubPage() {
 
   // Journal count
   const { data: journalCount = 0 } = useJournalEntryCountQuery(userId);
+
+  // Context data for AI
+  const { data: habits = [] } = useHabitsQuery(userId);
+  const { data: journalEntries = [] } = useJournalEntriesQuery(userId);
 
   // AI Style
   const [aiStyle, setAiStyle] = useState<AiStyleType>('coach');
@@ -212,11 +274,16 @@ export default function AiHubPage() {
     try {
       await insertMessageMutation.mutateAsync({ role: 'user', content: text });
 
+      const locale = t('languageEnglish') === 'English' ? 'en' : 'ru';
+      const contextBlock = buildContextBlock(habits, journalEntries);
+      const systemContent = getSystemPrompt(aiStyle, locale) +
+        (contextBlock ? `\n\n--- User data ---\n${contextBlock}` : '');
+
       const history: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
-      history.push({ role: 'system', content: getSystemPrompt(aiStyle, t('languageEnglish') === 'English' ? 'en' : 'ru') });
+      history.push({ role: 'system', content: systemContent });
 
       const contextMsgs = dbMessages || [];
-      contextMsgs.slice(-10).forEach((m) => {
+      contextMsgs.slice(-20).forEach((m) => {
         history.push({ role: m.role, content: m.content });
       });
       history.push({ role: 'user', content: text });
