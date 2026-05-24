@@ -138,7 +138,7 @@ export default function ProfilePage() {
   const usernameLabel = user?.telegram_username ? `@${user.telegram_username}` : '';
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-secondary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
+    <div className="w-full min-h-full bg-hf-bg-secondary text-hf-text-primary pb-tg-safe-bottom">
       <div className="h-3" />
 
       {/* ── User Card ── */}
