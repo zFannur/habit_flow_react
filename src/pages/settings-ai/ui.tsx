@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
-import { HeaderBar } from '@/shared/ui';
+import { HeaderBar, BottomSheet } from '@/shared/ui';
 import { OpenRouterClient } from '@/shared/api';
 import {
   Search,
@@ -51,7 +51,7 @@ export default function AiSettingsPage() {
   const [model, setModel] = useState('google/gemini-2.5-flash');
   const [style, setStyle] = useState('coach');
   const [searchQuery, setSearchQuery] = useState('');
-  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
+  const [howItWorksSheetOpen, setHowItWorksSheetOpen] = useState(false);
 
   useEffect(() => {
     const savedKey = localStorage.getItem('openrouter_key') || '';
@@ -196,19 +196,10 @@ export default function AiSettingsPage() {
               <button onClick={() => window.open('https://openrouter.ai/keys', '_blank')} className="text-[12px] text-hf-accent">
                 {t('aiSettingsApiKeyLink')}
               </button>
-              <button onClick={() => setHowItWorksOpen(!howItWorksOpen)} className="text-[12px] text-hf-accent">
+              <button onClick={() => setHowItWorksSheetOpen(true)} className="text-[12px] text-hf-accent">
                 {t('aiSettingsHowItWorks')}
               </button>
             </div>
-
-            {/* How It Works - expandable */}
-            {howItWorksOpen && (
-              <div className="mt-4 pt-4 border-t border-hf-border flex flex-col gap-3.5">
-                <StepItem icon="🔑" title={t('aiSettingsHowItem1Title')} text={t('aiSettingsHowItem1Text')} />
-                <StepItem icon="🌐" title={t('aiSettingsHowItem2Title')} text={t('aiSettingsHowItem2Text')} />
-                <StepItem icon="💳" title={t('aiSettingsHowItem3Title')} text={t('aiSettingsHowItem3Text')} />
-              </div>
-            )}
           </div>
 
           {!editing && apiKey && (
@@ -391,6 +382,25 @@ export default function AiSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* BottomSheet: How It Works */}
+      <BottomSheet
+        isOpen={howItWorksSheetOpen}
+        onClose={() => setHowItWorksSheetOpen(false)}
+        title={t('aiSettingsHowItWorks')}
+      >
+        <div className="flex flex-col gap-3.5">
+          <StepItem icon="🔑" title={t('aiSettingsHowItem1Title')} text={t('aiSettingsHowItem1Text')} />
+          <StepItem icon="🌐" title={t('aiSettingsHowItem2Title')} text={t('aiSettingsHowItem2Text')} />
+          <StepItem icon="💳" title={t('aiSettingsHowItem3Title')} text={t('aiSettingsHowItem3Text')} />
+        </div>
+        <button
+          onClick={() => setHowItWorksSheetOpen(false)}
+          className="mt-5 w-full py-[13px] rounded-[12px] bg-hf-accent text-white text-[16px] font-semibold"
+        >
+          {t('commonUnderstand')}
+        </button>
+      </BottomSheet>
     </div>
   );
 }

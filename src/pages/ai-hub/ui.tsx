@@ -19,7 +19,7 @@ import { useJournalEntryCountQuery } from '@/entities/journal';
 import { OpenRouterClient } from '@/shared/api';
 import { supabase } from '@/shared/api';
 import { Button, Input, BottomSheet, EmptyState } from '@/shared/ui';
-import { MessageSquare, Sparkles, FileText, Send, Plus, Trash2, Edit3, AlertCircle, Settings, ChevronDown } from 'lucide-react';
+import { Send, Plus, Trash2, Edit3, AlertCircle, Settings2, ChevronDown, Sparkles } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -296,44 +296,46 @@ export default function AiHubPage() {
   }, [messages]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary pb-tg-safe-bottom overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-hidden">
       {/* ================================================================ */}
-      {/* HEADER */}
+      {/* HEADER: title + chips + settings — all in one row */}
       {/* ================================================================ */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
-        <h1 className="text-hf-headline-md text-hf-text-primary">{t('aiScreenTitle')}</h1>
-        <button
-          onClick={() => navigate('/profile/ai-settings')}
-          className="w-9 h-9 rounded-hf-md bg-hf-bg-secondary flex items-center justify-center text-hf-text-secondary hover:opacity-80 active:scale-95 transition-all"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
-      </div>
+      <div className="shrink-0 bg-hf-bg-primary border-b border-hf-border">
+        <div className="flex items-center gap-3.5 px-4 py-3">
+          <h1 className="text-hf-headline-md text-hf-text-primary shrink-0">{t('aiScreenTitle')}</h1>
 
-      {/* Tab chips */}
-      <div className="flex gap-2 px-4 pb-3 overflow-x-auto shrink-0 scrollbar-none">
-        {([
-          { id: 'chat' as TabId, icon: MessageSquare, label: t('aiChatTab') },
-          { id: 'summaries' as TabId, icon: FileText, label: t('aiSummariesTab') },
-          { id: 'prompts' as TabId, icon: Sparkles, label: t('aiPromptsTab') },
-        ] as const).map((tab) => {
-          const selected = activeTab === tab.id;
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-hf-full text-hf-label-sm shrink-0 transition-all ${
-                selected
-                  ? 'bg-hf-accent text-white'
-                  : 'bg-hf-bg-secondary text-hf-text-secondary'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {tab.label}
-            </button>
-          );
-        })}
+          {/* Scrollable chips */}
+          <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-none">
+            {([
+              { id: 'chat' as TabId, label: t('aiChatTab') },
+              { id: 'summaries' as TabId, label: t('aiSummariesTab') },
+              { id: 'prompts' as TabId, label: t('aiPromptsTab') },
+            ] as const).map((tab) => {
+              const selected = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3.5 py-1.5 rounded-full text-hf-body-sm shrink-0 transition-all ${
+                    selected
+                      ? 'bg-hf-accent/10 border-[1.5px] border-hf-accent text-hf-accent'
+                      : 'bg-hf-card border border-hf-border text-hf-text-secondary'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Settings button — round, bgTertiary */}
+          <button
+            onClick={() => navigate('/profile/ai-settings')}
+            className="w-9 h-9 rounded-full bg-hf-bg-tertiary flex items-center justify-center text-hf-text-primary hover:opacity-80 active:scale-95 transition-all shrink-0"
+          >
+            <Settings2 className="w-[18px] h-[18px]" />
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}

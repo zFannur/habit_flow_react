@@ -6,20 +6,60 @@ import { useHabitsQuery } from '@/entities/habit';
 import { useJournalEntriesQuery } from '@/entities/journal';
 import { supabase } from '@/shared/api';
 import { BottomSheet } from '@/shared/ui';
-import {
-  FileText,
-  User,
-  Key,
-  Bell,
-  Palette,
-  ClipboardList,
-  ChevronRight,
-  Sparkles,
-  Info,
-  ShieldCheck,
-  Mail,
-  Trash2,
-} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+
+// ─── menu row types ───────────────────────────────────────────────────────────
+
+interface MenuRowData {
+  emoji: string;
+  label: string;
+  iconBg: string;
+  danger?: boolean;
+  onClick?: () => void;
+}
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
+function SectionLabel({ text, danger = false }: { text: string; danger?: boolean }) {
+  return (
+    <div className={`px-4 pt-5 pb-2 text-[11px] font-semibold uppercase tracking-[0.07em] ${danger ? 'text-hf-danger/70' : 'text-hf-text-tertiary'}`}>
+      {text}
+    </div>
+  );
+}
+
+function MenuGroup({ rows }: { rows: MenuRowData[] }) {
+  return (
+    <div className="mx-4 bg-hf-card border border-hf-border rounded-[16px] overflow-hidden shadow-hf-card">
+      {rows.map((row, i) => (
+        <div key={i}>
+          <button
+            onClick={row.onClick}
+            className="w-full flex items-center px-4 py-3 text-left active:bg-hf-bg-tertiary transition-colors"
+          >
+            {/* Emoji icon in colored square */}
+            <div
+              className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 text-[18px] leading-none"
+              style={{ background: row.iconBg }}
+            >
+              {row.emoji}
+            </div>
+            <span className={`flex-1 ml-3 text-[15px] font-medium ${row.danger ? 'text-hf-danger' : 'text-hf-text-primary'}`}>
+              {row.label}
+            </span>
+            {!row.danger && <ChevronRight className="w-[7px] h-[13px] text-hf-text-tertiary shrink-0" strokeWidth={1.8} />}
+          </button>
+          {/* Divider indented from icon (left 64 = 16 padding + 36 icon + 12 gap) */}
+          {i < rows.length - 1 && (
+            <div className="h-px bg-hf-border" style={{ marginLeft: 64 }} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── main ─────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -61,33 +101,18 @@ export default function ProfilePage() {
   const calculateMaxStreak = () => {
     if (!entries || !entries.length) return 0;
     const dates = new Set(entries.map((e) => e.entry_date));
-
     let maxStreak = 0;
     let currentStreak = 0;
-
     const sorted = [...dates].sort();
     const today = new Date().toISOString().split('T')[0] || '';
-
-    if (dates.has(today)) {
-      currentStreak = 1;
-      maxStreak = 1;
-    }
-
+    if (dates.has(today)) { currentStreak = 1; maxStreak = 1; }
     for (let i = sorted.length - 2; i >= 0; i--) {
       const curr = new Date(sorted[i + 1] || '');
       const prev = new Date(sorted[i] || '');
-      const diffDays =
-        (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
-
-      if (diffDays === 1) {
-        currentStreak++;
-        maxStreak = Math.max(maxStreak, currentStreak);
-      } else {
-        currentStreak = 1;
-        maxStreak = Math.max(maxStreak, currentStreak);
-      }
+      const diffDays = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays === 1) { currentStreak++; maxStreak = Math.max(maxStreak, currentStreak); }
+      else { currentStreak = 1; maxStreak = Math.max(maxStreak, currentStreak); }
     }
-
     return Math.max(maxStreak, 1);
   };
 
@@ -106,250 +131,109 @@ export default function ProfilePage() {
     }
   };
 
-  const userInitial = user
-    ? (user.first_name || 'U').charAt(0).toUpperCase()
-    : 'U';
+  const displayName = user
+    ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.telegram_username || '—'
+    : '—';
+  const initial = displayName.charAt(0).toUpperCase() || '·';
+  const usernameLabel = user?.telegram_username ? `@${user.telegram_username}` : '';
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
-      <header className="w-full bg-hf-bg-primary border-b border-hf-border flex items-center px-4 pt-tg-safe-top pb-3">
-        <h1 className="flex-1 text-[20px] font-bold text-hf-text-primary tracking-[-0.02em]">
-          {t('navProfile')}
-        </h1>
-      </header>
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
+      <div className="h-3" />
 
-      <div className="flex-1 flex flex-col gap-5 max-w-md mx-auto w-full p-4">
-        {/* User Card */}
-        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-5 flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-hf-accent to-[#6366F1] shadow-md flex items-center justify-center text-white text-3xl font-extrabold select-none">
-            {userInitial}
+      {/* ── User Card ── */}
+      <div className="mx-4 bg-hf-card border border-hf-border rounded-[20px] overflow-hidden shadow-hf-card">
+        <div className="flex flex-col items-center px-5 pt-6 pb-0">
+          {/* Avatar */}
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center text-white text-[34px] font-bold select-none"
+            style={{
+              background: 'linear-gradient(135deg, #3B82F6, #6366F1)',
+              boxShadow: '0 4px 20px rgba(99,102,241,0.35)',
+            }}
+          >
+            {initial}
           </div>
 
-          <h2 className="text-hf-headline-sm text-hf-text-primary text-center">
-            {user
-              ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-              : 'Guest User'}
-          </h2>
+          <div className="h-3.5" />
 
-          {isSupporter ? (
-            <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-hf-premium/10 text-hf-premium border border-hf-premium/20">
-              {t('profileBadgeSupporter')}
-            </span>
-          ) : (
-            user?.telegram_username && (
-              <span className="text-hf-label-sm text-hf-text-tertiary">
-                @{user.telegram_username}
-              </span>
-            )
+          <span className="text-[22px] font-bold text-hf-text-primary tracking-[-0.02em] text-center">
+            {displayName}
+          </span>
+
+          {usernameLabel && !isSupporter && (
+            <span className="text-hf-body-md text-hf-text-tertiary mt-1">{usernameLabel}</span>
           )}
 
-          {/* Stats Row */}
-          <div className="w-full flex items-center justify-around mt-2 pt-2 border-t border-hf-border/20">
-            <div className="flex flex-col items-center flex-1">
-              <span className="text-hf-headline-sm text-hf-text-primary font-bold">
-                {daysWithApp}
-              </span>
-              <span className="text-[9px] font-bold uppercase tracking-wider text-hf-text-tertiary mt-0.5 text-center leading-tight">
-                {t('profileStatsDaysWithApp').replace('\n', ' ')}
+          {isSupporter && (
+            <div
+              className="mt-3 px-[13px] py-[5px] rounded-full text-[12px] font-medium border"
+              style={{ color: '#F59E0B', background: 'rgba(245,158,11,0.14)', borderColor: 'rgba(245,158,11,0.3)' }}
+            >
+              {t('profileBadgeSupporter')}
+            </div>
+          )}
+
+          <div className="h-4" />
+
+          {/* Stats row */}
+          <div className="w-full border-t border-hf-border flex">
+            <div className="flex-1 flex flex-col items-center py-3">
+              <span className="text-[20px] font-bold text-hf-text-primary tracking-[-0.03em]">{daysWithApp}</span>
+              <span className="text-[11px] font-medium text-hf-text-tertiary mt-[3px] tracking-[0.01em] text-center leading-tight">
+                {t('profileStatsDaysWithApp')}
               </span>
             </div>
-
-            <div className="w-px h-8 bg-hf-border/30" />
-
-            <div className="flex flex-col items-center flex-1">
-              <span className="text-hf-headline-sm text-hf-success font-bold">
-                {activeHabitsCount}
-              </span>
-              <span className="text-[9px] font-bold uppercase tracking-wider text-hf-text-tertiary mt-0.5 text-center leading-tight">
-                {t('profileStatsActiveHabits').replace('\n', ' ')}
+            <div className="w-px bg-hf-border self-stretch" />
+            <div className="flex-1 flex flex-col items-center py-3">
+              <span className="text-[20px] font-bold text-hf-text-primary tracking-[-0.03em]">{activeHabitsCount}</span>
+              <span className="text-[11px] font-medium text-hf-text-tertiary mt-[3px] tracking-[0.01em] text-center leading-tight">
+                {t('profileStatsActiveHabits')}
               </span>
             </div>
-
-            <div className="w-px h-8 bg-hf-border/30" />
-
-            <div className="flex flex-col items-center flex-1">
-              <span className="text-hf-headline-sm text-hf-warning font-bold">
-                {maxStreak}
-              </span>
-              <span className="text-[9px] font-bold uppercase tracking-wider text-hf-text-tertiary mt-0.5 text-center leading-tight">
-                {t('profileStatsStreak').replace('\n', ' ')}
+            <div className="w-px bg-hf-border self-stretch" />
+            <div className="flex-1 flex flex-col items-center py-3">
+              <span className="text-[20px] font-bold text-hf-text-primary tracking-[-0.03em]">🔥 {maxStreak}</span>
+              <span className="text-[11px] font-medium text-hf-text-tertiary mt-[3px] tracking-[0.01em] text-center leading-tight">
+                {t('profileStatsStreak')}
               </span>
             </div>
           </div>
-        </div>
-
-        {/* Basic Section */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-hf-label-sm font-bold uppercase tracking-[0.08em] text-hf-text-tertiary ml-1.5">
-            {t('profileSectionBasic')}
-          </span>
-          <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card overflow-hidden">
-            <button
-              onClick={() => navigate('/journal')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all border-b border-hf-border/5 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <FileText className="w-4 h-4 text-hf-accent" />
-                <span className="text-[13.5px] font-semibold">
-                  {t('profileMenuJournal')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-
-            <button
-              onClick={() => navigate('/profile/account')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <User className="w-4 h-4 text-hf-accent" />
-                <span className="text-[13.5px] font-semibold">
-                  {t('profileMenuAccount')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-          </div>
-        </div>
-
-        {/* Settings Section */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-hf-label-sm font-bold uppercase tracking-[0.08em] text-hf-text-tertiary ml-1.5">
-            {t('profileSectionSettings')}
-          </span>
-          <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card overflow-hidden">
-            <button
-              onClick={() => navigate('/profile/ai-settings')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all border-b border-hf-border/5 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <Key className="w-4 h-4 text-hf-accent" />
-                <span className="text-[13.5px] font-semibold">
-                  {t('profileMenuAiSettings')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-
-            <button
-              onClick={() => navigate('/profile/notifications')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all border-b border-hf-border/5 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <Bell className="w-4 h-4 text-hf-accent" />
-                <span className="text-[13.5px] font-semibold">
-                  {t('profileMenuNotifications')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-
-            <button
-              onClick={() => navigate('/profile/appearance')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all border-b border-hf-border/5 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <Palette className="w-4 h-4 text-hf-accent" />
-                <span className="text-[13.5px] font-semibold">
-                  {t('profileMenuAppearance')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-
-            <button
-              onClick={() => navigate('/profile/reflection-template')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <ClipboardList className="w-4 h-4 text-hf-accent" />
-                <span className="text-[13.5px] font-semibold">
-                  {t('profileMenuReflectionTemplate')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-          </div>
-        </div>
-
-        {/* Support Section */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-hf-label-sm font-bold uppercase tracking-[0.08em] text-hf-text-tertiary ml-1.5">
-            {t('profileSectionSupport')}
-          </span>
-          <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card overflow-hidden">
-            <button
-              onClick={() => navigate('/profile/donate')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all border-b border-hf-border/5 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <Sparkles className="w-4 h-4 text-yellow-500" />
-                <span className="text-[13.5px] font-semibold text-yellow-500">
-                  {t('profileMenuDonate')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-
-            <button
-              onClick={() => navigate('/profile/about')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all border-b border-hf-border/5 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <Info className="w-4 h-4 text-hf-accent" />
-                <span className="text-[13.5px] font-semibold">
-                  {t('profileMenuAbout')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-
-            <button
-              onClick={() => navigate('/profile/privacy')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all border-b border-hf-border/5 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <ShieldCheck className="w-4 h-4 text-hf-accent" />
-                <span className="text-[13.5px] font-semibold">
-                  {t('profileMenuPrivacy')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-
-            <button
-              onClick={() => navigate('/profile/contact')}
-              className="w-full flex items-center justify-between gap-3 p-3.5 hover:bg-hf-bg-secondary/30 text-left transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-hf-accent" />
-                <span className="text-[13.5px] font-semibold">
-                  {t('profileMenuContact')}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-hf-text-secondary" />
-            </button>
-          </div>
-        </div>
-
-        {/* Danger Zone */}
-        <div className="bg-red-500/5 border border-red-500/10 rounded-hf-lg p-4 flex flex-col gap-3 mb-4">
-          <h3 className="text-red-500 font-bold text-hf-label-sm uppercase tracking-wider">
-            {t('profileSectionDanger')}
-          </h3>
-          <p className="text-hf-label-sm text-hf-text-secondary leading-relaxed">
-            {t('profileDeleteAccountMessage')}
-          </p>
-          <button
-            type="button"
-            onClick={() => setIsDeleteOpen(true)}
-            className="w-full py-3 rounded-hf-md bg-red-500 text-white font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-red-600 active:scale-[0.98] transition-all"
-          >
-            <Trash2 className="w-4 h-4" />
-            {t('profileMenuDeleteAccount')}
-          </button>
         </div>
       </div>
+
+      {/* ── BASIC ── */}
+      <SectionLabel text={t('profileSectionBasic')} />
+      <MenuGroup rows={[
+        { emoji: '📓', label: t('profileMenuJournal'), iconBg: 'rgba(245,158,11,0.12)', onClick: () => navigate('/journal') },
+        { emoji: '👤', label: t('profileMenuAccount'), iconBg: 'rgba(59,130,246,0.12)', onClick: () => navigate('/profile/account') },
+      ]} />
+
+      {/* ── SETTINGS ── */}
+      <SectionLabel text={t('profileSectionSettings')} />
+      <MenuGroup rows={[
+        { emoji: '✨', label: t('profileMenuAiSettings'), iconBg: 'rgba(168,85,247,0.12)', onClick: () => navigate('/profile/ai-settings') },
+        { emoji: '🔔', label: t('profileMenuNotifications'), iconBg: 'rgba(245,158,11,0.12)', onClick: () => navigate('/profile/notifications') },
+        { emoji: '🎨', label: t('profileMenuAppearance'), iconBg: 'rgba(59,130,246,0.12)', onClick: () => navigate('/profile/appearance') },
+        { emoji: '📓', label: t('profileMenuReflectionTemplate'), iconBg: 'rgba(16,185,129,0.12)', onClick: () => navigate('/profile/reflection-template') },
+      ]} />
+
+      {/* ── SUPPORT ── */}
+      <SectionLabel text={t('profileSectionSupport')} />
+      <MenuGroup rows={[
+        { emoji: '💎', label: t('profileMenuDonate'), iconBg: 'rgba(245,158,11,0.14)', onClick: () => navigate('/profile/donate') },
+        { emoji: 'ℹ️', label: t('profileMenuAbout'), iconBg: 'rgba(59,130,246,0.12)', onClick: () => navigate('/profile/about') },
+        { emoji: '📜', label: t('profileMenuPrivacy'), iconBg: 'rgba(107,114,128,0.12)', onClick: () => navigate('/profile/privacy') },
+        { emoji: '✉️', label: t('profileMenuContact'), iconBg: 'rgba(16,185,129,0.12)', onClick: () => navigate('/profile/contact') },
+      ]} />
+
+      {/* ── DANGER ── */}
+      <SectionLabel text={t('profileSectionDanger')} danger />
+      <MenuGroup rows={[
+        { emoji: '🗑️', label: t('profileMenuDeleteAccount'), iconBg: 'rgba(239,68,68,0.10)', danger: true, onClick: () => setIsDeleteOpen(true) },
+      ]} />
+
+      <div className="h-5" />
 
       {/* Delete Confirmation BottomSheet */}
       <BottomSheet
@@ -369,7 +253,7 @@ export default function ProfilePage() {
           </button>
           <button
             onClick={handleDeleteAccount}
-            className="flex-1 py-3 rounded-hf-md bg-red-500 text-white font-semibold text-[14px]"
+            className="flex-1 py-3 rounded-hf-md bg-hf-danger text-white font-semibold text-[14px]"
           >
             {t('commonDelete')}
           </button>
