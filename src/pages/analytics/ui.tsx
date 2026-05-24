@@ -1266,6 +1266,7 @@ Output JSON only, no prose, no markdown fences. Schema:
 - Return at most 5 insights, prioritise high-strength ones.
 - If signal is too weak, return {"insights":[]}.`;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildPrompt(habits: any[], logs: any[], journal: any[]) {
   const names = new Map(habits.map((h) => [h.id, h.name]));
   let buf = 'Habits:\n';
@@ -1305,6 +1306,7 @@ function parseResponse(raw: string): CorrelationInsight[] {
     if (!decoded || typeof decoded !== 'object') return [];
     const list = decoded.insights;
     if (!Array.isArray(list)) return [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return list.map((item: any) => {
       const strengthRaw = item.strength;
       let strength = typeof strengthRaw === 'number' ? strengthRaw : 0.5;
@@ -1317,7 +1319,7 @@ function parseResponse(raw: string): CorrelationInsight[] {
         note: item.note ? String(item.note) : undefined,
       };
     });
-  } catch (_) {
+  } catch {
     return [];
   }
 }
@@ -1463,8 +1465,11 @@ function AiCorrelationsCard({
   navigate,
 }: {
   t: (key: string, params?: Record<string, string | number>) => string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   habits: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   logs: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   entries: any[];
   navigate: (path: string) => void;
 }) {
@@ -1504,9 +1509,9 @@ function AiCorrelationsCard({
       const parsed = parseResponse(responseText);
       setInsights(parsed);
       setStatus('data');
-    } catch (e: any) {
+    } catch (e) {
       console.error('Failed to fetch correlations:', e);
-      const msg = String(e?.message || e || '');
+      const msg = String((e as Error)?.message || e || '');
       if (msg.includes('429')) {
         setErrType('rate_limited');
       } else {
@@ -1537,34 +1542,24 @@ function AiCorrelationsCard({
       </div>
     );
   } else if (status === 'error') {
-    let errMsg = '';
-    let btnLabel = '';
-    let btnAction = () => {};
-
-    if (errType === 'no_key') {
-      errMsg = t('correlationsNoKey');
-      btnLabel = t('aiSettingsApiKeySection');
-      btnAction = () => navigate('/profile/ai-settings');
-    } else if (errType === 'not_enough_data') {
-      errMsg = t('correlationsNotEnoughData', { count: logs.length });
-      btnLabel = t('correlationsRefreshAgain');
-      btnAction = handleFetchCorrelations;
-    } else if (errType === 'rate_limited') {
-      errMsg = t('correlationsRateLimited');
-      btnLabel = t('correlationsRefreshAgain');
-      btnAction = handleFetchCorrelations;
-    } else {
-      errMsg = t('correlationsGeneric');
-      btnLabel = t('correlationsRefreshAgain');
-      btnAction = handleFetchCorrelations;
-    }
+    const errInfo = (() => {
+      if (errType === 'no_key') {
+        return { msg: t('correlationsNoKey'), label: t('aiSettingsApiKeySection'), action: () => navigate('/profile/ai-settings') };
+      } else if (errType === 'not_enough_data') {
+        return { msg: t('correlationsNotEnoughData', { count: logs.length }), label: t('correlationsRefreshAgain'), action: handleFetchCorrelations };
+      } else if (errType === 'rate_limited') {
+        return { msg: t('correlationsRateLimited'), label: t('correlationsRefreshAgain'), action: handleFetchCorrelations };
+      } else {
+        return { msg: t('correlationsGeneric'), label: t('correlationsRefreshAgain'), action: handleFetchCorrelations };
+      }
+    })();
 
     content = (
       <>
         <p className="mt-3 text-xs text-hf-text-secondary leading-relaxed">
-          {errMsg}
+          {errInfo.msg}
         </p>
-        <PrimaryRefreshButton label={btnLabel} onTap={btnAction} />
+        <PrimaryRefreshButton label={errInfo.label} onTap={errInfo.action} />
       </>
     );
   } else if (status === 'data') {
