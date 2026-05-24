@@ -6,7 +6,7 @@ import {
   useJournalEntryByDateQuery,
   useUpsertJournalEntryMutation,
   useDeleteJournalEntryMutation,
-  useReflectionTemplate,
+  getSavedReflectionTemplate,
 } from '@/entities/journal';
 import { HeaderBar, Slider, Input, Button } from '@/shared/ui';
 import { ChevronDown } from 'lucide-react';
@@ -39,7 +39,12 @@ export default function JournalEditPage() {
   const upsertMutation = useUpsertJournalEntryMutation(userId || '');
   const deleteMutation = useDeleteJournalEntryMutation(userId || '');
 
-  const templateQuestions = useReflectionTemplate();
+  const templateQuestions = getSavedReflectionTemplate() ?? [
+    t('reflectionTemplateQ1'),
+    t('reflectionTemplateQ2'),
+    t('reflectionTemplateQ3'),
+    t('reflectionTemplateQ4'),
+  ];
 
   const [mood, setMood] = useState<number>(5);
   const [energy, setEnergy] = useState<number>(5);

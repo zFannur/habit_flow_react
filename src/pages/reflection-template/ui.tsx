@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { getSavedReflectionTemplate, saveReflectionTemplate, resetReflectionTemplate } from '@/entities/journal';
@@ -9,7 +9,7 @@ export default function ReflectionTemplatePage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const getInitialQuestions = (): string[] => {
+  const [questions, setQuestions] = useState<string[]>(() => {
     const saved = getSavedReflectionTemplate();
     if (saved) return saved;
     return [
@@ -18,43 +18,61 @@ export default function ReflectionTemplatePage() {
       t('reflectionTemplateQ3'),
       t('reflectionTemplateQ4'),
     ];
-  };
+  });
 
-  const [questions, setQuestions] = useState<string[]>(getInitialQuestions());
+  const [saved, setSaved] = useState(true);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const persist = useCallback((items: string[]) => {
+    const clean = items.map((q) => q.trim()).filter(Boolean);
+    if (clean.length > 0) {
+      saveReflectionTemplate(clean);
+      setSaved(true);
+    }
+  }, []);
+
+  const scheduleSave = useCallback((items: string[]) => {
+    setSaved(false);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => persist(items), 400);
+  }, [persist]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      persist(questions);
+    };
+  }, [questions, persist]);
 
   const handleAddQuestion = () => {
-    setQuestions([...questions, '']);
+    const next = [...questions, ''];
+    setQuestions(next);
   };
 
   const handleRemoveQuestion = (idx: number) => {
-    setQuestions(questions.filter((_, i) => i !== idx));
+    const next = questions.filter((_, i) => i !== idx);
+    setQuestions(next);
+    scheduleSave(next);
   };
 
   const handleQuestionChange = (idx: number, val: string) => {
     const updated = [...questions];
     updated[idx] = val;
     setQuestions(updated);
-  };
-
-  const handleSave = () => {
-    const clean = questions.map((q) => q.trim()).filter(Boolean);
-    if (clean.length === 0) {
-      alert(t('reflectionTemplateMinOneQuestion'));
-      return;
-    }
-    saveReflectionTemplate(clean);
-    navigate(-1);
+    scheduleSave(updated);
   };
 
   const handleReset = () => {
     if (confirm(t('reflectionTemplateResetButton') + '?')) {
       resetReflectionTemplate();
-      setQuestions([
+      const defaults = [
         t('reflectionTemplateQ1'),
         t('reflectionTemplateQ2'),
         t('reflectionTemplateQ3'),
         t('reflectionTemplateQ4'),
-      ]);
+      ];
+      setQuestions(defaults);
+      persist(defaults);
     }
   };
 
@@ -62,7 +80,10 @@ export default function ReflectionTemplatePage() {
     <div className="w-full h-full flex flex-col bg-hf-bg-secondary">
       <HeaderBar
         title={t('reflectionTemplateTitle')}
-        onBack={handleSave}
+        onBack={() => {
+          persist(questions);
+          navigate(-1);
+        }}
         trailing={
           <button
             onClick={handleReset}
@@ -81,6 +102,10 @@ export default function ReflectionTemplatePage() {
         <p className="text-[13px] text-hf-text-secondary leading-relaxed px-1">
           {t('reflectionTemplateDesc')}
         </p>
+
+        {!saved && (
+          <p className="text-[12px] text-hf-accent/70 italic">Saving...</p>
+        )}
 
         {questions.map((q, idx) => (
           <div key={idx} className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card px-3.5 py-3 flex items-center gap-2.5">
