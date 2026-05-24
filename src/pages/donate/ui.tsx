@@ -75,10 +75,11 @@ export default function DonatePage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary overflow-y-auto pb-tg-safe-bottom">
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary">
       <HeaderBar title={t('donateTitle')} onBack={() => navigate(-1)} />
 
-      <div className="flex-1 p-4 flex flex-col gap-4 max-w-md mx-auto w-full">
+      <div className="flex-1 overflow-y-auto pb-tg-safe-bottom">
+      <div className="p-4 flex flex-col gap-4 max-w-md mx-auto w-full">
         {/* Hero Card */}
         <div className="rounded-hf-lg border border-hf-border shadow-hf-card overflow-hidden relative" style={{ background: 'linear-gradient(135deg, var(--hf-card, #1C2128) 60%, rgba(245, 158, 11, 0.04) 100%)' }}>
           <div className="absolute -top-6 -right-6 w-[120px] h-[120px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%)' }} />
@@ -205,6 +206,7 @@ export default function DonatePage() {
         </button>
 
         <div className="pb-4" />
+      </div>
       </div>
     </div>
   );

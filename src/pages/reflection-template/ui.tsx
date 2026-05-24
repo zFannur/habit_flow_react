@@ -59,7 +59,7 @@ export default function ReflectionTemplatePage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto pb-tg-safe-bottom">
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary">
       <HeaderBar
         title={t('reflectionTemplateTitle')}
         onBack={handleSave}
@@ -76,7 +76,8 @@ export default function ReflectionTemplatePage() {
         }
       />
 
-      <div className="flex-1 p-4 flex flex-col gap-3.5 max-w-md mx-auto w-full">
+      <div className="flex-1 overflow-y-auto pb-tg-safe-bottom">
+      <div className="p-4 flex flex-col gap-3.5 max-w-md mx-auto w-full">
         <p className="text-[13px] text-hf-text-secondary leading-relaxed px-1">
           {t('reflectionTemplateDesc')}
         </p>
@@ -120,6 +121,7 @@ export default function ReflectionTemplatePage() {
         >
           {t('reflectionTemplateResetButton')}
         </button>
+      </div>
       </div>
     </div>
   );

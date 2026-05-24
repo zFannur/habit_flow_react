@@ -94,9 +94,12 @@ export default function AiHubPage() {
 
   // OpenRouter Key
   const [openRouterKey, setOpenRouterKey] = useState<string | null>(null);
+  const [currentModel, setCurrentModel] = useState('openai/gpt-oss-120b:free');
   useEffect(() => {
     const key = localStorage.getItem('openrouter_key');
     setOpenRouterKey(key);
+    const model = localStorage.getItem('openrouter_model') || 'openai/gpt-oss-120b:free';
+    setCurrentModel(model);
   }, []);
 
   // Chats
@@ -221,7 +224,8 @@ export default function AiHubPage() {
       const client = new OpenRouterClient(openRouterKey);
       let fullReply = '';
 
-      await client.chatCompletionStream(history, 'google/gemini-2.5-flash', (chunk) => {
+      const model = currentModel;
+      await client.chatCompletionStream(history, model, (chunk) => {
         fullReply += chunk;
         setStreamingText(fullReply);
       });
@@ -452,7 +456,7 @@ export default function AiHubPage() {
                           </div>
                           {!isUser && !isStreamingMsg && (
                             <span className="text-hf-label-sm text-hf-text-tertiary mt-1 mx-1.5">
-                              {t('aiStyleCoachName')} (google/gemini-2.5-flash)
+                              {t('aiStyleCoachName')} ({currentModel})
                             </span>
                           )}
                         </div>

@@ -89,10 +89,11 @@ export default function NotificationsSettingsPage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-secondary overflow-y-auto pb-tg-safe-bottom">
+    <div className="w-full h-full flex flex-col bg-hf-bg-secondary">
       <HeaderBar title={t('notificationsTitle')} onBack={() => { persist(); navigate(-1); }} />
 
-      <div className="flex-1 p-4 flex flex-col gap-4 max-w-md mx-auto w-full">
+      <div className="flex-1 overflow-y-auto pb-tg-safe-bottom">
+      <div className="p-4 flex flex-col gap-4 max-w-md mx-auto w-full">
         {/* Telegram Banner */}
         <div className="bg-hf-card border border-[#2AABEE]/40 rounded-hf-lg shadow-hf-card p-4 flex items-start gap-3">
           <div className="w-10 h-10 rounded-hf-md bg-[#2AABEE]/12 flex items-center justify-center shrink-0">
@@ -264,6 +265,7 @@ export default function NotificationsSettingsPage() {
 
         {/* Bottom padding */}
         <div className="pb-8" />
+      </div>
       </div>
 
       {/* Time Picker Modal */}
