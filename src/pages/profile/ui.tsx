@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
 import { useHabitsQuery } from '@/entities/habit';
@@ -63,6 +64,7 @@ function MenuGroup({ rows }: { rows: MenuRowData[] }) {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { state: session, logout } = useSessionStore();
   const userId = session.status === 'authenticated' ? session.user.id : undefined;
@@ -71,6 +73,8 @@ export default function ProfilePage() {
   const [isSupporter, setIsSupporter] = useState(false);
   const [daysWithApp, setDaysWithApp] = useState(1);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { data: habits } = useHabitsQuery(userId);
   const { data: entries } = useJournalEntriesQuery(userId);
@@ -120,14 +124,35 @@ export default function ProfilePage() {
 
   const handleDeleteAccount = async () => {
     if (!user) return;
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
       const { error } = await supabase.from('users').delete().eq('id', user.id);
       if (error) throw error;
+
+      // Clear all cached queries
+      queryClient.clear();
+
+      // Clear entire localStorage (remove EVERYTHING)
+      localStorage.clear();
+
+      // Reset session state
       await logout();
+
       setIsDeleteOpen(false);
-      navigate('/splash');
+      setIsDeleting(false);
+
+      // Close the Mini App if inside Telegram — user will reopen fresh
+      const tg = (window as unknown as { Telegram?: { WebApp?: { close?: () => void } } }).Telegram;
+      if (tg?.WebApp?.close) {
+        tg.WebApp.close();
+      } else {
+        navigate('/splash', { replace: true });
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Delete account failed:', e);
+      setDeleteError('Failed to delete account. Please try again.');
+      setIsDeleting(false);
     }
   };
 
@@ -241,21 +266,29 @@ export default function ProfilePage() {
         onClose={() => setIsDeleteOpen(false)}
         title={t('profileDeleteAccountTitle')}
       >
-        <p className="text-[14px] text-hf-text-secondary mb-6 leading-relaxed">
+        <p className="text-[14px] text-hf-text-secondary mb-2 leading-relaxed">
           {t('profileDeleteAccountMessage')}
         </p>
+        {deleteError && (
+          <p className="text-[13px] text-hf-danger font-medium mb-3 bg-hf-danger/5 px-3 py-2 rounded-hf-md">{deleteError}</p>
+        )}
         <div className="flex gap-3">
           <button
-            onClick={() => setIsDeleteOpen(false)}
-            className="flex-1 py-3 rounded-hf-md bg-hf-bg-secondary font-semibold text-[14px] text-hf-text-primary"
+            onClick={() => { setIsDeleteOpen(false); setDeleteError(null); }}
+            disabled={isDeleting}
+            className="flex-1 py-3 rounded-hf-md bg-hf-bg-secondary font-semibold text-[14px] text-hf-text-primary disabled:opacity-40"
           >
             {t('commonCancel')}
           </button>
           <button
             onClick={handleDeleteAccount}
-            className="flex-1 py-3 rounded-hf-md bg-hf-danger text-white font-semibold text-[14px]"
+            disabled={isDeleting}
+            className="flex-1 py-3 rounded-hf-md bg-hf-danger text-white font-semibold text-[14px] disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {t('commonDelete')}
+            {isDeleting && (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            )}
+            {isDeleting ? 'Deleting...' : t('commonDelete')}
           </button>
         </div>
       </BottomSheet>
