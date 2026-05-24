@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
@@ -12,14 +12,24 @@ import {
   dateOnly,
 } from '@/entities/habit';
 import type { HabitModel, HabitLogModel, HabitLogStatus } from '@/entities/habit';
-import { HeaderBar, BottomSheet } from '@/shared/ui';
-import { Edit2, Archive, Trash2, Flame, Percent, ClipboardList } from 'lucide-react';
+import { BottomSheet } from '@/shared/ui';
+import {
+  ChevronLeft,
+  Ellipsis,
+  Flame,
+  Trophy,
+  Percent,
+  ClipboardList,
+  Edit2,
+  Archive,
+  Trash2,
+} from 'lucide-react';
 
-function computeStats(
-  habit: HabitModel,
-  logs: HabitLogModel[],
-  today: string,
-) {
+/* ------------------------------------------------------------------ */
+/*  Data helpers                                                       */
+/* ------------------------------------------------------------------ */
+
+function computeStats(habit: HabitModel, logs: HabitLogModel[], today: string) {
   const currentStreakVal = currentStreak({ habit, logs, today });
 
   const start = new Date(habit.start_date);
@@ -27,9 +37,7 @@ function computeStats(
   const cursor = new Date(start);
 
   const byDate: Record<string, HabitLogModel> = {};
-  for (const l of logs) {
-    byDate[l.log_date] = l;
-  }
+  for (const l of logs) byDate[l.log_date] = l;
 
   let activeCount = 0;
   let completedCount = 0;
@@ -39,32 +47,27 @@ function computeStats(
   while (cursor <= end) {
     const cursorStr = dateOnly(cursor);
     const active = isHabitActiveOnDay(habit, cursor);
-
     if (active) {
       activeCount++;
       const log = byDate[cursorStr];
       const isDone = log && (log.status === 'done' || log.status === 'partial');
-
       if (isDone) {
         completedCount++;
         runningStreak++;
         if (runningStreak > bestStreak) bestStreak = runningStreak;
       } else if (log && log.status === 'skipped') {
-        // skipped days don't break or increment streak
+        /* skip doesn't reset streak */
       } else {
         if (cursorStr !== today) runningStreak = 0;
       }
     }
-
     cursor.setDate(cursor.getDate() + 1);
   }
-
-  const completionRate = activeCount > 0 ? Math.round((completedCount / activeCount) * 100) : 0;
 
   return {
     currentStreakVal,
     bestStreak,
-    completionRate,
+    completionRate: activeCount > 0 ? Math.round((completedCount / activeCount) * 100) : 0,
     totalCompleted: completedCount,
   };
 }
@@ -77,9 +80,7 @@ function build90DayHeatmap(
   const cols = 10;
 
   const logsByDate: Record<string, HabitLogStatus> = {};
-  for (const log of logs) {
-    logsByDate[log.log_date] = log.status;
-  }
+  for (const log of logs) logsByDate[log.log_date] = log.status;
 
   const grid: { date: string; status: HabitLogStatus | null }[][] = [];
   for (let c = 0; c < cols; c++) {
@@ -90,14 +91,10 @@ function build90DayHeatmap(
       d.setDate(d.getDate() - (89 - dayOffset));
       const dStr = dateOnly(d);
       const isFuture = dStr > today;
-      col.push({
-        date: dStr,
-        status: isFuture ? null : (logsByDate[dStr] ?? null),
-      });
+      col.push({ date: dStr, status: isFuture ? null : (logsByDate[dStr] ?? null) });
     }
     grid.push(col);
   }
-
   return grid;
 }
 
@@ -111,9 +108,7 @@ function build12WeekChart(
   const result: number[] = [];
 
   const logsByDate: Record<string, HabitLogStatus> = {};
-  for (const log of logs) {
-    logsByDate[log.log_date] = log.status;
-  }
+  for (const log of logs) logsByDate[log.log_date] = log.status;
 
   for (let w = weeks - 1; w >= 0; w--) {
     const weekEnd = new Date(todayDate);
@@ -124,12 +119,10 @@ function build12WeekChart(
     let done = 0;
     let total = 0;
     const cursor = new Date(weekStart);
-
     for (let d = 0; d < 7; d++) {
       const dStr = dateOnly(cursor);
       if (dStr <= today) {
-        const active = isHabitActiveOnDay(habit, cursor);
-        if (active) {
+        if (isHabitActiveOnDay(habit, cursor)) {
           total++;
           const status = logsByDate[dStr];
           if (status === 'done' || status === 'partial') done++;
@@ -137,40 +130,242 @@ function build12WeekChart(
       }
       cursor.setDate(cursor.getDate() + 1);
     }
-
     result.push(total > 0 ? Math.round((done / total) * 100) : 0);
   }
-
   return result;
 }
 
-function statusColor(status: HabitLogStatus | null): string {
-  switch (status) {
-    case 'done':
-    case 'partial':
-      return 'bg-hf-success';
-    case 'missed':
-      return 'bg-hf-danger';
-    case 'skipped':
-      return 'bg-hf-bg-tertiary border border-hf-border';
-    default:
-      return 'bg-hf-bg-tertiary';
+/* ------------------------------------------------------------------ */
+/*  Simple SVG Line Chart                                              */
+/* ------------------------------------------------------------------ */
+
+function LineChart({ data }: { data: number[] }) {
+  const { t } = useTranslation();
+  const w = 320;
+  const h = 150;
+  const padLeft = 32;
+  const padRight = 8;
+  const padTop = 8;
+  const padBottom = 20;
+  const innerW = w - padLeft - padRight;
+  const innerH = h - padTop - padBottom;
+
+  if (data.length === 0) {
+    return <div className="h-[150px] flex items-center justify-center text-hf-body-sm text-hf-text-tertiary">—</div>;
   }
+
+  const maxVal = 100;
+  const points = data
+    .map((v, i) => {
+      const x = padLeft + (i / Math.max(data.length - 1, 1)) * innerW;
+      const y = padTop + innerH - (v / maxVal) * innerH;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  const areaPath = [
+    `${padLeft},${padTop + innerH}`,
+    ...data.map((v, i) => {
+      const x = padLeft + (i / Math.max(data.length - 1, 1)) * innerW;
+      const y = padTop + innerH - (v / maxVal) * innerH;
+      return `${x},${y}`;
+    }),
+    `${padLeft + innerW},${padTop + innerH}`,
+  ].join(' ');
+
+  const avg = Math.round(data.reduce((a, b) => a + b, 0) / data.length);
+
+  return (
+    <div className="relative" style={{ height: h }}>
+      <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--hf-success)" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="var(--hf-success)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* dashed horizontal grid lines */}
+        {[0, 25, 50, 75, 100].map((val) => {
+          const y = padTop + innerH - (val / maxVal) * innerH;
+          return (
+            <g key={val}>
+              <text x={padLeft - 4} y={y + 3} textAnchor="end" className="text-[8px] fill-hf-text-tertiary select-none font-medium">—</text>
+              <line x1={padLeft} y1={y} x2={w - padRight} y2={y} stroke="var(--hf-border)" strokeDasharray="2 3" strokeWidth="0.5" />
+            </g>
+          );
+        })}
+
+        {/* area fill */}
+        <polygon points={areaPath} fill="url(#chartFill)" />
+
+        {/* line */}
+        <polyline
+          points={points}
+          fill="none"
+          stroke="var(--hf-success)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* x-axis labels every 4 weeks */}
+        {data.map((_, i) => {
+          if ((i + 1) % 4 !== 0 && i !== data.length - 1) return null;
+          const x = padLeft + (i / Math.max(data.length - 1, 1)) * innerW;
+          return (
+            <text key={i} x={x} y={h - 2} textAnchor="middle" className="text-[8px] fill-hf-text-tertiary select-none font-medium">
+              {t('habitDetailChartWeekShort', { n: i + 1 })}
+            </text>
+          );
+        })}
+      </svg>
+      <div className="flex justify-between mt-1 text-[10px] text-hf-text-tertiary px-2">
+        <span>{t('habitDetailChartWeeks', { count: data.length })}</span>
+        <span className="text-hf-success font-bold">{t('habitDetailChartAverage', { percent: avg })}</span>
+      </div>
+    </div>
+  );
 }
 
-function statusBadge(status: string): { bg: string; text: string; key: string } {
-  switch (status) {
-    case 'done':
-    case 'partial':
-      return { bg: 'bg-hf-success/10 text-hf-success', text: '✅', key: 'habitHistoryStatusDone' };
-    case 'missed':
-      return { bg: 'bg-hf-danger/10 text-hf-danger', text: '❌', key: 'habitHistoryStatusMissed' };
-    case 'skipped':
-      return { bg: 'bg-hf-text-secondary/10 text-hf-text-secondary', text: '⏭', key: 'habitDetailHeatmapSkip' };
-    default:
-      return { bg: '', text: '', key: '' };
-  }
+/* ------------------------------------------------------------------ */
+/*  Sub-components                                                     */
+/* ------------------------------------------------------------------ */
+
+interface StatCardProps {
+  icon: React.ReactNode;
+  value: React.ReactNode;
+  label: string;
+  iconColor?: string;
 }
+
+function StatCard({ icon, value, label, iconColor }: StatCardProps) {
+  return (
+    <div className="bg-hf-card border border-hf-border rounded-[16px] shadow-hf-card py-3.5 px-2 flex flex-col items-center gap-1">
+      <div className={iconColor ?? 'text-hf-warning'}>{icon}</div>
+      <span className="text-hf-display-md font-extrabold text-hf-text-primary leading-none">{value}</span>
+      <span className="text-[10px] text-hf-text-secondary font-semibold uppercase tracking-wider text-center leading-tight">
+        {label.split('\n').map((l, i) => (
+          <span key={i}>{l}<br /></span>
+        ))}
+      </span>
+    </div>
+  );
+}
+
+interface BehaviorCardProps {
+  emoji: string;
+  label: string;
+  value: string;
+}
+
+function BehaviorCard({ emoji, label, value }: BehaviorCardProps) {
+  return (
+    <div className="bg-hf-card border border-hf-border rounded-[14px] p-2.5 px-3 flex flex-col gap-1 min-h-0">
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm">{emoji}</span>
+        <span className="text-[10px] font-bold text-hf-text-secondary uppercase tracking-[0.04em]">{label}</span>
+      </div>
+      <p className="text-hf-label-md text-hf-text-primary leading-snug break-words">{value}</p>
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-[10px] font-bold text-hf-text-secondary uppercase tracking-[0.08em]">
+      {children}
+    </h3>
+  );
+}
+
+interface HistoryItemProps {
+  log: HabitLogModel;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  locale: string;
+}
+
+function HistoryItem({ log, t, locale }: HistoryItemProps) {
+  const [expanded, setExpanded] = useState(false);
+  const hasComment = !!log.comment;
+
+  const d = new Date(log.log_date);
+  const dateLabel = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    weekday: 'short',
+  }).format(d);
+
+  const dotColor =
+    log.status === 'done' || log.status === 'partial'
+      ? 'bg-hf-success'
+      : log.status === 'missed'
+        ? 'bg-hf-danger'
+        : 'bg-hf-text-tertiary';
+
+  const dotGlow =
+    log.status === 'done' || log.status === 'partial'
+      ? '0 0 0 3px rgba(34,197,94,0.15)'
+      : log.status === 'missed'
+        ? '0 0 0 3px rgba(239,68,68,0.15)'
+        : 'none';
+
+  const statusLabels: Record<string, string> = {
+    done: t('habitHistoryStatusDone'),
+    partial: t('habitHistoryStatusDone'),
+    missed: t('habitHistoryStatusMissed'),
+    skipped: t('habitDetailHeatmapSkip'),
+  };
+
+  const statusEmojis: Record<string, string> = {
+    done: '✅',
+    partial: '✅',
+    missed: '❌',
+    skipped: '⏭',
+  };
+
+  return (
+    <div
+      className={`py-2.5 ${expanded ? '' : 'cursor-pointer'}`}
+      onClick={() => hasComment && setExpanded(!expanded)}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`}
+          style={{ boxShadow: dotGlow }}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-hf-title-sm text-hf-text-primary font-medium">{dateLabel}</p>
+          {!expanded && log.comment && (
+            <p className="text-hf-body-sm text-hf-text-secondary italic truncate mt-0.5">
+              {log.comment}
+            </p>
+          )}
+        </div>
+        <span className="text-hf-label-sm text-hf-text-secondary flex items-center gap-1 shrink-0">
+          {statusEmojis[log.status] ?? ''} {statusLabels[log.status] ?? log.status}
+        </span>
+      </div>
+
+      {expanded && log.comment && (
+        <div className="mt-2 ml-5 pl-2 border-l-2 border-hf-border">
+          <p className="text-[12px] text-hf-text-secondary italic leading-relaxed mb-1.5">
+            {log.comment}
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-hf-full bg-hf-accent/8 text-hf-accent cursor-pointer hover:bg-hf-accent/15 transition-all">
+              {t('habitDetailHistoryEdit')}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main Page                                                          */
+/* ------------------------------------------------------------------ */
 
 export default function HabitDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -179,12 +374,11 @@ export default function HabitDetailPage() {
   const { state: session } = useSessionStore();
   const userId = session.status === 'authenticated' ? session.user.id : undefined;
 
-  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const { data: habits } = useHabitsQuery(userId);
   const habit = habits?.find((h) => h.id === id);
-
   const { data: logs, isLoading: isLoadingLogs } = useHabitLogsQuery(userId, id);
 
   const archiveMutation = useArchiveHabitMutation(userId || '');
@@ -209,72 +403,113 @@ export default function HabitDetailPage() {
 
   const recentLogs = useMemo(() => {
     if (!logs) return [];
-    return [...logs]
-      .sort((a, b) => b.log_date.localeCompare(a.log_date))
-      .slice(0, 10);
+    return [...logs].sort((a, b) => b.log_date.localeCompare(a.log_date));
   }, [logs]);
 
-  const handleArchive = async () => {
+  const handleArchive = useCallback(async () => {
     if (!id) return;
     try {
       await archiveMutation.mutateAsync(id);
+      setIsMenuOpen(false);
       navigate('/habits');
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [id, archiveMutation, navigate]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!id) return;
     try {
       await deleteMutation.mutateAsync(id);
       setIsDeleteOpen(false);
+      setIsMenuOpen(false);
       navigate('/habits');
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [id, deleteMutation, navigate]);
+
+  /* ---------- loading skeleton ---------- */
 
   if (!habit || isLoadingLogs || !stats) {
     return (
-      <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary p-4 pb-tg-safe-bottom">
-        <div className="h-6 w-32 bg-hf-bg-secondary animate-pulse rounded mb-4" />
-        <div className="h-[120px] bg-hf-bg-secondary animate-pulse rounded-hf-lg mb-4" />
-        <div className="h-40 bg-hf-bg-secondary animate-pulse rounded-hf-lg" />
+      <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top pb-tg-safe-bottom">
+        <div className="flex items-center justify-between px-5 py-3.5">
+          <div className="w-9 h-9 bg-hf-bg-secondary animate-pulse rounded-[10px]" />
+          <div className="h-5 w-32 bg-hf-bg-secondary animate-pulse rounded" />
+          <div className="w-9 h-9 bg-hf-bg-secondary animate-pulse rounded-[10px]" />
+        </div>
+        <div className="p-4 flex flex-col gap-4">
+          <div className="h-[120px] bg-hf-bg-secondary animate-pulse rounded-[16px]" />
+          <div className="h-[100px] bg-hf-bg-secondary animate-pulse rounded-[16px]" />
+          <div className="h-[150px] bg-hf-bg-secondary animate-pulse rounded-[16px]" />
+        </div>
       </div>
     );
   }
 
   const isPaused = habit.end_date && habit.end_date < todayStr;
 
-  const trailing = (
-    <div className="flex items-center gap-1">
-      <button
-        type="button"
-        onClick={() => navigate(`/habits/${habit.id}/edit`)}
-        className="p-2 rounded-hf-md bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all text-hf-accent"
-      >
-        <Edit2 className="w-4 h-4" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setIsMoreOpen(true)}
-        className="p-2 rounded-hf-md bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all text-hf-text-primary"
-      >
-        <Archive className="w-4 h-4" />
-      </button>
-    </div>
-  );
+  /* ---------- heatmap cell color ---------- */
+
+  const heatCellBg = (status: HabitLogStatus | null, isFuture: boolean) => {
+    if (isFuture) return 'bg-transparent border border-hf-border opacity-20';
+    switch (status) {
+      case 'done':
+      case 'partial':
+        return 'bg-hf-success';
+      case 'missed':
+        return 'bg-hf-danger';
+      case 'skipped':
+        return 'bg-hf-bg-tertiary border border-hf-border';
+      default:
+        return 'bg-hf-bg-tertiary';
+    }
+  };
+
+  const weekdays = [t('habitWeekMon'), t('habitWeekTue'), t('habitWeekWed'), t('habitWeekThu'), t('habitWeekFri'), t('habitWeekSat'), t('habitWeekSun')];
 
   return (
-    <div className="w-full h-full flex flex-col bg-hf-bg-primary text-hf-text-primary pb-tg-safe-bottom overflow-y-auto">
-      <HeaderBar
-        title={habit.name}
-        onBack={() => navigate('/habits')}
-        trailing={trailing}
-      />
+    <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top pb-tg-safe-bottom overflow-y-auto">
 
-      <div className="flex-1 flex flex-col gap-5 max-w-md mx-auto w-full p-4 pb-8">
+      {/* ============================================================ */}
+      {/*  CUSTOM HEADER                                               */}
+      {/* ============================================================ */}
+
+      <div className="sticky top-0 z-10 bg-hf-bg-primary border-b border-hf-border">
+        <div className="flex items-center justify-between px-5 py-3.5">
+          {/* back button circle */}
+          <button
+            type="button"
+            onClick={() => navigate('/habits')}
+            className="w-9 h-9 flex items-center justify-center bg-hf-card border-[1.5px] border-hf-border rounded-[10px] text-hf-text-secondary hover:opacity-90 active:scale-[0.95] transition-all shrink-0"
+          >
+            <ChevronLeft className="w-[18px] h-[18px]" />
+          </button>
+
+          {/* title */}
+          <h2 className="text-hf-title-lg font-bold text-hf-text-primary tracking-[-0.02em] mx-2 truncate">
+            {habit.name}
+          </h2>
+
+          {/* more menu button */}
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen(true)}
+            className="w-9 h-9 flex items-center justify-center bg-hf-card border-[1.5px] border-hf-border rounded-[10px] text-hf-text-secondary hover:opacity-90 active:scale-[0.95] transition-all shrink-0"
+          >
+            <Ellipsis className="w-[18px] h-[18px]" />
+          </button>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/*  CONTENT                                                     */}
+      {/* ============================================================ */}
+
+      <div className="flex-1 flex flex-col gap-4 px-4 py-4 pb-8">
+
+        {/* archives / paused badges */}
         {(habit.is_archived || isPaused) && (
           <div className="flex justify-center gap-2">
             {habit.is_archived && (
@@ -290,75 +525,99 @@ export default function HabitDetailPage() {
           </div>
         )}
 
-        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-5 flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-[28px]">{habit.icon_emoji || '✅'}</span>
-            <div>
-              <h3 className="text-hf-headline-md font-bold text-hf-text-primary">
-                {habit.name}
-              </h3>
-              {habit.category && (
-                <p className="text-hf-body-sm text-hf-text-tertiary">{habit.category}</p>
-              )}
-            </div>
+        {/* ========================================================== */}
+        {/*  HERO                                                      */}
+        {/* ========================================================== */}
+
+        <div className="flex flex-col items-center gap-2 py-2">
+          <div className="w-[60px] h-[60px] rounded-full bg-hf-bg-secondary flex items-center justify-center text-[30px] border border-hf-border">
+            {habit.icon_emoji || '✅'}
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-hf-bg-secondary rounded-hf-md p-3 text-center">
-              <Flame className="w-5 h-5 text-hf-warning mx-auto mb-1" />
-              <span className="text-[10px] text-hf-text-secondary font-semibold uppercase tracking-wider leading-none">
-                {t('habitDetailCurrentStreak').replace('\n', ' ')}
-              </span>
-              <p className="text-hf-headline-md font-extrabold text-hf-text-primary mt-0.5">
-                {stats.currentStreakVal}
-                <span className="text-hf-body-sm font-normal text-hf-text-secondary ml-0.5">{t('habitDetailDaysUnit')}</span>
-              </p>
-            </div>
-
-            <div className="bg-hf-bg-secondary rounded-hf-md p-3 text-center">
-              <Percent className="w-5 h-5 text-hf-accent mx-auto mb-1" />
-              <span className="text-[10px] text-hf-text-secondary font-semibold uppercase tracking-wider leading-none">
-                {t('habitDetailLast30Days').replace('\n', ' ')}
-              </span>
-              <p className="text-hf-headline-md font-extrabold text-hf-text-primary mt-0.5">
-                {stats.completionRate}%
-              </p>
-            </div>
-
-            <div className="bg-hf-bg-secondary rounded-hf-md p-3 text-center">
-              <ClipboardList className="w-5 h-5 text-hf-text-secondary mx-auto mb-1" />
-              <span className="text-[10px] text-hf-text-secondary font-semibold uppercase tracking-wider leading-none">
-                {t('habitDetailTotalLogs')}
-              </span>
-              <p className="text-hf-headline-md font-extrabold text-hf-text-primary mt-0.5">
-                {stats.totalCompleted}
-              </p>
-            </div>
+          <h1 className="text-hf-headline-md font-bold text-hf-text-primary text-center">{habit.name}</h1>
+          {habit.category && (
+            <span className="text-hf-body-sm text-hf-text-tertiary">{habit.category}</span>
+          )}
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Flame className="w-4 h-4 text-hf-warning" />
+            <span className="text-hf-title-sm font-bold text-hf-warning">{stats.currentStreakVal}</span>
+            <span className="text-hf-body-sm text-hf-text-secondary">{t('habitDetailDaysUnit')}</span>
           </div>
         </div>
 
-        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 flex flex-col gap-2">
-          <h3 className="text-hf-body-md font-bold text-hf-text-primary">
-            {t('habitDetailLast90Days')}
-          </h3>
+        {/* ========================================================== */}
+        {/*  STATISTICS                                                */}
+        {/* ========================================================== */}
 
-          <div className="flex justify-center gap-[3px]">
+        <SectionLabel>{t('habitDetailStatistics')}</SectionLabel>
+
+        <div className="grid grid-cols-2 gap-2">
+          <StatCard
+            icon={<Flame className="w-5 h-5" />}
+            iconColor="text-hf-warning"
+            value={stats.currentStreakVal}
+            label={t('habitDetailCurrentStreak')}
+          />
+          <StatCard
+            icon={<Trophy className="w-5 h-5" />}
+            iconColor="text-hf-success"
+            value={stats.bestStreak}
+            label={t('habitDetailBestStreak')}
+          />
+          <StatCard
+            icon={<Percent className="w-5 h-5" />}
+            iconColor="text-hf-accent"
+            value={<>{stats.completionRate}%</>}
+            label={t('habitDetailLast30Days')}
+          />
+          <StatCard
+            icon={<ClipboardList className="w-5 h-5" />}
+            iconColor="text-hf-text-secondary"
+            value={stats.totalCompleted}
+            label={t('habitDetailTotalLogs')}
+          />
+        </div>
+
+        {/* ========================================================== */}
+        {/*  HEATMAP (Last 90 days)                                    */}
+        {/* ========================================================== */}
+
+        <SectionLabel>{t('habitDetailLast90Days')}</SectionLabel>
+
+        <div className="bg-hf-card border border-hf-border rounded-[16px] shadow-hf-card p-4">
+          <div className="flex gap-0.5 overflow-x-auto pb-1">
+            {/* weekday labels on the left */}
+            <div className="flex flex-col gap-[3px] mr-1.5 shrink-0">
+              {weekdays.map((d, i) => (
+                <span
+                  key={i}
+                  className="text-[8.5px] font-semibold text-hf-text-tertiary leading-none h-[14px] flex items-center"
+                >
+                  {i % 2 === 0 ? d : ''}
+                </span>
+              ))}
+            </div>
+
+            {/* heatmap columns */}
             {heatmap.map((col, ci) => (
               <div key={ci} className="flex flex-col gap-[3px]">
-                {col.map((cell, ri) => (
-                  <div
-                    key={ri}
-                    title={cell.date}
-                    className={`w-[10px] h-[10px] rounded-[2px] ${statusColor(cell.status)} ${
-                      cell.date === todayStr ? 'ring-1 ring-hf-accent ring-offset-1' : ''
-                    } ${!cell.status && cell.date > todayStr ? 'opacity-20' : ''}`}
-                  />
-                ))}
+                {col.map((cell, ri) => {
+                  const isFuture = cell.date > todayStr;
+                  return (
+                    <div
+                      key={ri}
+                      title={cell.date}
+                      className={`w-[14px] h-[14px] rounded-[3px] transition-all ${
+                        heatCellBg(cell.status, isFuture)
+                      } ${cell.date === todayStr ? 'ring-1.5 ring-hf-accent/60' : ''}`}
+                    />
+                  );
+                })}
               </div>
             ))}
           </div>
 
-          <div className="flex gap-3 justify-center text-[10px] text-hf-text-secondary font-medium pt-2 border-t border-hf-border">
+          {/* legend */}
+          <div className="flex gap-3 justify-center text-[10px] text-hf-text-secondary font-medium pt-3 mt-2 border-t border-hf-border">
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-[2px] bg-hf-success inline-block" />
               {t('habitDetailHeatmapDone')}
@@ -374,192 +633,134 @@ export default function HabitDetailPage() {
           </div>
         </div>
 
+        {/* ========================================================== */}
+        {/*  DYNAMICS (Line Chart)                                     */}
+        {/* ========================================================== */}
+
         {chartData.length > 0 && (
-          <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4">
-            <h3 className="text-hf-body-md font-bold text-hf-text-primary mb-3">
-              {t('habitDetailDynamics')}
-            </h3>
+          <>
+            <SectionLabel>{t('habitDetailDynamics')}</SectionLabel>
 
-            <div className="flex items-end gap-[3px] h-[100px]">
-              {chartData.map((val, i) => (
-                <div
-                  key={i}
-                  className="flex-1 flex flex-col items-center justify-end"
-                >
-                  <div
-                    className="w-full rounded-[2px] bg-hf-success/60 min-h-[2px] transition-all"
-                    style={{ height: `${Math.max(val, 2)}%` }}
-                  />
-                  {(i + 1) % 4 === 0 && (
-                    <span className="text-[8px] text-hf-text-tertiary mt-1">
-                      W{i + 1}
-                    </span>
-                  )}
-                </div>
-              ))}
+            <div className="bg-hf-card border border-hf-border rounded-[16px] shadow-hf-card p-4">
+              <LineChart data={chartData} />
             </div>
-
-            <div className="flex justify-between mt-3 pt-2 border-t border-hf-border text-[10px] text-hf-text-tertiary">
-              <span>{t('habitDetailChartWeeks', { count: chartData.length })}</span>
-              <span className="text-hf-success font-bold">
-              {t('habitDetailChartAverage', {
-                    percent: chartData.length
-                      ? Math.round(chartData.reduce((a, b) => a + b, 0) / chartData.length)
-                      : 0,
-                  })}
-              </span>
-            </div>
-          </div>
+          </>
         )}
 
-        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 flex flex-col gap-3">
-          <h3 className="text-hf-body-md font-bold text-hf-text-primary">
-            {t('habitDetailBehavior')}
-          </h3>
+        {/* ========================================================== */}
+        {/*  BEHAVIOR                                                  */}
+        {/* ========================================================== */}
 
-          <div className="flex flex-col gap-2.5 text-hf-body-sm">
-            {habit.implementation_when && (
-              <div className="flex justify-between border-b border-hf-border/5 pb-2">
-                <span className="text-hf-text-secondary font-medium">{t('habitMoreSheetIntention')}</span>
-                <span className="font-semibold text-hf-text-primary truncate max-w-[60%] text-right">
-                  When: {habit.implementation_when}
-                </span>
-              </div>
-            )}
+        {(habit.implementation_when || habit.stack_after_habit_id || habit.two_minute_version || habit.identity_statement) && (
+          <>
+            <SectionLabel>{t('habitDetailBehavior')}</SectionLabel>
 
-            {habit.stack_after_habit_id && (
-              <div className="flex justify-between border-b border-hf-border/5 pb-2">
-                <span className="text-hf-text-secondary font-medium">{t('habitDetailBehaviorAfter')}</span>
-                <span className="font-semibold text-hf-text-primary truncate max-w-[60%] text-right">
-                  After: ⚓ {habit.stack_after_habit_id.slice(0, 8)}
-                </span>
-              </div>
-            )}
+            <div className="grid grid-cols-2 gap-2">
+              {habit.implementation_when && (
+                <BehaviorCard
+                  emoji="📍"
+                  label={t('habitMoreSheetIntention')}
+                  value={habit.implementation_when}
+                />
+              )}
+              {habit.stack_after_habit_id && (
+                <BehaviorCard
+                  emoji="⚓"
+                  label={t('habitDetailBehaviorAfter')}
+                  value={habit.stack_after_habit_id.slice(0, 8)}
+                />
+              )}
+              {habit.two_minute_version && (
+                <BehaviorCard
+                  emoji="⚡"
+                  label={t('habitDetailBehaviorMin')}
+                  value={habit.two_minute_version}
+                />
+              )}
+              {habit.identity_statement && (
+                <BehaviorCard
+                  emoji="🪪"
+                  label={t('habitMoreSheetIdentity')}
+                  value={`"${habit.identity_statement}"`}
+                />
+              )}
+            </div>
+          </>
+        )}
 
-            {habit.two_minute_version && (
-              <div className="flex justify-between border-b border-hf-border/5 pb-2">
-                <span className="text-hf-text-secondary font-medium">{t('habitDetailBehaviorMin')}</span>
-                <span className="font-semibold text-hf-text-primary truncate max-w-[60%] text-right">
-                  ⚡ {habit.two_minute_version}
-                </span>
-              </div>
-            )}
+        {/* ========================================================== */}
+        {/*  HISTORY                                                   */}
+        {/* ========================================================== */}
 
-            {habit.identity_statement && (
-              <div className="flex justify-between pb-1">
-                <span className="text-hf-text-secondary font-medium">{t('habitMoreSheetIdentity')}</span>
-                <span className="font-semibold text-hf-text-primary italic truncate max-w-[60%] text-right">
-                  "{habit.identity_statement}"
-                </span>
-              </div>
+        <SectionLabel>{t('habitDetailHistory')}</SectionLabel>
+
+        <div className="bg-hf-card border border-hf-border rounded-[16px] shadow-hf-card overflow-hidden">
+          <div className="p-4 flex flex-col divide-y divide-hf-border">
+            {recentLogs.length === 0 ? (
+              <p className="text-hf-body-sm text-hf-text-tertiary text-center py-4">—</p>
+            ) : (
+              recentLogs.map((log) => (
+                <HistoryItem
+                  key={log.id}
+                  log={log}
+                  t={t}
+                  locale={locale}
+                />
+              ))
             )}
           </div>
         </div>
 
-        <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4">
-          <h3 className="text-hf-body-md font-bold text-hf-text-primary mb-3">
-            {t('habitDetailHistory')}
-          </h3>
-
-          {recentLogs.length === 0 ? (
-            <p className="text-hf-body-sm text-hf-text-tertiary text-center py-4">—</p>
-          ) : (
-            <div className="flex flex-col">
-              {recentLogs.map((log, i) => {
-                const badge = statusBadge(log.status);
-                const d = new Date(log.log_date);
-                const dateLabel = new Intl.DateTimeFormat(locale, {
-                  day: 'numeric',
-                  month: 'short',
-                  weekday: 'short',
-                }).format(d);
-
-                return (
-                  <div
-                    key={log.id}
-                    className={`flex items-center gap-3 py-2.5 ${
-                      i < recentLogs.length - 1 ? 'border-b border-hf-border' : ''
-                    }`}
-                  >
-                    <div
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        log.status === 'done' || log.status === 'partial'
-                          ? 'bg-hf-success'
-                          : log.status === 'missed'
-                            ? 'bg-hf-danger'
-                            : 'bg-hf-text-tertiary'
-                      }`}
-                    />
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-hf-body-sm text-hf-text-primary font-medium">
-                        {dateLabel}
-                      </p>
-                      {log.comment && (
-                        <p className="text-hf-label-sm text-hf-text-secondary italic truncate mt-0.5">
-                          {log.comment}
-                        </p>
-                      )}
-                    </div>
-
-                    <span
-                      className={`text-hf-label-sm font-semibold px-2 py-0.5 rounded-hf-full ${badge.bg}`}
-                    >
-                      {badge.text} {badge.key ? t(badge.key as Parameters<typeof t>[0]) : ''}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-3 mt-1">
-          {!habit.is_archived && (
-            <button
-              onClick={handleArchive}
-              className="w-full py-3 px-4 rounded-hf-md border border-hf-warning/20 bg-hf-warning/5 text-hf-warning font-semibold text-hf-body-md flex items-center justify-center gap-1.5 hover:bg-hf-warning/10 active:scale-[0.98] transition-all"
-            >
-              <Archive className="w-4 h-4" />
-              {t('habitDetailArchive')}
-            </button>
-          )}
-          <button
-            onClick={() => setIsDeleteOpen(true)}
-            className="w-full py-3 px-4 rounded-hf-md border border-hf-danger/20 bg-hf-danger/5 text-hf-danger font-semibold text-hf-body-md flex items-center justify-center gap-1.5 hover:bg-hf-danger/10 active:scale-[0.98] transition-all"
-          >
-            <Trash2 className="w-4 h-4" />
-            {t('commonDelete')}
-          </button>
-        </div>
-
-        <button
-          onClick={() => navigate('/habits')}
-          className="w-full py-3 rounded-hf-md border border-hf-border bg-hf-bg-secondary text-hf-text-primary font-semibold text-hf-body-md flex items-center justify-center gap-2 hover:bg-hf-bg-secondary/50 active:scale-[0.98] transition-all mt-2"
-        >
-          {t('commonBack')}
-        </button>
+        {/* spacer for bottom padding */}
+        <div className="h-4" />
       </div>
 
+      {/* ============================================================ */}
+      {/*  BOTTOM SHEETS                                               */}
+      {/* ============================================================ */}
+
+      {/* More menu */}
       <BottomSheet
-        isOpen={isMoreOpen}
-        onClose={() => setIsMoreOpen(false)}
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
         title={t('habitDetailActions')}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col">
           <button
-            onClick={handleArchive}
-            className="w-full py-3 rounded-hf-md border border-hf-warning/20 bg-hf-warning/5 text-hf-warning font-semibold text-hf-body-md flex items-center justify-center gap-2 hover:bg-hf-warning/10 active:scale-[0.98] transition-all"
-          >
-            <Archive className="w-4 h-4" />
-            {t('habitDetailArchive')}
-          </button>
-          <button
+            type="button"
             onClick={() => {
-              setIsMoreOpen(false);
+              setIsMenuOpen(false);
+              navigate(`/habits/${habit.id}/edit`);
+            }}
+            className="w-full py-3.5 text-left text-hf-body-md text-hf-text-primary hover:opacity-90 active:opacity-80 transition-all flex items-center gap-3"
+          >
+            <Edit2 className="w-4 h-4 text-hf-accent" />
+            {t('commonEdit')}
+          </button>
+
+          <div className="h-px bg-hf-border" />
+
+          {!habit.is_archived && (
+            <>
+              <button
+                type="button"
+                onClick={handleArchive}
+                className="w-full py-3.5 text-left text-hf-body-md text-hf-text-primary hover:opacity-90 active:opacity-80 transition-all flex items-center gap-3"
+              >
+                <Archive className="w-4 h-4 text-hf-warning" />
+                {t('habitDetailArchive')}
+              </button>
+              <div className="h-px bg-hf-border" />
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsMenuOpen(false);
               setIsDeleteOpen(true);
             }}
-            className="w-full py-3 rounded-hf-md border border-hf-danger/20 bg-hf-danger/5 text-hf-danger font-semibold text-hf-body-md flex items-center justify-center gap-2 hover:bg-hf-danger/10 active:scale-[0.98] transition-all"
+            className="w-full py-3.5 text-left text-hf-body-md text-hf-danger hover:opacity-90 active:opacity-80 transition-all flex items-center gap-3"
           >
             <Trash2 className="w-4 h-4" />
             {t('commonDelete')}
@@ -567,6 +768,7 @@ export default function HabitDetailPage() {
         </div>
       </BottomSheet>
 
+      {/* Delete confirmation */}
       <BottomSheet
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
