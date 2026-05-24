@@ -172,13 +172,17 @@ export default function HabitFormPage() {
   };
 
   const addReminder = () => {
-    if (!reminders.includes('08:00')) {
-      setReminders([...reminders, '08:00'].sort());
-    }
+    setReminders([...reminders, '08:00']);
   };
 
   const removeReminder = (idx: number) => {
     setReminders(reminders.filter((_, i) => i !== idx));
+  };
+
+  const updateReminder = (idx: number, time: string) => {
+    const updated = [...reminders];
+    updated[idx] = time;
+    setReminders(updated);
   };
 
   const canNext = (): boolean => {
@@ -744,27 +748,27 @@ export default function HabitFormPage() {
                   {t('habitCreateStep3RemindersLabel')}
                 </span>
                 <div className="bg-hf-bg-secondary rounded-[14px] mt-2.5">
-                  {reminders.length > 0 && (
-                    <div className="p-3 border-b border-hf-border">
-                      <div className="flex flex-wrap gap-2">
-                        {reminders.map((time, i) => (
-                          <span
-                            key={i}
-                            className="inline-flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 bg-hf-card border-[1.5px] border-hf-border rounded-full text-hf-body-sm text-hf-text-primary"
-                          >
-                            <Clock className="w-[13px] h-[13px] text-hf-accent" />
-                            {time}
-                            <button
-                              type="button"
-                              onClick={() => removeReminder(i)}
-                            >
-                              <X className="w-[13px] h-[13px] text-hf-text-tertiary" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+                  {reminders.map((time, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 px-3.5 py-3 border-b border-hf-border"
+                    >
+                      <Clock className="w-4 h-4 text-hf-accent shrink-0" />
+                      <input
+                        type="time"
+                        value={time}
+                        onChange={(e) => updateReminder(i, e.target.value)}
+                        className="flex-1 bg-transparent text-hf-body-md text-hf-text-primary outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeReminder(i)}
+                        className="p-1 rounded-lg hover:bg-hf-danger/10 transition-colors"
+                      >
+                        <X className="w-[15px] h-[15px] text-hf-text-tertiary" />
+                      </button>
                     </div>
-                  )}
+                  ))}
                   <button
                     type="button"
                     onClick={addReminder}
