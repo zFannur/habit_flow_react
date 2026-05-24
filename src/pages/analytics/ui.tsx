@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
 import { useHabitsQuery, useLogsQuery, dateOnly } from '@/entities/habit';
 import { useJournalEntriesQuery } from '@/entities/journal';
 import type { JournalEntryModel } from '@/entities/journal';
+import { OpenRouterClient } from '@/shared/api/openrouter/client';
+import { Env } from '@/shared/config/env';
 import {
   Share2,
   ChevronLeft,
@@ -15,6 +18,9 @@ import {
   XCircle,
   Trophy,
   Sparkles,
+  CalendarCheck,
+  Check,
+  X,
 } from 'lucide-react';
 
 const CHART_PALETTE = [
@@ -53,6 +59,9 @@ export default function AnalyticsPage() {
 
   const [isWeek, setIsWeek] = useState(true);
   const [selectedBar, setSelectedBar] = useState<number | null>(null);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [reviewVisible, setReviewVisible] = useState(() => searchParams.get('review') === '1');
 
   const today = useMemo(() => {
     const d = new Date();
@@ -131,6 +140,15 @@ export default function AnalyticsPage() {
   const logsArr = useMemo(() => logs || [], [logs]);
   const prevLogsArr = useMemo(() => prevLogs || [], [prevLogs]);
   const entriesArr = useMemo(() => journalEntries || [], [journalEntries]);
+
+  const thirtyDaysAgo = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 30);
+    return dateOnly(d);
+  }, [today]);
+  const todayStr = useMemo(() => dateOnly(today), [today]);
+  const { data: allLogs30 } = useLogsQuery(userId, thirtyDaysAgo, todayStr);
+  const allLogs30Arr = useMemo(() => allLogs30 || [], [allLogs30]);
 
   const filtersInRange = (l: { log_date: string; status: string }) =>
     l.log_date >= range.from && l.log_date <= range.to;
@@ -457,6 +475,10 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-[14px] pt-3 pb-6 flex flex-col gap-3">
+        {reviewVisible && (
+          <WeeklyReviewChecklist onDismiss={() => setReviewVisible(false)} t={t} />
+        )}
+
         <SummaryCard
           completionPct={completionPct}
           trendDelta={trendDelta}
@@ -494,7 +516,13 @@ export default function AnalyticsPage() {
 
         <TopHabitsCard habits={topHabits} t={t} />
 
-        <AiCorrelationsCard t={t} />
+        <AiCorrelationsCard
+          t={t}
+          habits={habitsArr}
+          logs={allLogs30Arr}
+          entries={entriesArr}
+          navigate={navigate}
+        />
       </div>
     </div>
   );
@@ -503,13 +531,15 @@ export default function AnalyticsPage() {
 function SectionCard({
   children,
   padding = 'p-4',
+  bg,
 }: {
   children: React.ReactNode;
   padding?: string;
+  bg?: string;
 }) {
   return (
     <div
-      className={`rounded-hf-lg border border-hf-border shadow-hf-card bg-hf-card ${padding}`}
+      className={`rounded-hf-lg border border-hf-border shadow-hf-card ${bg || 'bg-hf-card'} ${padding}`}
     >
       {children}
     </div>
@@ -936,11 +966,7 @@ function PieCard({
         <h3 className="text-[15px] font-semibold text-hf-text-primary leading-tight">
           {t('analyticsPieTitle')}
         </h3>
-        <div className="flex items-center justify-center py-5">
-          <p className="text-xs text-hf-text-tertiary leading-tight">
-            {t('analyticsNoData')}
-          </p>
-        </div>
+        <EmptyPlaceholder />
       </SectionCard>
     );
   }
@@ -948,11 +974,11 @@ function PieCard({
   const total = slices.reduce((s, sl) => s + sl.pct, 0) || 1;
   let cumulative = 0;
   const arcs: { offset: number; dasharray: number; color: string }[] = [];
-  const r = 46;
+  const r = 39;
   const circumference = 2 * Math.PI * r;
   for (const sl of slices) {
     const dashLen = (sl.pct / total) * circumference;
-    arcs.push({ offset: circumference - cumulative, dasharray: dashLen, color: sl.color });
+    arcs.push({ offset: cumulative, dasharray: dashLen, color: sl.color });
     cumulative += dashLen;
   }
 
@@ -962,32 +988,31 @@ function PieCard({
         {t('analyticsPieTitle')}
       </h3>
       <div className="flex items-center gap-3 mt-3.5">
-        <svg width="100" height="100" viewBox="0 0 100 100" className="shrink-0">
-          <circle cx="50" cy="50" r="24" fill="none" stroke="var(--hf-card)" strokeWidth="2" />
+        <svg width="120" height="120" viewBox="0 0 120 120" className="shrink-0">
           {arcs.map((arc, i) => (
             <circle
               key={i}
-              cx="50"
-              cy="50"
-              r={r - 10}
+              cx="60"
+              cy="60"
+              r={r}
               fill="none"
               stroke={arc.color}
-              strokeWidth="38"
-              strokeDasharray={`${arc.dasharray * 0.78} ${(circumference - arc.dasharray) * 0.78}`}
-              strokeDashoffset={-arc.offset * 0.78}
-              transform="rotate(-90 50 50)"
+              strokeWidth="22"
+              strokeDasharray={`${arc.dasharray} ${circumference - arc.dasharray}`}
+              strokeDashoffset={-arc.offset}
+              transform="rotate(-90 60 60)"
             />
           ))}
         </svg>
 
-        <div className="flex-1 flex flex-col gap-1 min-w-0">
+        <div className="flex-1 flex flex-col gap-[7px] min-w-0">
           {slices.map((sl, i) => (
             <div key={i} className="flex items-center gap-1.5">
               <div
-                className="w-2 h-2 rounded-full shrink-0"
+                className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: sl.color }}
               />
-              <span className="flex-1 text-[11px] text-hf-text-secondary leading-tight truncate">
+              <span className="flex-1 text-xs text-hf-text-secondary leading-tight truncate">
                 {sl.label}
               </span>
               <span className="text-xs font-semibold text-hf-text-primary leading-tight shrink-0">
@@ -1016,112 +1041,128 @@ function MoodLineCard({
         {t('analyticsMoodLineTitle')}
       </h3>
       {!hasData ? (
-        <div className="flex items-center justify-center py-5">
-          <p className="text-xs text-hf-text-tertiary leading-tight">
-            {t('analyticsNoJournalData')}
-          </p>
-        </div>
+        <EmptyPlaceholder />
       ) : (
         <>
           <div className="mt-3.5 h-[140px] flex">
-            <div className="flex flex-col justify-between py-1 pr-1.5 shrink-0">
-              {[10, 8, 6, 4, 2].map((v) => (
-                <span
-                  key={v}
-                  className="text-[9px] text-hf-text-tertiary leading-none text-right"
-                >
-                  {v}
-                </span>
-              ))}
-            </div>
-            <div className="flex-1 h-full">
-              <svg
-                width="100%"
-                height="100%"
-                viewBox={`0 0 ${data.length} 10`}
-                preserveAspectRatio="xMidYMid meet"
-                className="overflow-visible"
-              >
-                {[2, 4, 6, 8].map((v) => (
-                  <line
+            <div className="w-5 relative shrink-0 mr-1.5">
+              {[10, 7, 5, 3].map((v) => {
+                const topPct = (10 - v) * 10;
+                return (
+                  <span
                     key={v}
-                    x1="0"
-                    y1={10 - v}
-                    x2={data.length - 1}
-                    y2={10 - v}
-                    stroke="var(--hf-border)"
-                    strokeWidth="0.08"
-                    strokeDasharray="0.2 0.3"
-                  />
-                ))}
-                {data.map((p, i) => {
-                  if (p.mood <= 0 && p.energy <= 0) return null;
-                  return (
-                    <g key={i}>
-                      {p.mood > 0 && i < data.length - 1 && (() => {
-                        const nextMood = data.slice(i + 1).find((x) => x.mood > 0);
-                        if (nextMood) {
-                          const nextI = data.indexOf(nextMood);
-                          return (
-                            <line
-                              x1={i}
-                              y1={10 - p.mood}
-                              x2={nextI}
-                              y2={10 - nextMood.mood}
-                              stroke="var(--hf-accent)"
-                              strokeWidth="0.25"
-                              strokeLinecap="round"
-                            />
-                          );
-                        }
-                        return null;
-                      })()}
-                      {p.energy > 0 && i < data.length - 1 && (() => {
-                        const nextEnergy = data.slice(i + 1).find((x) => x.energy > 0);
-                        if (nextEnergy) {
-                          const nextI = data.indexOf(nextEnergy);
-                          return (
-                            <line
-                              x1={i}
-                              y1={10 - p.energy}
-                              x2={nextI}
-                              y2={10 - nextEnergy.energy}
-                              stroke="var(--hf-warning)"
-                              strokeWidth="0.25"
-                              strokeLinecap="round"
-                            />
-                          );
-                        }
-                        return null;
-                      })()}
+                    className="absolute right-0 text-[9px] text-hf-text-tertiary leading-none text-right -translate-y-1/2"
+                    style={{ top: `${topPct}%` }}
+                  >
+                    {v}
+                  </span>
+                );
+              })}
+            </div>
+            <div className="flex-1 h-full flex flex-col justify-between">
+              <div className="flex-1 relative">
+                <svg
+                  width="100%"
+                  height="100%"
+                  viewBox={`0 0 ${data.length - 1} 10`}
+                  preserveAspectRatio="none"
+                  className="overflow-visible"
+                >
+                  {[3, 5, 7, 10].map((v) => (
+                    <line
+                      key={v}
+                      x1="0"
+                      y1={10 - v}
+                      x2={data.length - 1}
+                      y2={10 - v}
+                      stroke="var(--hf-border)"
+                      strokeWidth="0.08"
+                      strokeDasharray="0.2 0.3"
+                    />
+                  ))}
+                  {data.map((p, i) => {
+                    if (p.mood <= 0 && p.energy <= 0) return null;
+                    return (
+                      <g key={i}>
+                        {p.mood > 0 && i < data.length - 1 && (() => {
+                          const nextMood = data.slice(i + 1).find((x) => x.mood > 0);
+                          if (nextMood) {
+                            const nextI = data.indexOf(nextMood);
+                            return (
+                              <line
+                                x1={i}
+                                y1={10 - p.mood}
+                                x2={nextI}
+                                y2={10 - nextMood.mood}
+                                stroke="var(--hf-accent)"
+                                strokeWidth="0.25"
+                                strokeLinecap="round"
+                              />
+                            );
+                          }
+                          return null;
+                        })()}
+                        {p.energy > 0 && i < data.length - 1 && (() => {
+                          const nextEnergy = data.slice(i + 1).find((x) => x.energy > 0);
+                          if (nextEnergy) {
+                            const nextI = data.indexOf(nextEnergy);
+                            return (
+                              <line
+                                x1={i}
+                                y1={10 - p.energy}
+                                x2={nextI}
+                                y2={10 - nextEnergy.energy}
+                                stroke="var(--hf-warning)"
+                                strokeWidth="0.25"
+                                strokeLinecap="round"
+                              />
+                            );
+                          }
+                          return null;
+                        })()}
+                      </g>
+                    );
+                  })}
+                  {data.map((p, i) => (
+                    <g key={`dots-${i}`}>
+                      {p.mood > 0 && (
+                        <circle
+                          cx={i}
+                          cy={10 - p.mood}
+                          r="0.35"
+                          fill="var(--hf-accent)"
+                          stroke="var(--hf-card)"
+                          strokeWidth="0.2"
+                        />
+                      )}
+                      {p.energy > 0 && (
+                        <circle
+                          cx={i}
+                          cy={10 - p.energy}
+                          r="0.35"
+                          fill="var(--hf-warning)"
+                           stroke="var(--hf-card)"
+                          strokeWidth="0.2"
+                        />
+                      )}
                     </g>
+                  ))}
+                </svg>
+              </div>
+              <div className="relative h-3 mt-1.5">
+                {data.map((p, i) => {
+                  const leftPct = (i / (data.length - 1)) * 100;
+                  return (
+                    <span
+                      key={i}
+                      className="absolute text-[9px] text-hf-text-tertiary leading-none -translate-x-1/2"
+                      style={{ left: `${leftPct}%` }}
+                    >
+                      {p.label}
+                    </span>
                   );
                 })}
-                {data.map((p, i) => (
-                  <g key={`dots-${i}`}>
-                    {p.mood > 0 && (
-                      <circle
-                        cx={i}
-                        cy={10 - p.mood}
-                        r="0.35"
-                        fill="var(--hf-accent)"
-                        stroke="var(--hf-card)"
-                        strokeWidth="0.2"
-                      />
-                    )}
-                    {p.energy > 0 && (
-                      <circle
-                        cx={i}
-                        cy={10 - p.energy}
-                        r="0.35"
-                        fill="var(--hf-warning)"
-                        stroke="var(--hf-card)"
-                        strokeWidth="0.2"
-                      />
-                    )}
-                  </g>
-                ))}
-              </svg>
+              </div>
             </div>
           </div>
           <div className="flex gap-4 mt-2 ml-6">
@@ -1166,11 +1207,7 @@ function TopHabitsCard({
         </span>
       </div>
       {habits.length === 0 ? (
-        <div className="flex items-center justify-center py-5">
-          <p className="text-xs text-hf-text-tertiary leading-tight">
-            {t('analyticsNoData')}
-          </p>
-        </div>
+        <EmptyPlaceholder />
       ) : (
         <div className="flex flex-col gap-3.5 mt-3.5">
           {habits.map((h, i) => (
@@ -1193,7 +1230,7 @@ function TopHabitsCard({
                     {h.pct}%
                   </span>
                 </div>
-                <div className="h-1.5 rounded-hf-full bg-hf-bg-tertiary overflow-hidden pb-tg-safe-bottom">
+                <div className="h-1.5 rounded-hf-full bg-hf-bg-tertiary overflow-hidden">
                   <div
                     className="h-full rounded-hf-full transition-all"
                     style={{
@@ -1211,9 +1248,351 @@ function TopHabitsCard({
   );
 }
 
-function AiCorrelationsCard({ t }: { t: (key: string) => string }) {
+interface CorrelationInsight {
+  habit: string;
+  factor: string;
+  direction: 'up' | 'down' | 'mixed';
+  strength: number;
+  note?: string;
+}
+
+const systemPrompt = `You analyse a user's habit-tracker data and return correlations as strict JSON.
+Output JSON only, no prose, no markdown fences. Schema:
+{"insights":[{"habit":string,"factor":string,"direction":"up"|"down"|"mixed","strength":number,"note":string}]}
+- "habit" must be one of the habit names in the input.
+- "factor" describes the contextual signal (e.g. "weekend", "morning", "mood<=4", "after_journal").
+- "direction" is up if doing the habit correlates with a positive change in factor, down for negative, mixed otherwise.
+- "strength" is 0..1 confidence.
+- Return at most 5 insights, prioritise high-strength ones.
+- If signal is too weak, return {"insights":[]}.`;
+
+function buildPrompt(habits: any[], logs: any[], journal: any[]) {
+  const names = new Map(habits.map((h) => [h.id, h.name]));
+  let buf = 'Habits:\n';
+  for (const h of habits) {
+    buf += `- ${h.name} [${h.habit_type}]\n`;
+  }
+  buf += `\nLogs (${logs.length}, last 30 days):\ndate | habit | status | value\n`;
+  for (const l of logs) {
+    const name = names.get(l.habit_id) || l.habit_id;
+    const v = l.value !== undefined && l.value !== null ? l.value : '';
+    buf += `${l.log_date} | ${name} | ${l.status} | ${v}\n`;
+  }
+  if (journal.length > 0) {
+    buf += `\nJournal mood/energy (${journal.length}):\ndate | mood | energy\n`;
+    const sortedJournal = [...journal]
+      .sort((a, b) => b.entry_date.localeCompare(a.entry_date))
+      .slice(0, 30);
+    for (const e of sortedJournal) {
+      const m = e.mood !== undefined && e.mood !== null ? e.mood : '-';
+      const en = e.energy !== undefined && e.energy !== null ? e.energy : '-';
+      buf += `${e.entry_date} | ${m} | ${en}\n`;
+    }
+  }
+  buf += '\nReturn correlations as JSON per the system schema.\n';
+  return buf;
+}
+
+function parseResponse(raw: string): CorrelationInsight[] {
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start < 0 || end <= start) {
+    return [];
+  }
+  const slice = raw.substring(start, end + 1);
+  try {
+    const decoded = JSON.parse(slice);
+    if (!decoded || typeof decoded !== 'object') return [];
+    const list = decoded.insights;
+    if (!Array.isArray(list)) return [];
+    return list.map((item: any) => {
+      const strengthRaw = item.strength;
+      let strength = typeof strengthRaw === 'number' ? strengthRaw : 0.5;
+      strength = Math.max(0.0, Math.min(1.0, strength));
+      return {
+        habit: String(item.habit || ''),
+        factor: String(item.factor || ''),
+        direction: (item.direction === 'up' || item.direction === 'down') ? item.direction : 'mixed',
+        strength,
+        note: item.note ? String(item.note) : undefined,
+      };
+    });
+  } catch (_) {
+    return [];
+  }
+}
+
+function InsightTile({ insight, t }: { insight: CorrelationInsight; t: (key: string) => string }) {
+  const dirLabel =
+    insight.direction === 'up'
+      ? t('correlationsDirectionUp')
+      : insight.direction === 'down'
+        ? t('correlationsDirectionDown')
+        : t('correlationsDirectionMixed');
+
+  const dirColorClass =
+    insight.direction === 'up'
+      ? 'text-hf-success'
+      : insight.direction === 'down'
+        ? 'text-hf-danger'
+        : 'text-hf-text-tertiary';
+
   return (
-    <SectionCard>
+    <div className="p-[14px_14px_12px_14px] bg-hf-card rounded-hf-md border border-hf-border flex flex-col gap-1.5">
+      <div className="flex justify-between items-start gap-2">
+        <span className="flex-1 text-[14px] font-semibold text-hf-text-primary leading-snug">
+          {insight.habit} · {insight.factor}
+        </span>
+        <span className="text-[12px] font-medium text-hf-text-tertiary leading-none shrink-0 mt-0.5">
+          {Math.round(insight.strength * 100)}%
+        </span>
+      </div>
+      <span className={`text-[12px] font-medium leading-none ${dirColorClass}`}>
+        {dirLabel}
+      </span>
+      {insight.note && insight.note.trim() && (
+        <p className="text-[12.5px] text-hf-text-secondary leading-normal mt-0.5">
+          {insight.note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PrimaryRefreshButton({ label, onTap }: { label: string; onTap: () => void }) {
+  return (
+    <button
+      onClick={onTap}
+      className="mt-3.5 w-full py-[11px] rounded-hf-md bg-hf-accent flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform text-white border-0 cursor-pointer"
+    >
+      <Sparkles size={15} className="text-white" />
+      <span className="text-hf-label-lg font-semibold text-white leading-tight">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function EmptyPlaceholder() {
+  return (
+    <div className="py-4 flex items-center justify-center">
+      <span className="text-[20px] font-medium text-hf-text-tertiary leading-none">—</span>
+    </div>
+  );
+}
+
+function CheckItem({ label, checked, onTap }: { label: string; checked: boolean; onTap: () => void }) {
+  return (
+    <button
+      onClick={onTap}
+      className="flex items-center gap-3 w-full text-left py-1.5 px-1 rounded-hf-md active:opacity-90 transition-opacity border-0 bg-transparent cursor-pointer"
+    >
+      <div
+        className={`w-5 h-5 rounded-[6px] border-[1.5px] flex items-center justify-center transition-all duration-120 shrink-0 ${
+          checked
+            ? 'bg-hf-success border-hf-success text-white'
+            : 'bg-transparent border-hf-border'
+        }`}
+      >
+        {checked && <Check size={13} strokeWidth={3} className="text-white" />}
+      </div>
+      <span
+        className={`text-xs leading-snug transition-colors duration-120 ${
+          checked ? 'text-hf-text-tertiary' : 'text-hf-text-primary'
+        }`}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function WeeklyReviewChecklist({ onDismiss, t }: { onDismiss: () => void; t: (key: string) => string }) {
+  const [checked, setChecked] = useState<boolean[]>([false, false, false]);
+
+  const items = [
+    t('weeklyReviewItemStreak'),
+    t('weeklyReviewItemCorrelations'),
+    t('weeklyReviewItemGoals'),
+  ];
+
+  return (
+    <SectionCard bg="bg-hf-bg-secondary" padding="p-4">
+      <div className="flex items-center gap-[10px]">
+        <div className="w-[34px] h-[34px] rounded-[10px] bg-hf-warning/12 flex items-center justify-center shrink-0">
+          <CalendarCheck size={18} className="text-hf-warning" />
+        </div>
+        <h3 className="flex-1 text-[15px] font-semibold text-hf-text-primary leading-tight">
+          {t('weeklyReviewTitle')}
+        </h3>
+        <button
+          onClick={onDismiss}
+          className="w-6 h-6 rounded-md flex items-center justify-center active:scale-95 transition-transform border-0 bg-transparent cursor-pointer"
+        >
+          <X size={16} className="text-hf-text-tertiary" />
+        </button>
+      </div>
+
+      <p className="mt-2 text-xs text-hf-text-secondary leading-relaxed">
+        {t('weeklyReviewSubtitle')}
+      </p>
+
+      <div className="mt-3 flex flex-col gap-2">
+        {items.map((item, idx) => (
+          <CheckItem
+            key={idx}
+            label={item}
+            checked={checked[idx] || false}
+            onTap={() => {
+              const newChecked = [...checked];
+              newChecked[idx] = !newChecked[idx];
+              setChecked(newChecked);
+            }}
+          />
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+function AiCorrelationsCard({
+  t,
+  habits,
+  logs,
+  entries,
+  navigate,
+}: {
+  t: (key: string, params?: Record<string, string | number>) => string;
+  habits: any[];
+  logs: any[];
+  entries: any[];
+  navigate: (path: string) => void;
+}) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'data' | 'error'>('idle');
+  const [insights, setInsights] = useState<CorrelationInsight[]>([]);
+  const [errType, setErrType] = useState<'no_key' | 'not_enough_data' | 'rate_limited' | 'generic' | null>(null);
+
+  const handleFetchCorrelations = useCallback(async () => {
+    setStatus('loading');
+    setErrType(null);
+
+    try {
+      const key = localStorage.getItem('openrouter_key') || '';
+      if (!key) {
+        setErrType('no_key');
+        setStatus('error');
+        return;
+      }
+
+      if (logs.length < 7) {
+        setErrType('not_enough_data');
+        setStatus('error');
+        return;
+      }
+
+      const prompt = buildPrompt(habits, logs, entries);
+      const client = new OpenRouterClient(key);
+
+      const responseText = await client.chatCompletionNonStream(
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
+        Env.defaultModel
+      );
+
+      const parsed = parseResponse(responseText);
+      setInsights(parsed);
+      setStatus('data');
+    } catch (e: any) {
+      console.error('Failed to fetch correlations:', e);
+      const msg = String(e?.message || e || '');
+      if (msg.includes('429')) {
+        setErrType('rate_limited');
+      } else {
+        setErrType('generic');
+      }
+      setStatus('error');
+    }
+  }, [habits, logs, entries]);
+
+  let content = null;
+
+  if (status === 'idle') {
+    content = (
+      <>
+        <p className="mt-3 text-xs text-hf-text-secondary leading-relaxed">
+          {t('analyticsAiCorrelationsMessage')}
+        </p>
+        <PrimaryRefreshButton label={t('correlationsRefresh')} onTap={handleFetchCorrelations} />
+      </>
+    );
+  } else if (status === 'loading') {
+    content = (
+      <div className="flex items-center gap-3 py-2 mt-3">
+        <div className="w-[18px] h-[18px] border-2 border-hf-accent border-t-transparent rounded-full animate-spin shrink-0" />
+        <span className="text-xs text-hf-text-secondary leading-normal">
+          {t('correlationsLoading')}
+        </span>
+      </div>
+    );
+  } else if (status === 'error') {
+    let errMsg = '';
+    let btnLabel = '';
+    let btnAction = () => {};
+
+    if (errType === 'no_key') {
+      errMsg = t('correlationsNoKey');
+      btnLabel = t('aiSettingsApiKeySection');
+      btnAction = () => navigate('/profile/ai-settings');
+    } else if (errType === 'not_enough_data') {
+      errMsg = t('correlationsNotEnoughData', { count: logs.length });
+      btnLabel = t('correlationsRefreshAgain');
+      btnAction = handleFetchCorrelations;
+    } else if (errType === 'rate_limited') {
+      errMsg = t('correlationsRateLimited');
+      btnLabel = t('correlationsRefreshAgain');
+      btnAction = handleFetchCorrelations;
+    } else {
+      errMsg = t('correlationsGeneric');
+      btnLabel = t('correlationsRefreshAgain');
+      btnAction = handleFetchCorrelations;
+    }
+
+    content = (
+      <>
+        <p className="mt-3 text-xs text-hf-text-secondary leading-relaxed">
+          {errMsg}
+        </p>
+        <PrimaryRefreshButton label={btnLabel} onTap={btnAction} />
+      </>
+    );
+  } else if (status === 'data') {
+    if (insights.length === 0) {
+      content = (
+        <>
+          <p className="mt-3 text-xs text-hf-text-secondary leading-relaxed">
+            {t('correlationsEmpty')}
+          </p>
+          <PrimaryRefreshButton label={t('correlationsRefreshAgain')} onTap={handleFetchCorrelations} />
+        </>
+      );
+    } else {
+      content = (
+        <>
+          <div className="flex flex-col gap-2 mt-3">
+            {insights.map((insight, idx) => (
+              <InsightTile key={idx} insight={insight} t={t} />
+            ))}
+          </div>
+          <PrimaryRefreshButton label={t('correlationsRefreshAgain')} onTap={handleFetchCorrelations} />
+        </>
+      );
+    }
+  }
+
+  return (
+    <SectionCard bg="bg-hf-bg-secondary">
       <div className="flex items-center gap-2.5">
         <div className="w-[34px] h-[34px] rounded-[10px] bg-hf-bg-tertiary flex items-center justify-center shrink-0">
           <Sparkles size={18} className="text-hf-text-tertiary" />
@@ -1222,15 +1601,7 @@ function AiCorrelationsCard({ t }: { t: (key: string) => string }) {
           {t('analyticsAiCorrelationsTitle')}
         </h3>
       </div>
-      <p className="mt-3 text-xs text-hf-text-secondary leading-relaxed">
-        {t('analyticsAiCorrelationsMessage')}
-      </p>
-      <button className="mt-3.5 w-full py-[11px] rounded-hf-md bg-hf-accent flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform">
-        <Sparkles size={15} className="text-white" />
-        <span className="text-hf-label-lg text-white leading-tight">
-          {t('correlationsRefresh')}
-        </span>
-      </button>
+      {content}
     </SectionCard>
   );
 }
