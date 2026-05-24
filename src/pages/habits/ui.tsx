@@ -51,13 +51,13 @@ export default function HabitsPage() {
   };
 
   const handleArchive = async (id: string) => {
-    if (confirm(t('habitDetailArchiveConfirm'))) {
+    if (confirm(t('habitsListArchiveConfirm'))) {
       await archiveMutation.mutateAsync(id);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm(t('habitDetailDeleteConfirmBody'))) {
+    if (confirm(t('habitsListDeleteConfirm'))) {
       await deleteMutation.mutateAsync(id);
     }
   };
@@ -346,7 +346,17 @@ const HabitsListCardRow = ({ habit, allLogs, todayStr, onArchive, onDelete, onTa
         </h4>
         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
           <span className="text-hf-body-sm text-hf-text-secondary">
-            {habit.schedule_type === 'daily' ? 'Every day' : habit.schedule_type}
+            {(() => {
+              const map: Record<string, string> = {
+                daily: 'habitRepeatDaily',
+                weekdays: 'habitRepeatWeekdays',
+                n_per_week: 'habitRepeatNPerWeek',
+                every_n: 'habitRepeatEveryN',
+                monthly: 'habitRepeatMonthly',
+              };
+              const key = map[habit.schedule_type];
+              return key ? t(key as Parameters<typeof t>[0]) : habit.schedule_type;
+            })()}
           </span>
           <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-hf-full ${
             isAnti ? 'bg-hf-anti/12 text-hf-anti' : 'bg-hf-accent/12 text-hf-accent'

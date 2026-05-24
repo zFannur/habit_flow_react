@@ -13,7 +13,7 @@ import {
 } from '@/entities/habit';
 import type { HabitModel, HabitLogModel, HabitLogStatus } from '@/entities/habit';
 import { HeaderBar, BottomSheet } from '@/shared/ui';
-import { Edit2, Archive, Trash2, Flame, Trophy, Percent, ClipboardList } from 'lucide-react';
+import { Edit2, Archive, Trash2, Flame, Percent, ClipboardList } from 'lucide-react';
 
 function computeStats(
   habit: HabitModel,
@@ -158,17 +158,17 @@ function statusColor(status: HabitLogStatus | null): string {
   }
 }
 
-function statusBadge(status: string): { bg: string; text: string; label: string } {
+function statusBadge(status: string): { bg: string; text: string; key: string } {
   switch (status) {
     case 'done':
     case 'partial':
-      return { bg: 'bg-hf-success/10 text-hf-success', text: '✅', label: 'Done' };
+      return { bg: 'bg-hf-success/10 text-hf-success', text: '✅', key: 'habitHistoryStatusDone' };
     case 'missed':
-      return { bg: 'bg-hf-danger/10 text-hf-danger', text: '❌', label: 'Missed' };
+      return { bg: 'bg-hf-danger/10 text-hf-danger', text: '❌', key: 'habitHistoryStatusMissed' };
     case 'skipped':
-      return { bg: 'bg-hf-text-secondary/10 text-hf-text-secondary', text: '⏭', label: 'Skipped' };
+      return { bg: 'bg-hf-text-secondary/10 text-hf-text-secondary', text: '⏭', key: 'habitDetailHeatmapSkip' };
     default:
-      return { bg: '', text: '', label: '' };
+      return { bg: '', text: '', key: '' };
   }
 }
 
@@ -284,7 +284,7 @@ export default function HabitDetailPage() {
             )}
             {isPaused && (
               <span className="text-[11px] font-extrabold tracking-wider bg-hf-text-secondary/15 text-hf-text-secondary px-2.5 py-1 rounded-hf-full uppercase">
-                PAUSED
+                {t('habitDetailPaused')}
               </span>
             )}
           </div>
@@ -311,18 +311,7 @@ export default function HabitDetailPage() {
               </span>
               <p className="text-hf-headline-md font-extrabold text-hf-text-primary mt-0.5">
                 {stats.currentStreakVal}
-                <span className="text-hf-body-sm font-normal text-hf-text-secondary ml-0.5">days</span>
-              </p>
-            </div>
-
-            <div className="bg-hf-bg-secondary rounded-hf-md p-3 text-center">
-              <Trophy className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
-              <span className="text-[10px] text-hf-text-secondary font-semibold uppercase tracking-wider leading-none">
-                {t('habitDetailBestStreak').replace('\n', ' ')}
-              </span>
-              <p className="text-hf-headline-md font-extrabold text-hf-text-primary mt-0.5">
-                {stats.bestStreak}
-                <span className="text-hf-body-sm font-normal text-hf-text-secondary ml-0.5">days</span>
+                <span className="text-hf-body-sm font-normal text-hf-text-secondary ml-0.5">{t('habitDetailDaysUnit')}</span>
               </p>
             </div>
 
@@ -516,7 +505,7 @@ export default function HabitDetailPage() {
                     <span
                       className={`text-hf-label-sm font-semibold px-2 py-0.5 rounded-hf-full ${badge.bg}`}
                     >
-                      {badge.text} {badge.label}
+                      {badge.text} {badge.key ? t(badge.key as Parameters<typeof t>[0]) : ''}
                     </span>
                   </div>
                 );
@@ -548,7 +537,7 @@ export default function HabitDetailPage() {
           onClick={() => navigate('/habits')}
           className="w-full py-3 rounded-hf-md border border-hf-border bg-hf-bg-secondary text-hf-text-primary font-semibold text-hf-body-md flex items-center justify-center gap-2 hover:bg-hf-bg-secondary/50 active:scale-[0.98] transition-all mt-2"
         >
-          ← Назад
+          {t('commonBack')}
         </button>
       </div>
 

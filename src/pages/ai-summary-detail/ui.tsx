@@ -41,11 +41,11 @@ export default function AiSummaryDetailPage() {
           openRouterKey: key,
           model: summary.model_used || undefined,
         });
-        alert('Regenerating summary triggered successfully!');
+        alert(t('aiSummaryRegenerateSuccess'));
         navigate(-1);
       } catch (e) {
         console.error(e);
-        alert('Failed to regenerate summary');
+        alert(t('aiSummaryRegenerateFailed'));
       }
     }
   };
@@ -91,18 +91,18 @@ export default function AiSummaryDetailPage() {
           <div className="flex items-center gap-2 text-hf-text-secondary">
             <Calendar className="w-4 h-4 text-hf-accent" />
             <span>
-              Entries range: <strong>{summary.range_start_n} - {summary.range_end_n}</strong>
+              {t('aiSummaryEntriesRange')} <strong>{summary.range_start_n} - {summary.range_end_n}</strong>
             </span>
           </div>
           <div className="flex items-center gap-2 text-hf-text-secondary">
             <Cpu className="w-4 h-4 text-orange-500" />
             <span>
-              Model used: <strong>{summary.model_used || 'google/gemini-2.5-flash'}</strong>
+              {t('aiSummaryModelUsed')} <strong>{summary.model_used || 'google/gemini-2.5-flash'}</strong>
             </span>
           </div>
           {summary.tokens_used && (
             <div className="text-[11px] text-hf-text-secondary mt-0.5">
-              Tokens used: {summary.tokens_used}
+              {t('aiSummaryTokensUsed')} {summary.tokens_used}
             </div>
           )}
         </div>

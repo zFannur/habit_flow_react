@@ -407,7 +407,7 @@ export default function OnboardingPage() {
               {/* Telegram Preview */}
               <div className="bg-hf-bg-secondary rounded-2xl p-4">
                 <span className="text-[9px] font-bold text-hf-text-tertiary tracking-[0.04em] uppercase">
-                  TELEGRAM
+                  {t('onboardingS5TelegramLabel')}
                 </span>
 
                 <div className="mt-2.5 bg-[#EFF7FF] rounded-[14px] p-3 flex gap-2.5">

@@ -112,12 +112,12 @@ export default function SplashPage() {
             icon={<LinkIcon className="w-4 h-4" />}
             onClick={() => {
               // Stub action for device link dialog
-              alert('Link device feature: to be implemented');
+              alert(t('deviceLinkStub'));
             }}
           />
           {import.meta.env.DEV && (
             <Button
-              label="Dev Bypass (Skip Auth)"
+              label={t('devBypassButton')}
               variant="secondary"
               onClick={() => devLogin()}
             />

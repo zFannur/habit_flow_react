@@ -39,7 +39,7 @@ export default function ReflectionTemplatePage() {
   const handleSave = () => {
     const clean = questions.map((q) => q.trim()).filter(Boolean);
     if (clean.length === 0) {
-      alert('Please keep at least one question');
+      alert(t('reflectionTemplateMinOneQuestion'));
       return;
     }
     saveReflectionTemplate(clean);

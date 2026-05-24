@@ -8,10 +8,10 @@ import { Pencil, ChevronRight } from 'lucide-react';
 import { invoice } from '@telegram-apps/sdk-react';
 
 const PRESETS = [
-  { stars: 50, usd: '$1.00', label: 'Coffee' },
-  { stars: 100, usd: '$2.00', label: 'Lunch', popular: true },
-  { stars: 250, usd: '$5.00', label: 'Dinner' },
-  { stars: 500, usd: '$10.00', label: 'Day of work' },
+  { stars: 50, usd: '$1.00', labelKey: 'donatePresetCoffee' },
+  { stars: 100, usd: '$2.00', labelKey: 'donatePresetLunch', popular: true },
+  { stars: 250, usd: '$5.00', labelKey: 'donatePresetDinner' },
+  { stars: 500, usd: '$10.00', labelKey: 'donatePresetDayOfWork' },
 ];
 
 export default function DonatePage() {
@@ -35,7 +35,7 @@ export default function DonatePage() {
       const { data, error } = await supabase.functions.invoke('create_invoice', {
         body: {
           amount: selectedStars,
-          label: `${selectedStars} Telegram Stars — HabitFlow Support`,
+          label: t('donateInvoiceLabel', { stars: selectedStars }),
         },
       });
 
@@ -127,7 +127,7 @@ export default function DonatePage() {
                 </span>
                 <span className="text-[12px] text-hf-text-tertiary">≈ {p.usd}</span>
                 <span className={`text-[11px] font-semibold tracking-wide ${!isCustom && selected === i ? 'text-hf-accent' : 'text-hf-text-secondary'}`}>
-                  {p.label}
+                  {t(p.labelKey)}
                 </span>
               </button>
             </div>
@@ -146,7 +146,7 @@ export default function DonatePage() {
                   type="number"
                   value={customStars}
                   onChange={(e) => setCustomStars(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                  placeholder="100"
+                  placeholder={t('donateCustomPlaceholder')}
                   className="w-full bg-hf-bg-secondary border-[1.5px] border-hf-accent rounded-hf-md py-2 text-center text-xl font-bold text-hf-text-primary outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   autoFocus
                   onClick={(e) => e.stopPropagation()}

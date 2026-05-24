@@ -79,7 +79,7 @@ export default function JournalEditPage() {
         .join('\n\n');
 
       if (qText) {
-        finalFreeText = qText + (freeText.trim() ? `\n\n### Notes\n${freeText}` : '');
+        finalFreeText = qText + (freeText.trim() ? `\n\n### ${t('journalEditNotesHeading')}\n${freeText}` : '');
       }
     }
 

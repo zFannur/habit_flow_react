@@ -106,34 +106,34 @@ function RadioDot({ selected, locked }: { selected: boolean; locked?: boolean })
   );
 }
 
-function StatusDot({ status }: { status: KeyStatus }) {
+function StatusDot({ status, t }: { status: KeyStatus; t: (k: string) => string }) {
   switch (status) {
     case 'unchecked':
       return (
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-hf-text-tertiary">
           <div className="w-2 h-2 rounded-full bg-[#D1D5DB]" />
-          Not tested
+          {t('aiSettingsStatusUnchecked')}
         </span>
       );
     case 'checking':
       return (
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-hf-accent">
           <RefreshCw className="w-3 h-3 animate-spin" />
-          Checking...
+          {t('aiSettingsStatusChecking')}
         </span>
       );
     case 'ok':
       return (
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#16A34A]">
           <div className="w-2 h-2 rounded-full bg-[#16A34A]" />
-          Connection successful
+          {t('aiSettingsStatusOk')}
         </span>
       );
     case 'error':
       return (
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-hf-danger">
           <XCircle className="w-3 h-3" />
-          Connection failed
+          {t('aiSettingsStatusError')}
         </span>
       );
   }
@@ -332,7 +332,7 @@ export default function AiSettingsPage() {
         <div className="py-4 px-4 flex flex-col gap-4 max-w-md mx-auto w-full">
           {/* Section 1: API Key */}
           <p className="text-hf-label-sm uppercase tracking-[0.08em] text-hf-text-tertiary font-semibold mb-1.5">
-            API KEY
+            {t('aiSettingsApiKeySection')}
           </p>
 
           <div className="bg-hf-card rounded-hf-lg border border-hf-border overflow-hidden">
@@ -427,7 +427,7 @@ export default function AiSettingsPage() {
                     )}
                   </button>
                   <div className="mt-2.5">
-                    <StatusDot status={status} />
+                    <StatusDot status={status} t={t} />
                   </div>
                 </div>
               </>
@@ -436,7 +436,7 @@ export default function AiSettingsPage() {
 
           {/* Section 2: Model */}
           <p className="text-hf-label-sm uppercase tracking-[0.08em] text-hf-text-tertiary font-semibold mt-1 mb-1.5">
-            MODEL
+            {t('aiSettingsModelSection')}
           </p>
 
           <div className="flex items-center gap-2 bg-hf-bg-secondary rounded-[10px] border-[1.5px] border-hf-border px-3 py-2 mb-2.5">
@@ -497,7 +497,7 @@ export default function AiSettingsPage() {
                           <div className="text-hf-label-md text-hf-text-secondary font-medium">
                             {m.price}
                           </div>
-                          <span className="text-[11px] text-hf-text-tertiary">за 1M</span>
+                          <span className="text-[11px] text-hf-text-tertiary">{t('aiSettingsPricePer1M')}</span>
                         </div>
                       )}
                     </button>
@@ -522,7 +522,7 @@ export default function AiSettingsPage() {
 
           {/* Section 3: AI Style */}
           <p className="text-hf-label-sm uppercase tracking-[0.08em] text-hf-text-tertiary font-semibold mt-1 mb-1.5">
-            AI STYLE
+            {t('aiSettingsStyleSection')}
           </p>
           <p className="text-hf-title-sm text-hf-text-secondary -mt-1 mb-2 px-1">
             {t('aiSettingsStyleSubtitle')}
@@ -549,7 +549,7 @@ export default function AiSettingsPage() {
                   {s.locked && (
                     <span className="flex items-center gap-1 px-2 py-0.5 rounded-[6px] bg-hf-bg-tertiary text-[11px] text-hf-text-tertiary shrink-0">
                       <Lock className="w-3 h-3" />
-                      Pro
+                      {t('aiSettingsProBadge')}
                     </span>
                   )}
                 </button>
@@ -561,7 +561,7 @@ export default function AiSettingsPage() {
           </div>
 
           <p className="text-hf-label-sm uppercase tracking-[0.08em] text-hf-text-tertiary font-semibold mt-1 mb-1.5">
-            EXAMPLE
+            {t('aiSettingsStyleExampleHeader')}
           </p>
           <div className="bg-hf-bg-secondary rounded-[14px] border border-hf-border p-3.5 flex items-start gap-2">
             <span className="text-lg leading-none mt-0.5 shrink-0">{currentStyle.emoji}</span>
@@ -572,7 +572,7 @@ export default function AiSettingsPage() {
 
           {/* Section 4: Usage */}
           <p className="text-hf-label-sm uppercase tracking-[0.08em] text-hf-text-tertiary font-semibold mt-1 mb-1.5">
-            USAGE
+            {t('aiSettingsUsageSection')}
           </p>
 
           <div className="bg-hf-card rounded-hf-lg border border-hf-border overflow-hidden">

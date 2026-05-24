@@ -66,7 +66,7 @@ export const AntiHabitCard = ({
       {/* Middle Text Content */}
       <div className="flex-1 min-w-0">
         <span className="text-hf-label-md text-hf-anti block">
-          {emoji} без
+          {emoji} {t('habitAntiWithout')}
         </span>
         <h4 className="text-hf-body-lg font-bold text-hf-text-primary mt-0.5 truncate">
           {name}

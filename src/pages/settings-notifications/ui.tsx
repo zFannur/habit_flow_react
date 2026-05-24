@@ -205,7 +205,7 @@ export default function NotificationsSettingsPage() {
               🤖
             </div>
             <div className="flex-1">
-              <p className="text-[13px] font-semibold text-[#2AABEE] mb-1.5">HabitFlow Bot</p>
+              <p className="text-[13px] font-semibold text-[#2AABEE] mb-1.5">{t('notificationsPreviewBotName')}</p>
               <div className="bg-hf-card border border-hf-border rounded-t-[16px] rounded-br-[16px] rounded-bl-[4px] shadow-sm px-3 py-2.5 max-w-[280px]">
                 <p className="text-[14px] text-hf-text-primary leading-relaxed">
                   {mainLine}<br />
@@ -222,7 +222,7 @@ export default function NotificationsSettingsPage() {
                 <div className="mt-1.5 py-1.5 rounded-md border-[1.5px] border-hf-border text-center text-[13px] text-hf-text-secondary">
                   {t('notificationsPreviewMore')}
                 </div>
-                <p className="text-right text-[11px] text-hf-text-tertiary mt-1.5">07:30 ✓</p>
+                <p className="text-right text-[11px] text-hf-text-tertiary mt-1.5">{t('notificationsPreviewTimestamp')}</p>
               </div>
             </div>
           </div>

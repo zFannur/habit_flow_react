@@ -56,10 +56,10 @@ export const JournalTodayCard = ({
         {written ? (
           <div className="flex flex-col">
             <span className="text-[12px] text-white/60 leading-tight">
-              {timeStr || 'Запись сделана'}
+              {timeStr || t('journalTodayCardWritten')}
             </span>
             <p className="text-[14px] text-white/85 leading-normal mt-1 line-clamp-2 italic">
-              {textPreview || '«...»'}
+              {textPreview || t('journalTodayCardEmptyPreview')}
             </p>
             <button
               type="button"

@@ -271,9 +271,9 @@ export default function AnalyticsPage() {
 
   const pieSlices: CategorySlice[] = useMemo(() => {
     const catMap = new Map<string, { done: number; total: number }>();
-    const habitCat = new Map(habitsArr.map((h) => [h.id, h.category || 'General']));
+    const habitCat = new Map(habitsArr.map((h) => [h.id, h.category || t('analyticsCategoryGeneral')]));
     for (const l of logsInRange) {
-      const cat = habitCat.get(l.habit_id) || 'General';
+      const cat = habitCat.get(l.habit_id) || t('analyticsCategoryGeneral');
       const entry = catMap.get(cat) || { done: 0, total: 0 };
       if (l.status === 'done' || l.status === 'partial') entry.done++;
       if (l.status === 'done' || l.status === 'partial' || l.status === 'missed') entry.total++;
@@ -293,7 +293,7 @@ export default function AnalyticsPage() {
       pct: Math.round((s.pct / totalRate) * 100),
       color: CHART_PALETTE[i % CHART_PALETTE.length] || '#3B82F6',
     }));
-  }, [habitsArr, logsInRange]);
+  }, [habitsArr, logsInRange, t]);
 
   const bestDayLabel = useMemo(() => {
     const byDow = new Map<number, { done: number; total: number }>();
@@ -833,7 +833,7 @@ function HeatmapCard({
   t,
 }: {
   data: DayValue[];
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   const DAY_LABELS = [
     t('habitWeekMon'),
@@ -876,7 +876,7 @@ function HeatmapCard({
               <div key={wi} className="flex flex-col">
                 <div className="h-[18px] flex items-center justify-center">
                   <span className="text-[9px] font-semibold text-hf-text-tertiary leading-none">
-                    {wi + 1}н
+                    {t('habitDetailChartWeekShort', { n: wi + 1 })}
                   </span>
                 </div>
                 {week.map((cell, ri) => (

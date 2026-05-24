@@ -185,6 +185,7 @@ interface HabitCardRowProps {
 }
 
 const HabitCardRow = ({ item, todayStr, allLogs, onLog }: HabitCardRowProps) => {
+  const { t } = useTranslation();
   const streak = allLogs.length
     ? currentStreak({ habit: item.habit, logs: allLogs, today: todayStr })
     : 0;
@@ -272,7 +273,7 @@ const HabitCardRow = ({ item, todayStr, allLogs, onLog }: HabitCardRowProps) => 
           initialHeld={isDone}
           onHeld={handleHeldAnti}
           onMore={() => {
-            alert('Anti-habit details stub');
+            alert(t('antiHabitDetailsStub'));
           }}
         />
       );

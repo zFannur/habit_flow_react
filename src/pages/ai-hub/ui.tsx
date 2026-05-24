@@ -458,7 +458,7 @@ export default function AiHubPage() {
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-4 gap-4">
                   <span className="text-[72px] leading-none select-none">🧠</span>
                   <div>
-                    <h3 className="text-hf-headline-sm text-hf-text-primary">HabitFlow AI Hub</h3>
+                    <h3 className="text-hf-headline-sm text-hf-text-primary">{t('aiHubEmptyTitle')}</h3>
                     <p className="text-hf-body-sm text-hf-text-secondary mt-1.5 max-w-[260px]">
                       {t('aiChatDisclaimerText')}
                     </p>
@@ -708,7 +708,7 @@ export default function AiHubPage() {
             {/* FAB: create custom prompt */}
             <button
               onClick={() => {
-                alert('Custom prompt creation — coming soon');
+                alert(t('aiPromptComingSoon'));
               }}
               className="fixed bottom-20 right-5 w-14 h-14 rounded-full bg-hf-accent text-white flex items-center justify-center shadow-lg hover:opacity-90 active:scale-95 transition-all z-10"
               style={{ marginBottom: 'var(--tg-viewport-safe-area-inset-bottom, 0px)' }}

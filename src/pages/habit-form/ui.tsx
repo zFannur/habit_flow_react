@@ -70,11 +70,11 @@ const GOAL_UNITS: Record<HabitType, string[]> = {
   anti: ['times'],
 };
 
-const TYPE_OPTIONS: { type: HabitType; icon: typeof CheckSquare; labelKey: string; descKey: string; example: string }[] = [
-  { type: 'binary', icon: CheckSquare, labelKey: 'habitTypeBinary', descKey: 'habitTypeBinaryDesc', example: 'Принял витамины' },
-  { type: 'countable', icon: Hash, labelKey: 'habitTypeCountable', descKey: 'habitTypeCountableDesc', example: '8 стаканов воды' },
-  { type: 'timed', icon: Clock, labelKey: 'habitTypeTimed', descKey: 'habitTypeTimedDesc', example: 'Медитация 10 минут' },
-  { type: 'anti', icon: Shield, labelKey: 'habitTypeAnti', descKey: 'habitTypeAntiDesc', example: 'Не пить алкоголь' },
+const TYPE_OPTIONS: { type: HabitType; icon: typeof CheckSquare; labelKey: string; descKey: string; exampleKey: string }[] = [
+  { type: 'binary', icon: CheckSquare, labelKey: 'habitTypeBinary', descKey: 'habitTypeBinaryDesc', exampleKey: 'habitFormExampleBinary' },
+  { type: 'countable', icon: Hash, labelKey: 'habitTypeCountable', descKey: 'habitTypeCountableDesc', exampleKey: 'habitFormExampleCountable' },
+  { type: 'timed', icon: Clock, labelKey: 'habitTypeTimed', descKey: 'habitTypeTimedDesc', exampleKey: 'habitFormExampleTimed' },
+  { type: 'anti', icon: Shield, labelKey: 'habitTypeAnti', descKey: 'habitTypeAntiDesc', exampleKey: 'habitFormExampleAnti' },
 ];
 
 export default function HabitFormPage() {
@@ -398,7 +398,7 @@ export default function HabitFormPage() {
                             {t(opt.descKey)}
                           </p>
                           <p className="text-hf-body-sm text-hf-text-tertiary leading-[1.3] text-[12px] mt-[3px]">
-                            Пример: {opt.example}
+                            {t('habitFormExamplePrefix')} {t(opt.exampleKey)}
                           </p>
                         </div>
                       </div>
@@ -415,7 +415,7 @@ export default function HabitFormPage() {
                 })}
               </div>
 
-              <p className="text-[0px] leading-none select-none">Выбор недоступен — выберите тип ниже.</p>
+              <p className="text-[0px] leading-none select-none">{t('habitFormTypeNotAvailable')}</p>
             </div>
           )}
 
@@ -476,7 +476,7 @@ export default function HabitFormPage() {
                 {isCustomCategory && (
                   <div className="mt-3">
                     <Input
-                      placeholder="Название новой категории..."
+                      placeholder={t('habitFormNewCategoryPlaceholder')}
                       value={customCategoryText}
                       onChange={(e) => {
                         setCustomCategoryText(e.target.value);
@@ -654,7 +654,7 @@ export default function HabitFormPage() {
               {/* Every N days */}
               {scheduleType === 'every_n_days' && (
                 <div className="bg-hf-bg-secondary rounded-[14px] px-4 py-3.5 flex items-center gap-2 mb-5">
-                  <span className="text-hf-body-md text-hf-text-secondary flex-1">Каждые</span>
+                  <span className="text-hf-body-md text-hf-text-secondary flex-1">{t('habitFormEveryPrefix')}</span>
                   <button
                     type="button"
                     onClick={() => setEveryN(Math.max(1, everyN - 1))}
@@ -672,7 +672,7 @@ export default function HabitFormPage() {
                   >
                     +
                   </button>
-                  <span className="text-hf-body-md text-hf-text-secondary">дней</span>
+                  <span className="text-hf-body-md text-hf-text-secondary">{t('habitFormDaysSuffix')}</span>
                 </div>
               )}
 
@@ -853,7 +853,7 @@ export default function HabitFormPage() {
                     onChange={(e) => setStackingText(e.target.value)}
                     className="w-full bg-hf-bg-secondary border-[1.5px] border-hf-border rounded-xl px-3.5 py-3 text-hf-body-md text-hf-text-primary outline-none focus:border-hf-accent transition-all"
                   >
-                    <option value="">—</option>
+                    <option value="">{t('habitFormSelectEmpty')}</option>
                     {otherHabits.map((h) => (
                       <option key={h.id} value={h.name}>
                         {h.icon_emoji} {h.name}
