@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
 import {
@@ -512,13 +513,35 @@ export default function AiHubPage() {
                           className={`flex flex-col max-w-[85%] ${isUser ? 'self-end items-end' : 'self-start items-start'}`}
                         >
                           <div
-                            className={`p-3.5 text-hf-body-md leading-relaxed whitespace-pre-wrap ${
+                            className={`p-3.5 text-hf-body-md leading-relaxed ${
                               isUser
-                                ? 'bg-hf-accent text-white rounded-hf-lg rounded-tr-none'
-                                : 'bg-hf-card border border-hf-border rounded-hf-lg rounded-tl-none text-hf-text-primary'
+                                ? 'bg-hf-accent text-white rounded-hf-lg rounded-tr-none whitespace-pre-wrap'
+                                : 'bg-hf-card border border-hf-border rounded-hf-lg rounded-tl-none text-hf-text-primary markdown-body'
                             }`}
                           >
-                            {content}
+                            {isUser ? content : (
+                              <ReactMarkdown
+                                components={{
+                                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                  h1: ({ children }) => <h1 className="text-lg font-bold mb-2 mt-3 first:mt-0">{children}</h1>,
+                                  h2: ({ children }) => <h2 className="text-base font-bold mb-1.5 mt-3 first:mt-0">{children}</h2>,
+                                  h3: ({ children }) => <h3 className="text-sm font-bold mb-1 mt-2 first:mt-0">{children}</h3>,
+                                  ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-0.5">{children}</ul>,
+                                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-0.5">{children}</ol>,
+                                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                                  code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) =>
+                                    inline
+                                      ? <code className="bg-black/10 dark:bg-white/10 rounded px-1 py-0.5 text-[0.85em] font-mono">{children}</code>
+                                      : <pre className="bg-black/10 dark:bg-white/10 rounded-lg p-3 overflow-x-auto mb-2"><code className="text-[0.85em] font-mono whitespace-pre">{children}</code></pre>,
+                                  blockquote: ({ children }) => <blockquote className="border-l-2 border-hf-accent/50 pl-3 italic text-hf-text-secondary mb-2">{children}</blockquote>,
+                                  strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                  em: ({ children }) => <em className="italic">{children}</em>,
+                                  hr: () => <hr className="border-hf-border my-2" />,
+                                }}
+                              >
+                                {content}
+                              </ReactMarkdown>
+                            )}
                             {isStreamingMsg && content && <TypingDots />}
                           </div>
                           {!isUser && !isStreamingMsg && (
