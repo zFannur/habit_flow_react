@@ -1044,23 +1044,24 @@ function MoodLineCard({
         <EmptyPlaceholder />
       ) : (
         <>
-          <div className="mt-3.5 h-[140px] flex">
-            <div className="w-5 relative shrink-0 mr-1.5">
-              {[10, 7, 5, 3].map((v) => {
-                const topPct = (10 - v) * 10;
-                return (
-                  <span
-                    key={v}
-                    className="absolute right-0 text-[9px] text-hf-text-tertiary leading-none text-right -translate-y-1/2"
-                    style={{ top: `${topPct}%` }}
-                  >
-                    {v}
-                  </span>
-                );
-              })}
-            </div>
-            <div className="flex-1 h-full flex flex-col justify-between">
-              <div className="flex-1 relative">
+          <div className="mt-3.5 flex flex-col" style={{ height: 140 }}>
+            {/* Chart area: Y-axis + SVG in same-height flex row */}
+            <div className="flex flex-1 min-h-0">
+              <div className="w-5 relative shrink-0 mr-1.5">
+                {[10, 7, 5, 3].map((v) => {
+                  const topPct = (10 - v) * 10;
+                  return (
+                    <span
+                      key={v}
+                      className="absolute right-0 text-[9px] text-hf-text-tertiary leading-none text-right -translate-y-1/2"
+                      style={{ top: `${topPct}%` }}
+                    >
+                      {v}
+                    </span>
+                  );
+                })}
+              </div>
+              <div className="flex-1 relative h-full">
                 <svg
                   width="100%"
                   height="100%"
@@ -1141,7 +1142,7 @@ function MoodLineCard({
                           cy={10 - p.energy}
                           r="0.35"
                           fill="var(--hf-warning)"
-                           stroke="var(--hf-card)"
+                          stroke="var(--hf-card)"
                           strokeWidth="0.2"
                         />
                       )}
@@ -1149,20 +1150,21 @@ function MoodLineCard({
                   ))}
                 </svg>
               </div>
-              <div className="relative h-3 mt-1.5">
-                {data.map((p, i) => {
-                  const leftPct = (i / (data.length - 1)) * 100;
-                  return (
-                    <span
-                      key={i}
-                      className="absolute text-[9px] text-hf-text-tertiary leading-none -translate-x-1/2"
-                      style={{ left: `${leftPct}%` }}
-                    >
-                      {p.label}
-                    </span>
-                  );
-                })}
-              </div>
+            </div>
+            {/* X-axis labels row, offset left by Y-axis width */}
+            <div className="relative h-3 mt-1.5 ml-[26px]">
+              {data.map((p, i) => {
+                const leftPct = (i / (data.length - 1)) * 100;
+                return (
+                  <span
+                    key={i}
+                    className="absolute text-[9px] text-hf-text-tertiary leading-none -translate-x-1/2"
+                    style={{ left: `${leftPct}%` }}
+                  >
+                    {p.label}
+                  </span>
+                );
+              })}
             </div>
           </div>
           <div className="flex gap-4 mt-2 ml-6">

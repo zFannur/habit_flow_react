@@ -58,6 +58,12 @@
   --hf-accent-hover: #2563EB;
   --hf-card: #FFFFFF;
   --hf-shadow: rgba(15, 20, 25, 0.04);
+  --hf-success: #22C55E;
+  --hf-warning: #F59E0B;
+  --hf-danger: #EF4444;
+  --hf-premium: #A855F7;
+  --hf-chart-pink: #EC4899;
+  --hf-chart-teal: #06B6D4;
 }
 
 .dark {
