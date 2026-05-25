@@ -47,13 +47,14 @@ export default function DonatePage() {
       if (invoice.open.isAvailable()) {
         const status = await invoice.open(invoiceLink, 'url');
         if (status === 'paid') {
-          await supabase.from('users').update({ is_supporter: true }).eq('id', userId);
+          // Supporter status is granted server-side by the bot on the verified
+          // successful_payment webhook (bot: handlers/payments.py). The client
+          // must not self-grant it. Profile re-fetches is_supporter on mount.
           navigate('/profile');
         }
       } else if (window.Telegram?.WebApp?.openInvoice) {
-        window.Telegram.WebApp.openInvoice(invoiceLink, async (status: string) => {
+        window.Telegram.WebApp.openInvoice(invoiceLink, (status: string) => {
           if (status === 'paid') {
-            await supabase.from('users').update({ is_supporter: true }).eq('id', userId);
             navigate('/profile');
           }
         });
