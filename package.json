@@ -1,7 +1,27 @@
 {
-  "name": "app_react",
+  "name": "habitflow-mini-app-react",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "HabitFlow Telegram Mini App — habit tracker, reflection journal, analytics & AI chat. React 19 + TypeScript + Vite + Feature-Sliced Design.",
+  "author": "zFannur",
+  "license": "MIT",
+  "homepage": "https://github.com/zFannur/habit_flow_react#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zFannur/habit_flow_react.git"
+  },
+  "keywords": [
+    "telegram-mini-app",
+    "habit-tracker",
+    "react",
+    "typescript",
+    "vite",
+    "tailwindcss",
+    "supabase",
+    "feature-sliced-design",
+    "openrouter",
+    "telegram-web-app"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",
