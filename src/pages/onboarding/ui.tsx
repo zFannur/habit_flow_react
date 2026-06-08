@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
 import { useCreateHabitMutation } from '@/entities/habit';
+import { showToast } from '@/shared/ui';
 
 interface OnboardingTemplate {
   emoji: string;
@@ -46,29 +47,48 @@ export default function OnboardingPage() {
     }
 
     if (step === 3 && selectedTemplates.size > 0 && !submitting) {
-      setSubmitting(true);
-      try {
-        const toCreate = Array.from(selectedTemplates).map((i) => TEMPLATES[i]!);
-        for (const tpl of toCreate) {
-          try {
-            await createHabitMutation.mutateAsync({
-              name: lang === 'en' ? tpl.nameEn : tpl.nameRu,
-              habit_type: 'binary',
-              icon_emoji: tpl.emoji,
-              color: '#3B82F6',
-              schedule_type: 'daily',
-              schedule_config: {},
-              reminder_times: [],
-              start_date: dateOnly(new Date()),
-              is_archived: false,
-              position: 0,
-            });
-          } catch (err) {
-            console.error(`Failed to create template habit:`, err);
+      if (!userId) {
+        showToast({
+          title: t('onboardingHabitsError'),
+          message: 'No active session (userId missing).',
+          variant: 'warning',
+        });
+      } else {
+        setSubmitting(true);
+        const failures: string[] = [];
+        try {
+          const toCreate = Array.from(selectedTemplates).map((i) => TEMPLATES[i]!);
+          for (const tpl of toCreate) {
+            try {
+              await createHabitMutation.mutateAsync({
+                name: lang === 'en' ? tpl.nameEn : tpl.nameRu,
+                habit_type: tpl.emoji === '🚭' ? 'anti' : 'binary',
+                icon_emoji: tpl.emoji,
+                color: '#3B82F6',
+                schedule_type: 'daily',
+                schedule_config: {},
+                reminder_times: [],
+                start_date: dateOnly(new Date()),
+                is_archived: false,
+                position: 0,
+              });
+            } catch (err) {
+              failures.push(err instanceof Error ? err.message : String(err));
+              console.error('Failed to create template habit:', err);
+            }
           }
+        } finally {
+          setSubmitting(false);
         }
-      } finally {
-        setSubmitting(false);
+        if (failures.length > 0) {
+          // Показываем реальную ошибку Supabase вместо молчаливого провала —
+          // обычно это RLS/JWT (см. setSession в session store).
+          showToast({
+            title: t('onboardingHabitsError'),
+            message: failures[0]!,
+            variant: 'warning',
+          });
+        }
       }
     }
 

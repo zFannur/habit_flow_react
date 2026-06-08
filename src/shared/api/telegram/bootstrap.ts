@@ -40,12 +40,12 @@ export async function bootstrapTelegram(debug = false): Promise<void> {
       viewport.expand();      // expand to maximum available height
     }
 
-    // 7. Request fullscreen if available (Bot API 8.0+)
-    if (viewport.requestFullscreen.isAvailable()) {
-      await viewport.requestFullscreen().catch(console.error);
-    }
+    // NB: не запрашиваем fullscreen (Bot API 8.0+) намеренно. В fullscreen
+    // Telegram резервирует большую content-safe-area сверху (под свои кнопки
+    // управления), из-за чего `pt-tg-safe-top` давал огромный отступ почти на
+    // всех экранах. В обычном режиме нативная шапка Telegram уже сверху.
 
-    // 8. Back button
+    // 7. Back button
     if (backButton.mount.isAvailable()) {
       backButton.mount();
     }

@@ -32,6 +32,7 @@
   "commonNext": "Далее",
   "commonRetry": "Попробовать снова",
   "offlineBanner": "Нет соединения с интернетом",
+  "onboardingHabitsError": "Не удалось добавить выбранные привычки",
   "commonOpenSettings": "Открыть настройки",
   "commonCreateHabit": "Создать привычку",
   "commonNewBadge": "✦ Новая",

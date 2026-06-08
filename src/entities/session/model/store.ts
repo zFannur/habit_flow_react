@@ -38,10 +38,17 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       localStorage.setItem(USER_KEY, JSON.stringify(user));
 
       // Apply to Supabase client
-      await supabase.auth.setSession({
+      const { error: sessionError } = await supabase.auth.setSession({
         access_token: jwt,
         refresh_token: '',
       });
+      if (sessionError) {
+        // setSession валидирует JWT через Supabase Auth. Провал означает, что
+        // Supabase не принимает наш HS256-токен (нужно проверить активный JWT
+        // signing key проекта): без установленной сессии все запросы к БД уходят
+        // как anon, и RLS возвращает пусто (привычки/журнал не появляются).
+        console.error('Supabase setSession rejected the JWT:', sessionError.message);
+      }
 
       // Best effort timezone sync
       await syncTimeZone(user.id);
@@ -78,10 +85,17 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       const user: AuthUser = JSON.parse(userRaw);
 
       // Apply to Supabase client
-      await supabase.auth.setSession({
+      const { error: sessionError } = await supabase.auth.setSession({
         access_token: jwt,
         refresh_token: '',
       });
+      if (sessionError) {
+        // setSession валидирует JWT через Supabase Auth. Провал означает, что
+        // Supabase не принимает наш HS256-токен (нужно проверить активный JWT
+        // signing key проекта): без установленной сессии все запросы к БД уходят
+        // как anon, и RLS возвращает пусто (привычки/журнал не появляются).
+        console.error('Supabase setSession rejected the JWT:', sessionError.message);
+      }
 
       // Best effort timezone sync
       await syncTimeZone(user.id);
