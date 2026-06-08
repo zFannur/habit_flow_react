@@ -4,6 +4,7 @@ import { retrieveRawInitData } from '@telegram-apps/sdk-react';
 import { Send, Link as LinkIcon, RefreshCw, AlertCircle } from 'lucide-react';
 import { useSessionStore } from '@/entities/session';
 import { useTranslation } from '@/shared/lib/i18n';
+import { getInitialDeepLinkRoute } from '@/shared/lib/navigation';
 import { Button } from '@/shared/ui';
 
 /** Read Telegram initData from all available sources with fallbacks. */
@@ -13,24 +14,18 @@ function readInitData(): string {
   // backend needs; the raw value lives behind retrieveRawInitData().
   try {
     const raw = retrieveRawInitData() ?? '';
-    if (raw) {
-      console.log('[Splash] initData source: SDK retrieveRawInitData ✅');
-      return raw;
-    }
+    if (raw) return raw;
   } catch {
-    console.log('[Splash] SDK retrieveRawInitData threw — trying fallbacks');
+    // fall through to the next source
   }
 
   // Source 2: window.Telegram.WebApp.initData (always available inside TG WebView)
   try {
     const tg = (window as unknown as { Telegram?: { WebApp?: { initData?: string } } }).Telegram;
     const raw = tg?.WebApp?.initData ?? '';
-    if (raw) {
-      console.log('[Splash] initData source: window.Telegram.WebApp ✅');
-      return raw;
-    }
+    if (raw) return raw;
   } catch {
-    console.log('[Splash] window.Telegram.WebApp not available');
+    // fall through to the next source
   }
 
   // Source 3: URL hash / search (debug / deep-link mode)
@@ -38,15 +33,11 @@ function readInitData(): string {
     const hash = window.location.hash.slice(1);
     const params = new URLSearchParams(hash || window.location.search);
     const raw = params.get('tgWebAppData') ?? '';
-    if (raw) {
-      console.log('[Splash] initData source: URL hash ✅');
-      return decodeURIComponent(raw);
-    }
+    if (raw) return decodeURIComponent(raw);
   } catch {
     // ignore
   }
 
-  console.log('[Splash] No initData found — not inside Telegram WebView');
   return '';
 }
 
@@ -57,7 +48,6 @@ export default function SplashPage() {
 
   const handleBootstrap = useCallback(async () => {
     const initData = readInitData();
-    console.log('[Splash] initData length:', initData.length);
 
     if (!initData) {
       // Outside Telegram: try restoring session from local storage
@@ -76,11 +66,13 @@ export default function SplashPage() {
   useEffect(() => {
     if (state.status === 'authenticated') {
       const seenOnboarding = localStorage.getItem('onboarding.seen') === 'true';
-      if (seenOnboarding) {
-        navigate('/today', { replace: true });
-      } else {
+      if (!seenOnboarding) {
         navigate('/onboarding', { replace: true });
+        return;
       }
+      // Bot-уведомления открывают Mini App с `?screen=...&id=...` — ведём
+      // пользователя на нужный экран вместо дефолтного /today.
+      navigate(getInitialDeepLinkRoute() ?? '/today', { replace: true });
     }
   }, [state, navigate]);
 

@@ -1,10 +1,15 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { getTelegramIsDark, subscribeTelegramTheme } from '@/shared/api/telegram';
 import { ACCENT_MAP, type ThemeMode, type AccentColor } from './types';
 import { ThemeContext } from './theme-context';
 
 function computeIsDark(mode: ThemeMode): boolean {
   if (mode === 'dark') return true;
   if (mode === 'light') return false;
+  // auto: следуем за темой Telegram, если открыты внутри Telegram; иначе —
+  // за системным предпочтением браузера.
+  const tg = getTelegramIsDark();
+  if (tg !== null) return tg;
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
@@ -51,19 +56,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     applyDarkClass(isDark);
+  }, [isDark]);
+
+  useEffect(() => {
     applyAccent(accent);
+  }, [accent]);
+
+  // В режиме «auto» следим за сменой темы: и за Telegram (пользователь
+  // переключил тему в самом Telegram → themeChanged), и за системной темой
+  // браузера (когда вне Telegram).
+  useEffect(() => {
+    if (mode !== 'auto') return;
+
+    const recompute = () => setIsDark(computeIsDark('auto'));
+    recompute(); // синхронизируемся сразу — Telegram мог отличаться от первичного значения
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      if (mode === 'auto') {
-        const dark = mediaQuery.matches;
-        setIsDark(dark);
-        applyDarkClass(dark);
-      }
+    mediaQuery.addEventListener('change', recompute);
+    const unsubscribeTelegram = subscribeTelegramTheme(recompute);
+
+    return () => {
+      mediaQuery.removeEventListener('change', recompute);
+      unsubscribeTelegram();
     };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [mode, accent, isDark]);
+  }, [mode]);
 
   return (
     <ThemeContext.Provider
