@@ -17,7 +17,7 @@ import {
   TimedHabitCard,
   AntiHabitCard,
 } from '@/entities/habit';
-import { Button, EmptyState } from '@/shared/ui';
+import { Button, EmptyState, showToast } from '@/shared/ui';
 import type { HabitWithLog, HabitLogStatus, HabitLogModel, HabitModel } from '@/entities/habit';
 
 function getDateDaysAgo(days: number): string {
@@ -260,6 +260,7 @@ const HabitCardRow = ({ item, todayStr, allLogs, onLog }: HabitCardRowProps) => 
           subtitle={item.habit.reminder_times[0]?.substring(0, 5) || ''}
           streak={streak > 0 ? streak : undefined}
           initialDone={isDone}
+          habitId={item.habit.id}
           onDone={handleDoneTimed}
         />
       );
@@ -273,7 +274,7 @@ const HabitCardRow = ({ item, todayStr, allLogs, onLog }: HabitCardRowProps) => 
           initialHeld={isDone}
           onHeld={handleHeldAnti}
           onMore={() => {
-            alert(t('antiHabitDetailsStub'));
+            showToast({ title: t('antiHabitDetailsStub'), message: '', variant: 'info' });
           }}
         />
       );

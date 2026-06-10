@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
-import { useHabitsQuery } from '@/entities/habit';
+import { useHabitsQuery, dateOnly, parseLocalDate } from '@/entities/habit';
 import { useJournalEntriesQuery } from '@/entities/journal';
 import { supabase } from '@/shared/api';
 import { BottomSheet } from '@/shared/ui';
@@ -108,11 +108,11 @@ export default function ProfilePage() {
     let maxStreak = 0;
     let currentStreak = 0;
     const sorted = [...dates].sort();
-    const today = new Date().toISOString().split('T')[0] || '';
+    const today = dateOnly(new Date());
     if (dates.has(today)) { currentStreak = 1; maxStreak = 1; }
     for (let i = sorted.length - 2; i >= 0; i--) {
-      const curr = new Date(sorted[i + 1] || '');
-      const prev = new Date(sorted[i] || '');
+      const curr = parseLocalDate(sorted[i + 1] || '1970-01-01');
+      const prev = parseLocalDate(sorted[i] || '1970-01-01');
       const diffDays = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
       if (diffDays === 1) { currentStreak++; maxStreak = Math.max(maxStreak, currentStreak); }
       else { currentStreak = 1; maxStreak = Math.max(maxStreak, currentStreak); }
@@ -151,7 +151,7 @@ export default function ProfilePage() {
       }
     } catch (e) {
       console.error('Delete account failed:', e);
-      setDeleteError('Failed to delete account. Please try again.');
+      setDeleteError(t('profileDeleteError'));
       setIsDeleting(false);
     }
   };
@@ -288,7 +288,7 @@ export default function ProfilePage() {
             {isDeleting && (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             )}
-            {isDeleting ? 'Deleting...' : t('commonDelete')}
+            {isDeleting ? t('commonDeleting') : t('commonDelete')}
           </button>
         </div>
       </BottomSheet>

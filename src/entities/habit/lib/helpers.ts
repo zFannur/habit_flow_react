@@ -8,6 +8,12 @@ export const dateOnly = (d: Date | string): string => {
   return `${y}-${m}-${day}`;
 };
 
+/** Разбирает 'YYYY-MM-DD' как ЛОКАЛЬНУЮ полночь (new Date(str) дал бы UTC). */
+export function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}
+
 export const getHabitStatus = (habit: HabitModel): HabitStatus => {
   if (habit.is_archived) return 'archived';
   if (habit.end_date) {
@@ -25,7 +31,7 @@ export const isHabitActiveOnDay = (habit: HabitModel, date: Date | string): bool
   if (habit.end_date && dateStr > habit.end_date) return false;
   if (habit.is_archived) return false;
 
-  const startDay = new Date(habit.start_date);
+  const startDay = parseLocalDate(habit.start_date);
   const d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
   const start = new Date(startDay.getFullYear(), startDay.getMonth(), startDay.getDate());
   const diffDays = Math.floor((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));

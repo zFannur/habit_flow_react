@@ -44,7 +44,6 @@ jobs:
           echo "VITE_APP_BASE_URL=${{ secrets.VITE_APP_BASE_URL }}" >> .env
           echo "VITE_BOT_PUBLIC_CHANNEL=${{ secrets.VITE_BOT_PUBLIC_CHANNEL }}" >> .env
           echo "VITE_OPENROUTER_KEYS_URL=${{ secrets.VITE_OPENROUTER_KEYS_URL }}" >> .env
-          echo "VITE_BASE_PATH=/${{ github.event.repository.name }}/" >> .env
 
       - name: Lint
         run: npm run lint

@@ -11,7 +11,20 @@ interface TimedHabitCardProps {
   subtitle: string;
   streak?: number;
   initialDone?: boolean;
+  habitId: string;
   onDone?: (elapsedSeconds: number) => void;
+}
+
+/** Key for a running timer stored in localStorage */
+function timerKey(habitId: string) {
+  return `timer.${habitId}`;
+}
+
+/** Stored shape while running: startedAt + base seconds accumulated before last start.
+ *  startedAt is absent when paused (only base is stored). */
+interface TimerStorage {
+  startedAt?: number;
+  base: number;
 }
 
 export const TimedHabitCard = ({
@@ -21,20 +34,64 @@ export const TimedHabitCard = ({
   subtitle,
   streak,
   initialDone = false,
+  habitId,
   onDone,
 }: TimedHabitCardProps) => {
   const { t } = useTranslation();
-  const [running, setRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<number | null>(null);
 
+  // Restore state from localStorage on mount (survives page reload / background throttle)
+  const [running, setRunning] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem(timerKey(habitId));
+      if (raw) {
+        const stored: TimerStorage = JSON.parse(raw);
+        return stored.startedAt !== undefined;
+      }
+    } catch { /* ignore */ }
+    return false;
+  });
+
+  const [elapsed, setElapsed] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(timerKey(habitId));
+      if (raw) {
+        const stored: TimerStorage = JSON.parse(raw);
+        if (stored.startedAt !== undefined) {
+          return stored.base + Math.floor((Date.now() - stored.startedAt) / 1000);
+        }
+        return stored.base;
+      }
+    } catch { /* ignore */ }
+    return 0;
+  });
+
+  // Start interval when running (including restored running state)
   useEffect(() => {
+    if (!running) return;
+
+    timerRef.current = window.setInterval(() => {
+      setElapsed(() => {
+        try {
+          const raw = localStorage.getItem(timerKey(habitId));
+          if (raw) {
+            const stored: TimerStorage = JSON.parse(raw);
+            if (stored.startedAt !== undefined) {
+              return stored.base + Math.floor((Date.now() - stored.startedAt) / 1000);
+            }
+          }
+        } catch { /* ignore */ }
+        return 0;
+      });
+    }, 1000);
+
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
-  }, []);
+  }, [running, habitId]);
 
   const toggleTimer = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -43,17 +100,21 @@ export const TimedHabitCard = ({
     }
 
     if (running) {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      // Pause/Done: clear localStorage, signal completion
+      try {
+        localStorage.removeItem(timerKey(habitId));
+      } catch { /* ignore */ }
       setRunning(false);
       onDone?.(elapsed);
     } else {
+      // Start: persist startedAt + current base
+      try {
+        localStorage.setItem(
+          timerKey(habitId),
+          JSON.stringify({ startedAt: Date.now(), base: elapsed }),
+        );
+      } catch { /* ignore */ }
       setRunning(true);
-      timerRef.current = window.setInterval(() => {
-        setElapsed((prev) => prev + 1);
-      }, 1000);
     }
   };
 

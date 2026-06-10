@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
@@ -6,6 +6,7 @@ import { HeaderBar } from '@/shared/ui';
 import { supabase } from '@/shared/api';
 import { Pencil, ChevronRight } from 'lucide-react';
 import { invoice } from '@telegram-apps/sdk-react';
+import { showToast } from '@/shared/ui';
 
 const PRESETS = [
   { stars: 50, usd: '$1.00', labelKey: 'donatePresetCoffee' },
@@ -24,11 +25,13 @@ export default function DonatePage() {
   const [customStars, setCustomStars] = useState('');
   const [isCustom, setIsCustom] = useState(false);
   const [loading, setLoading] = useState(false);
+  const pendingRef = useRef(false);
 
   const selectedStars = isCustom ? (parseInt(customStars) || 0) : PRESETS[selected]?.stars || 0;
 
   const handleDonate = async () => {
-    if (!userId || selectedStars <= 0) return;
+    if (pendingRef.current || !userId || selectedStars <= 0) return;
+    pendingRef.current = true;
     setLoading(true);
 
     try {
@@ -58,10 +61,14 @@ export default function DonatePage() {
             navigate('/profile');
           }
         });
+      } else {
+        showToast({ title: t('donateOpenInTelegram'), message: '', variant: 'warning' });
       }
     } catch (e) {
       console.error(e);
+      showToast({ title: t('donateError'), message: '', variant: 'warning' });
     } finally {
+      pendingRef.current = false;
       setLoading(false);
     }
   };

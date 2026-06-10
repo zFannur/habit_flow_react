@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { hapticFeedback } from '@telegram-apps/sdk-react';
 import { EmojiIcon } from './emoji-icon';
@@ -24,11 +24,29 @@ export const CountableHabitCard = ({
 }: CountableHabitCardProps) => {
   const [prevInitial, setPrevInitial] = useState(initial);
   const [current, setCurrent] = useState(initial);
+  const debounceRef = useRef<number | null>(null);
+  const pendingValueRef = useRef<number | null>(null);
 
   if (initial !== prevInitial) {
     setPrevInitial(initial);
     setCurrent(initial);
   }
+
+  // Flush any pending debounced call and clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        window.clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+        if (pendingValueRef.current !== null) {
+          onProgress?.(pendingValueRef.current);
+          pendingValueRef.current = null;
+        }
+      }
+    };
+    // onProgress intentionally excluded — we only want the cleanup to run on unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const done = current >= total;
   const pct = Math.min(Math.max(current / total, 0), 1) * 100;
@@ -40,7 +58,13 @@ export const CountableHabitCard = ({
     }
     const next = Math.min(current + 1, total + 2); // Allow over-completion by up to 2
     setCurrent(next);
-    onProgress?.(next);
+    pendingValueRef.current = next;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      debounceRef.current = null;
+      pendingValueRef.current = null;
+      onProgress?.(next);
+    }, 400);
   };
 
   return (

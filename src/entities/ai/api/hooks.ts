@@ -237,11 +237,13 @@ export function useRegenerateSummaryMutation(userId: string) {
         user_id: userId,
         range_end_n: vars.rangeEndN,
       };
+      // TODO: убрать ключ из body после деплоя generate_summary (читает заголовок с приоритетом)
       if (vars.openRouterKey) payload['openrouter_key'] = vars.openRouterKey;
       if (vars.model) payload['model'] = vars.model;
 
       const { data, error } = await supabase.functions.invoke('generate_summary', {
         body: payload,
+        headers: vars.openRouterKey ? { 'x-openrouter-key': vars.openRouterKey } : undefined,
       });
 
       if (error) throw error;

@@ -23,6 +23,11 @@ export async function bootstrapTelegram(debug = false): Promise<void> {
       await miniApp.mount();
     }
 
+    // 3b. Inform Telegram the app is ready — hides loading placeholder immediately
+    if (miniApp.ready.isAvailable()) {
+      miniApp.ready();
+    }
+
     // 4. Mount themeParams AFTER miniApp (NOT in parallel — known race bug)
     if (themeParams.mountSync.isAvailable()) {
       themeParams.mountSync();

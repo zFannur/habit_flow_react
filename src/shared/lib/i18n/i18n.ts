@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { retrieveLaunchParams } from '@telegram-apps/sdk-react';
 import en from './locales/en.json';
 import ru from './locales/ru.json';
 
@@ -22,16 +23,34 @@ declare global {
   }
 }
 
-// Default locale detection from Telegram user locale or fallback to browser
+// Priority: localStorage → Telegram language_code → navigator.language → 'en'
 const detectLocale = (): Locale => {
+  // 1. Persisted user choice takes highest priority
   try {
-    const tgLocale = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+    const saved = localStorage.getItem('app.locale');
+    if (saved === 'ru' || saved === 'en') return saved;
+  } catch {
+    // localStorage unavailable
+  }
+
+  // 2. Telegram SDK (retrieveLaunchParams is lazy and cached internally)
+  try {
+    const lp = retrieveLaunchParams();
+    const tgLocale = lp.tgWebAppData?.user?.language_code;
     if (tgLocale === 'ru' || tgLocale === 'en') return tgLocale;
   } catch {
-    // Ignore if not available yet
+    // Not inside Telegram or params not yet available — fall through
   }
-  const browserLocale = navigator.language.split('-')[0];
-  return browserLocale === 'ru' ? 'ru' : 'en';
+
+  // 3. Browser language
+  try {
+    const browserLocale = navigator.language.split('-')[0];
+    if (browserLocale === 'ru') return 'ru';
+  } catch {
+    // navigator.language unavailable
+  }
+
+  return 'en';
 };
 
 let currentLocale = detectLocale();
@@ -40,6 +59,12 @@ const listeners = new Set<(locale: Locale) => void>();
 export const getLocale = (): Locale => currentLocale;
 
 export const setLocale = (locale: Locale) => {
+  // Persist the user's choice across restarts
+  try {
+    localStorage.setItem('app.locale', locale);
+  } catch {
+    // localStorage unavailable
+  }
   if (locale !== currentLocale) {
     currentLocale = locale;
     listeners.forEach((l) => l(locale));

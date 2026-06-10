@@ -260,8 +260,9 @@ interface HabitsListCardRowProps {
 const HabitsListCardRow = ({ habit, allLogs, todayStr, onArchive, onDelete, onTap }: HabitsListCardRowProps) => {
   const { t } = useTranslation();
 
-  const streak = allLogs.length
-    ? currentStreak({ habit, logs: allLogs, today: todayStr })
+  const habitLogs = allLogs.filter((l) => l.habit_id === habit.id);
+  const streak = habitLogs.length
+    ? currentStreak({ habit, logs: habitLogs, today: todayStr })
     : 0;
 
   const today = new Date();
@@ -275,7 +276,6 @@ const HabitsListCardRow = ({ habit, allLogs, todayStr, onArchive, onDelete, onTa
     return d;
   });
 
-  const habitLogs = allLogs.filter((l) => l.habit_id === habit.id);
   const logsByDate = habitLogs.reduce((acc, log) => {
     acc[log.log_date] = log.status;
     return acc;
@@ -351,8 +351,8 @@ const HabitsListCardRow = ({ habit, allLogs, todayStr, onArchive, onDelete, onTa
                 daily: 'habitRepeatDaily',
                 weekdays: 'habitRepeatWeekdays',
                 n_per_week: 'habitRepeatNPerWeek',
-                every_n: 'habitRepeatEveryN',
-                monthly: 'habitRepeatMonthly',
+                every_n_days: 'habitRepeatEveryN',
+                monthly_dates: 'habitRepeatMonthly',
               };
               const key = map[habit.schedule_type];
               return key ? t(key as Parameters<typeof t>[0]) : habit.schedule_type;

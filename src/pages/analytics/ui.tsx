@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
-import { useHabitsQuery, useLogsQuery, dateOnly } from '@/entities/habit';
+import { useHabitsQuery, useLogsQuery, dateOnly, parseLocalDate, currentStreak as calcCurrentStreak } from '@/entities/habit';
 import { useJournalEntriesQuery } from '@/entities/journal';
 import type { JournalEntryModel } from '@/entities/journal';
 import { OpenRouterClient } from '@/shared/api/openrouter/client';
@@ -62,6 +62,10 @@ export default function AnalyticsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [reviewVisible, setReviewVisible] = useState(() => searchParams.get('review') === '1');
+
+  useEffect(() => {
+    if (searchParams.get('review') === '1') setReviewVisible(true);
+  }, [searchParams]);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -181,7 +185,7 @@ export default function AnalyticsPage() {
         if (l.status === 'done' || l.status === 'partial' || l.status === 'missed') entry.total++;
         map.set(l.log_date, entry);
       }
-      const start = new Date(range.from);
+      const start = parseLocalDate(range.from);
       const result: DayValue[] = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date(start);
@@ -194,8 +198,8 @@ export default function AnalyticsPage() {
       }
       return result;
     }
-    const start = new Date(range.from);
-    const daysCount = new Date(range.to).getDate() - start.getDate() + 1;
+    const start = parseLocalDate(range.from);
+    const daysCount = parseLocalDate(range.to).getDate() - start.getDate() + 1;
     const map = new Map<string, { done: number; total: number }>();
     for (const l of logsInRange) {
       const entry = map.get(l.log_date) || { done: 0, total: 0 };
@@ -217,7 +221,7 @@ export default function AnalyticsPage() {
 
   const moodData: MoodPoint[] = useMemo(() => {
     if (isWeek) {
-      const start = new Date(range.from);
+      const start = parseLocalDate(range.from);
       const result: MoodPoint[] = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date(start);
@@ -232,8 +236,8 @@ export default function AnalyticsPage() {
       }
       return result;
     }
-    const start = new Date(range.from);
-    const daysCount = new Date(range.to).getDate() - start.getDate() + 1;
+    const start = parseLocalDate(range.from);
+    const daysCount = parseLocalDate(range.to).getDate() - start.getDate() + 1;
     const weekCount = Math.ceil(daysCount / 7);
     const result: MoodPoint[] = [];
     for (let w = 0; w < weekCount; w++) {
@@ -297,26 +301,36 @@ export default function AnalyticsPage() {
       if (l.status === 'done' || l.status === 'partial' || l.status === 'missed') entry.total++;
       catMap.set(cat, entry);
     }
+    // Sort by attempt volume (total logs), take top 5
     const sorted = [...catMap.entries()]
-      .map(([label, v]) => ({
-        label: label || '—',
-        pct: v.total > 0 ? Math.round((v.done / v.total) * 100) : 0,
-      }))
-      .sort((a, b) => b.pct - a.pct)
+      .map(([label, v]) => ({ label: label || '—', total: v.total, done: v.done }))
+      .filter((s) => s.total > 0)
+      .sort((a, b) => b.total - a.total)
       .slice(0, 5);
-    const totalRate = sorted.reduce((s, e) => s + e.pct, 0);
-    if (totalRate === 0) return [];
-    return sorted.map((s, i) => ({
-      ...s,
-      pct: Math.round((s.pct / totalRate) * 100),
-      color: CHART_PALETTE[i % CHART_PALETTE.length] || '#3B82F6',
-    }));
+    const totalAttempts = sorted.reduce((s, e) => s + e.total, 0);
+    if (totalAttempts === 0) return [];
+    // Distribute slice sizes by attempt volume; last slice absorbs rounding so sum == 100
+    const result: CategorySlice[] = [];
+    let sumSoFar = 0;
+    for (let i = 0; i < sorted.length; i++) {
+      const s = sorted[i]!;
+      const pct = i === sorted.length - 1
+        ? 100 - sumSoFar
+        : Math.round((s.total / totalAttempts) * 100);
+      sumSoFar += pct;
+      result.push({
+        label: s.label,
+        pct,
+        color: CHART_PALETTE[i % CHART_PALETTE.length] || '#3B82F6',
+      });
+    }
+    return result;
   }, [habitsArr, logsInRange, t]);
 
   const bestDayLabel = useMemo(() => {
     const byDow = new Map<number, { done: number; total: number }>();
     for (const l of logsInRange) {
-      const d = new Date(l.log_date);
+      const d = parseLocalDate(l.log_date);
       const dow = d.getDay() === 0 ? 6 : d.getDay() - 1; // mon=0..sun=6
       const entry = byDow.get(dow) || { done: 0, total: 0 };
       if (l.status === 'done' || l.status === 'partial') entry.done++;
@@ -341,37 +355,52 @@ export default function AnalyticsPage() {
     };
   }, [logsInRange, locale]);
 
-  const habitLogsMap = useMemo(() => {
-    const map = new Map<string, typeof logsArr>();
-    for (const l of logsArr) {
+  // allLogs30Arr covers 30 days; streaks > 30 days show as "30+" in the UI.
+  // This is the minimal correct solution: we avoid an extra deep query while
+  // still getting accurate skipped-aware counts via the canonical helper.
+  const allLogs30Map = useMemo(() => {
+    const map = new Map<string, typeof allLogs30Arr>();
+    for (const l of allLogs30Arr) {
       const arr = map.get(l.habit_id) || [];
       arr.push(l);
       map.set(l.habit_id, arr);
     }
     return map;
-  }, [logsArr]);
+  }, [allLogs30Arr]);
 
   const currentStreak = useMemo(() => {
     let maxStreak = 0;
     for (const h of habitsArr) {
-      const hLogs = habitLogsMap.get(h.id) || [];
-      let streak = 0;
-      const todayStr = dateOnly(today);
-      hLogs.sort((a, b) => b.log_date.localeCompare(a.log_date));
-      for (const l of hLogs) {
-        if (l.log_date > todayStr) continue;
-        if (l.status === 'done' || l.status === 'partial') {
-          streak++;
-        } else if (l.status === 'missed') {
-          break;
-        }
-      }
+      const hLogs = allLogs30Map.get(h.id) || [];
+      const streak = calcCurrentStreak({ habit: h, logs: hLogs, today });
       if (streak > maxStreak) maxStreak = streak;
     }
     return maxStreak;
-  }, [habitsArr, habitLogsMap, today]);
+  }, [habitsArr, allLogs30Map, today]);
 
-  const bestStreak = currentStreak;
+  const bestStreak = useMemo(() => {
+    // Walk 30-day logs per habit to find best run (done/partial count, skipped neutral, missed resets).
+    let globalBest = 0;
+    for (const h of habitsArr) {
+      const hLogs = (allLogs30Map.get(h.id) || []).slice().sort((a, b) =>
+        a.log_date.localeCompare(b.log_date),
+      );
+      let run = 0;
+      let localBest = 0;
+      for (const l of hLogs) {
+        if (l.status === 'done' || l.status === 'partial') {
+          run++;
+          if (run > localBest) localBest = run;
+        } else if (l.status === 'skipped') {
+          // neutral — keep the run
+        } else if (l.status === 'missed') {
+          run = 0;
+        }
+      }
+      if (localBest > globalBest) globalBest = localBest;
+    }
+    return globalBest;
+  }, [habitsArr, allLogs30Map]);
 
   const shiftPeriod = (delta: number) => {
     setSelectedBar(null);
@@ -416,7 +445,7 @@ export default function AnalyticsPage() {
           </h2>
           <button
             onClick={() => {
-              const text = `📊 HabitFlow · ${periodLabel}\n✅ ${doneCount} ${t('analyticsMetricCompleted')} · ❌ ${missedCount} ${t('analyticsMetricSkipped')}\n🎯 ${completionPct}%`;
+              const text = `📊 ${t('appTitle')} · ${periodLabel}\n✅ ${doneCount} ${t('analyticsMetricCompleted')} · ❌ ${missedCount} ${t('analyticsMetricSkipped')}\n🎯 ${completionPct}%`;
               try {
                 (window as unknown as { Telegram?: { WebApp?: { openLink?: (url: string) => void } } }).Telegram?.WebApp?.openLink?.(
                   `https://t.me/share/url?url=${encodeURIComponent('https://t.me/habitflow_dev')}&text=${encodeURIComponent(text)}`,
@@ -507,7 +536,7 @@ export default function AnalyticsPage() {
         />
 
         {!isWeek && (
-          <HeatmapCard data={barData} t={t} />
+          <HeatmapCard data={barData} rangeFrom={range.from} t={t} />
         )}
 
         <PieCard slices={pieSlices} t={t} />
@@ -679,7 +708,7 @@ function MetricsGrid({
         <div className="flex-1">
           <MetricTile
             label={t('analyticsMetricStreaks').toUpperCase()}
-            value={`${currentStreak}`}
+            value={currentStreak >= 30 ? '30+' : `${currentStreak}`}
             sub={bestStreak > 0 ? t('analyticsMetricStreaksSubtext') : undefined}
             Icon={TrendingUp}
             color="var(--hf-accent)"
@@ -860,9 +889,11 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 
 function HeatmapCard({
   data,
+  rangeFrom,
   t,
 }: {
   data: DayValue[];
+  rangeFrom: string;
   t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   const DAY_LABELS = [
@@ -875,8 +906,10 @@ function HeatmapCard({
     t('habitWeekSun'),
   ];
 
-  const startDay = data.length > 0 ? new Date(2024, 0, 1).getDay() : 1;
-  const startPad = startDay === 0 ? 6 : startDay - 1;
+  // Use real start-of-period date for correct Mon-based padding
+  const periodStart = data.length > 0 ? parseLocalDate(rangeFrom) : new Date(2024, 0, 1);
+  const rawDay = periodStart.getDay(); // 0=Sun … 6=Sat
+  const startPad = rawDay === 0 ? 6 : rawDay - 1; // Mon=0 … Sun=6
 
   const padded: (DayValue | null)[] = [...Array(startPad).fill(null), ...data];
   const weeks: (DayValue | null)[][] = [];
@@ -902,11 +935,18 @@ function HeatmapCard({
           </div>
           <div className="w-1 shrink-0" />
           <div className="flex gap-1">
-            {weeks.map((week, wi) => (
+            {weeks.map((week, wi) => {
+              // Label = day-of-month of the first real day in this week column
+              const weekStartDate = new Date(periodStart);
+              weekStartDate.setDate(periodStart.getDate() + wi * 7 - startPad);
+              // Clamp to start of period so padding weeks don't show negative dates
+              const labelDate = wi === 0 ? periodStart : weekStartDate;
+              const weekLabel = `${labelDate.getDate()}`;
+              return (
               <div key={wi} className="flex flex-col">
                 <div className="h-[18px] flex items-center justify-center">
                   <span className="text-[9px] font-semibold text-hf-text-tertiary leading-none">
-                    {t('habitDetailChartWeekShort', { n: wi + 1 })}
+                    {weekLabel}
                   </span>
                 </div>
                 {week.map((cell, ri) => (
@@ -929,7 +969,8 @@ function HeatmapCard({
                   </div>
                 ))}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1065,7 +1106,7 @@ function MoodLineCard({
                 <svg
                   width="100%"
                   height="100%"
-                  viewBox={`0 0 ${data.length - 1} 10`}
+                  viewBox={`0 0 ${Math.max(1, data.length - 1)} 10`}
                   preserveAspectRatio="none"
                   className="overflow-visible"
                 >
@@ -1074,7 +1115,7 @@ function MoodLineCard({
                       key={v}
                       x1="0"
                       y1={10 - v}
-                      x2={data.length - 1}
+                      x2={Math.max(1, data.length - 1)}
                       y2={10 - v}
                       stroke="var(--hf-border)"
                       strokeWidth="0.08"
@@ -1154,7 +1195,7 @@ function MoodLineCard({
             {/* X-axis labels row, offset left by Y-axis width */}
             <div className="relative h-3 mt-1.5 ml-[26px]">
               {data.map((p, i) => {
-                const leftPct = (i / (data.length - 1)) * 100;
+                const leftPct = data.length > 1 ? (i / (data.length - 1)) * 100 : 50;
                 return (
                   <span
                     key={i}

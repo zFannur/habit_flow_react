@@ -21,7 +21,7 @@ export default function AiSummaryDetailPage() {
 
   const handleDelete = async () => {
     if (!id || !userId) return;
-    if (confirm(t('aiPromptDeleteConfirmText'))) {
+    if (confirm(t('aiSummaryDeleteConfirmText'))) {
       try {
         await deleteMutation.mutateAsync(id);
         navigate(-1);
@@ -50,11 +50,30 @@ export default function AiSummaryDetailPage() {
     }
   };
 
-  if (isLoading || !summary) {
+  if (isLoading) {
     return (
       <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary p-4 pb-tg-safe-bottom">
         <div className="h-6 w-32 bg-hf-bg-secondary animate-pulse rounded mb-4" />
         <div className="h-[250px] w-full bg-hf-bg-secondary animate-pulse rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <div className="w-full h-full flex flex-col bg-hf-bg-primary pt-tg-safe-top text-hf-text-primary pb-tg-safe-bottom">
+        <div className="flex items-center p-4 border-b border-hf-border/10">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-xl bg-hf-bg-secondary hover:opacity-90 active:scale-[0.95] transition-all"
+          >
+            <ArrowLeft className="w-5 h-5 text-hf-text-primary" />
+          </button>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <p className="text-[16px] text-hf-text-secondary text-center">{t('aiSummaryNotFound')}</p>
+        </div>
       </div>
     );
   }

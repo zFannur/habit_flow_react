@@ -6,6 +6,8 @@ import {
   useHabitsQuery,
   useCreateHabitMutation,
   useUpdateHabitMutation,
+  dateOnly,
+  parseLocalDate,
   type HabitType,
   type ScheduleType,
   type ScheduleConfig,
@@ -70,6 +72,16 @@ const GOAL_UNITS: Record<HabitType, string[]> = {
   anti: ['times'],
 };
 
+const GOAL_UNIT_I18N_KEY: Record<string, string> = {
+  times: 'habitGoalUnitTimes',
+  glass: 'habitGoalUnitGlass',
+  pages: 'habitGoalUnitPages',
+  set: 'habitGoalUnitSet',
+  km: 'habitGoalUnitKm',
+  min: 'habitGoalUnitMin',
+  hours: 'habitGoalUnitHours',
+};
+
 const TYPE_OPTIONS: { type: HabitType; icon: typeof CheckSquare; labelKey: string; descKey: string; exampleKey: string }[] = [
   { type: 'binary', icon: CheckSquare, labelKey: 'habitTypeBinary', descKey: 'habitTypeBinaryDesc', exampleKey: 'habitFormExampleBinary' },
   { type: 'countable', icon: Hash, labelKey: 'habitTypeCountable', descKey: 'habitTypeCountableDesc', exampleKey: 'habitFormExampleCountable' },
@@ -80,7 +92,7 @@ const TYPE_OPTIONS: { type: HabitType; icon: typeof CheckSquare; labelKey: strin
 export default function HabitFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { state: session } = useSessionStore();
   const userId = session.status === 'authenticated' ? session.user.id : undefined;
 
@@ -141,6 +153,7 @@ export default function HabitFormPage() {
 
       const config = editHabit.schedule_config;
       if (config.weekdays) setWeekdays(config.weekdays);
+      if (config.n_per_week) setTimesPerWeek(config.n_per_week);
       if (config.every_n) setEveryN(config.every_n);
       if (config.dates) setMonthlyDates(config.dates);
 
@@ -220,13 +233,15 @@ export default function HabitFormPage() {
     const scheduleConfig: ScheduleConfig = {};
     if (scheduleType === 'weekdays') {
       scheduleConfig.weekdays = weekdays;
+    } else if (scheduleType === 'n_per_week') {
+      scheduleConfig.n_per_week = timesPerWeek;
     } else if (scheduleType === 'every_n_days') {
       scheduleConfig.every_n = everyN;
     } else if (scheduleType === 'monthly_dates') {
       scheduleConfig.dates = monthlyDates;
     }
 
-    const fallbackDate = new Date().toISOString().split('T')[0] || '';
+    const fallbackDate = dateOnly(new Date());
 
     const payload = {
       name,
@@ -241,7 +256,7 @@ export default function HabitFormPage() {
       reminder_times: reminders,
       start_date: editHabit?.start_date || fallbackDate,
       is_archived: editHabit?.is_archived || false,
-      position: editHabit?.position || (habits ? habits.length : 0),
+      position: editHabit?.position ?? (habits ? habits.length : 0),
       stack_after_habit_id: stackingText.trim() || undefined,
       implementation_when: whenText.trim() || undefined,
       implementation_where: whereText.trim() || undefined,
@@ -735,7 +750,7 @@ export default function HabitFormPage() {
                       className="bg-hf-card border-[1.5px] border-hf-border rounded-[10px] px-3 py-2 text-hf-body-md text-hf-text-primary outline-none"
                     >
                       {units.map((u) => (
-                        <option key={u} value={u}>{u}</option>
+                        <option key={u} value={u}>{t((GOAL_UNIT_I18N_KEY[u] ?? u) as Parameters<typeof t>[0])}</option>
                       ))}
                     </select>
                   </div>
@@ -809,7 +824,9 @@ export default function HabitFormPage() {
                       {t('habitCreateStep3StartDateLabel')}
                     </span>
                     <div className="mt-1.5 px-3.5 py-2.5 bg-hf-card border-[1.5px] border-hf-border rounded-[10px] text-hf-body-md text-hf-text-primary">
-                      07.05.2026
+                      {new Intl.DateTimeFormat(locale).format(
+                        parseLocalDate(editHabit?.start_date ?? dateOnly(new Date()))
+                      )}
                     </div>
                     <div className="mt-3 flex items-center gap-3">
                       <button
@@ -855,7 +872,7 @@ export default function HabitFormPage() {
                   >
                     <option value="">{t('habitFormSelectEmpty')}</option>
                     {otherHabits.map((h) => (
-                      <option key={h.id} value={h.name}>
+                      <option key={h.id} value={h.id}>
                         {h.icon_emoji} {h.name}
                       </option>
                     ))}

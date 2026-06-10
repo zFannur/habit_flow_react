@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
@@ -6,9 +6,10 @@ import {
   useJournalEntryByDateQuery,
   useUpsertJournalEntryMutation,
   useDeleteJournalEntryMutation,
-  getSavedReflectionTemplate,
+  useJournalRealtimeSync,
+  useReflectionTemplate,
 } from '@/entities/journal';
-import { HeaderBar, Slider, Input, Button } from '@/shared/ui';
+import { HeaderBar, Slider, Input, Button, showToast } from '@/shared/ui';
 import { ChevronDown } from 'lucide-react';
 import { dateOnly } from '@/entities/habit';
 
@@ -18,6 +19,40 @@ function moodColor(val: number): string {
   if (val <= 3) return '#EF4444';
   if (val <= 6) return '#9AA0AB';
   return '#22C55E';
+}
+
+/** Draft stored as JSON in localStorage under this key. */
+function draftKey(entryDate: string): string {
+  return `journal.draft.${entryDate}`;
+}
+
+interface DraftData {
+  mood: number;
+  energy: number;
+  freeText: string;
+  answers: Record<string, string>;
+}
+
+function loadDraft(entryDate: string): DraftData | null {
+  try {
+    const raw = localStorage.getItem(draftKey(entryDate));
+    if (raw) return JSON.parse(raw) as DraftData;
+  } catch {
+    // ignore corrupt draft
+  }
+  return null;
+}
+
+function saveDraft(entryDate: string, data: DraftData): void {
+  try {
+    localStorage.setItem(draftKey(entryDate), JSON.stringify(data));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function removeDraft(entryDate: string): void {
+  localStorage.removeItem(draftKey(entryDate));
 }
 
 export default function JournalEditPage() {
@@ -32,19 +67,20 @@ export default function JournalEditPage() {
   const queryDate = searchParams.get('date');
   const todayStr = dateOnly(new Date());
   const entryDate = paramDate || queryDate || todayStr;
+
   const { data: existingEntry, isLoading: isLoadingEntry } = useJournalEntryByDateQuery(
     userId,
     entryDate,
   );
+
+  // Single realtime channel for this screen (9.2).
+  useJournalRealtimeSync(userId);
+
   const upsertMutation = useUpsertJournalEntryMutation(userId || '');
   const deleteMutation = useDeleteJournalEntryMutation(userId || '');
 
-  const templateQuestions = getSavedReflectionTemplate() ?? [
-    t('reflectionTemplateQ1'),
-    t('reflectionTemplateQ2'),
-    t('reflectionTemplateQ3'),
-    t('reflectionTemplateQ4'),
-  ];
+  // 9.4: Resolved display strings (default keys translated, custom as-is).
+  const { questions: templateQuestions } = useReflectionTemplate();
 
   const [mood, setMood] = useState<number>(5);
   const [energy, setEnergy] = useState<number>(5);
@@ -52,19 +88,73 @@ export default function JournalEditPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showQuestions, setShowQuestions] = useState(true);
 
+  // Track whether we've already applied the initial data (DB or draft) so we
+  // don't re-apply on every re-render.
+  const [initialised, setInitialised] = useState(false);
+
   useEffect(() => {
+    if (initialised) return;
+    if (isLoadingEntry) return;
+
+    // 9.3: Restore from DB entry first, then overlay with draft if draft has
+    // content that differs from (or is newer than) the DB record.
+    const draft = loadDraft(entryDate);
+
     if (existingEntry) {
-      setMood(existingEntry.mood ?? 5);
-      setEnergy(existingEntry.energy ?? 5);
-      setFreeText(existingEntry.free_text || '');
-      setAnswers(existingEntry.answers || {});
+      const dbMood = existingEntry.mood ?? 5;
+      const dbEnergy = existingEntry.energy ?? 5;
+      const dbFreeText = existingEntry.free_text || '';
+      const dbAnswers = existingEntry.answers || {};
+
+      const dbEmpty = !dbFreeText.trim() && Object.keys(dbAnswers).length === 0;
+
+      if (draft && dbEmpty) {
+        // DB entry exists but is essentially empty — restore draft.
+        setMood(draft.mood);
+        setEnergy(draft.energy);
+        setFreeText(draft.freeText);
+        setAnswers(draft.answers);
+      } else {
+        setMood(dbMood);
+        setEnergy(dbEnergy);
+        setFreeText(dbFreeText);
+        setAnswers(dbAnswers);
+      }
+    } else if (draft) {
+      // No DB entry yet — restore draft.
+      setMood(draft.mood);
+      setEnergy(draft.energy);
+      setFreeText(draft.freeText);
+      setAnswers(draft.answers);
     } else {
       setMood(5);
       setEnergy(5);
       setFreeText('');
       setAnswers({});
     }
-  }, [existingEntry]);
+
+    setInitialised(true);
+  }, [existingEntry, isLoadingEntry, entryDate, initialised]);
+
+  // 9.3: Debounced draft autosave (~1 s).
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleDraftSave = useCallback(
+    (data: DraftData) => {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+      draftTimer.current = setTimeout(() => saveDraft(entryDate, data), 1000);
+    },
+    [entryDate],
+  );
+
+  // Persist draft whenever form state changes (after initialisation).
+  useEffect(() => {
+    if (!initialised) return;
+    scheduleDraftSave({ mood, energy, freeText, answers });
+    return () => {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+    };
+  }, [mood, energy, freeText, answers, initialised, scheduleDraftSave]);
 
   const handleAnswerChange = (question: string, text: string) => {
     setAnswers((prev) => ({ ...prev, [question]: text }));
@@ -73,10 +163,18 @@ export default function JournalEditPage() {
   const handleSave = async () => {
     if (!userId) return;
 
+    // 9.1: Guard against saving an empty entry.
+    const answersHaveContent = Object.values(answers).some((v) => v.trim());
+    if (!freeText.trim() && !answersHaveContent) {
+      showToast({ title: t('journalEmptyWarning'), message: '', variant: 'warning' });
+      return;
+    }
+
     let finalFreeText = freeText;
     if (showQuestions) {
       const qText = templateQuestions
         .map((q) => {
+          // answers keyed by display string (unchanged from before).
           const ans = answers[q] || '';
           return ans.trim() ? `### ${q}\n${ans}` : '';
         })
@@ -97,6 +195,8 @@ export default function JournalEditPage() {
         free_text: finalFreeText,
         answers,
       });
+      // 9.3: Remove draft after successful save.
+      removeDraft(entryDate);
       navigate('/journal');
     } catch (e) {
       console.error(e);
@@ -109,6 +209,7 @@ export default function JournalEditPage() {
     if (confirm(t('habitDetailDeleteConfirmBody'))) {
       try {
         await deleteMutation.mutateAsync({ id: existingEntry.id, dateStr: entryDate });
+        removeDraft(entryDate);
         navigate('/journal');
       } catch (e) {
         console.error(e);
@@ -227,15 +328,17 @@ export default function JournalEditPage() {
 
         {showQuestions && (
           <div className="flex flex-col gap-3.5">
-            {templateQuestions.map((q, idx) => (
+            {templateQuestions.map((displayQ, idx) => (
+              // 9.4: displayQ is already resolved via useReflectionTemplate.
+              // answers are keyed by the display string (unchanged format).
               <div key={idx} className="flex flex-col gap-1.5">
                 <span className="text-hf-label-sm font-medium text-hf-text-secondary">
-                  {idx + 1}. {q}
+                  {idx + 1}. {displayQ}
                 </span>
                 <Input
                   hint={t('journalEditQuestionPlaceholder')}
-                  value={answers[q] || ''}
-                  onValueChange={(v) => handleAnswerChange(q, v)}
+                  value={answers[displayQ] || ''}
+                  onValueChange={(v) => handleAnswerChange(displayQ, v)}
                   minLines={2}
                   maxLines={6}
                 />

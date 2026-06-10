@@ -6,6 +6,7 @@ export type HabitLogStatus = 'done' | 'partial' | 'skipped' | 'missed';
 export interface ScheduleConfig {
   weekdays?: number[];
   every_n?: number;
+  n_per_week?: number;
   dates?: number[];
 }
 

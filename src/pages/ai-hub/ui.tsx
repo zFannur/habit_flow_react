@@ -20,7 +20,7 @@ import { useJournalEntryCountQuery, useJournalEntriesQuery } from '@/entities/jo
 import { useHabitsQuery } from '@/entities/habit';
 import type { HabitModel } from '@/entities/habit';
 import type { JournalEntryModel } from '@/entities/journal';
-import { OpenRouterClient } from '@/shared/api';
+import { OpenRouterClient, OpenRouterError } from '@/shared/api';
 import { supabase } from '@/shared/api';
 import { Button, Input, BottomSheet, EmptyState } from '@/shared/ui';
 import { Send, Plus, Trash2, Edit3, AlertCircle, Settings2, ChevronDown, Sparkles } from 'lucide-react';
@@ -151,14 +151,27 @@ export default function AiHubPage() {
 
   const [activeTab, setActiveTab] = useState<TabId>('chat');
 
-  // OpenRouter Key
+  // OpenRouter Key — re-read whenever settings page saves (7.4)
   const [openRouterKey, setOpenRouterKey] = useState<string | null>(null);
   const [currentModel, setCurrentModel] = useState('openai/gpt-oss-120b:free');
-  useEffect(() => {
+
+  // Stable ref so the event-listener can be added/removed without re-registering
+  const reloadOpenRouterSettingsRef = useRef(() => {
     const key = localStorage.getItem('openrouter_key');
     setOpenRouterKey(key);
     const model = localStorage.getItem('openrouter_model') || 'openai/gpt-oss-120b:free';
     setCurrentModel(model);
+  });
+
+  useEffect(() => {
+    const handler = reloadOpenRouterSettingsRef.current;
+    handler();
+    window.addEventListener('openrouter-settings-changed', handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener('openrouter-settings-changed', handler);
+      window.removeEventListener('storage', handler);
+    };
   }, []);
 
   // Chats
@@ -245,6 +258,23 @@ export default function AiHubPage() {
   const [streamingText, setStreamingText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  // AbortController for in-flight stream (7.1)
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Abort ongoing stream on unmount (7.1)
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  // Abort ongoing stream when chat selection changes (7.1)
+  useEffect(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsStreaming(false);
+    setStreamingText('');
+  }, [selectedChatId]);
 
   const messages: (AiMessageModel | { id: string; role: 'assistant'; content: string })[] = useMemo(() => {
     const list: (AiMessageModel | { id: string; role: 'assistant'; content: string })[] = dbMessages ? [...dbMessages] : [];
@@ -258,22 +288,31 @@ export default function AiHubPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = async (textToSend?: string) => {
+  const handleSend = async (textToSend?: string, chatIdOverride?: string) => {
     const text = (textToSend || inputText).trim();
-    if (!text || !selectedChatId || !userId) return;
+    const activeChatId = chatIdOverride ?? selectedChatId;
+    if (!text || !activeChatId || !userId) return;
 
     if (!openRouterKey) {
       alert(t('aiChatNoKeyText'));
       return;
     }
 
+    // 7.2 — save text before clearing so we can restore it on error
+    const sentText = text;
     if (!textToSend) setInputText('');
+
+    // 7.1 — cancel any previous stream and create a new controller
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setIsStreaming(true);
     setStreamingText('');
 
     try {
-      await insertMessageMutation.mutateAsync({ role: 'user', content: text });
+      // 7.2 — only clear the input after the user message is persisted
+      await insertMessageMutation.mutateAsync({ role: 'user', content: sentText });
 
       const locale = t('languageEnglish') === 'English' ? 'en' : 'ru';
       const contextBlock = buildContextBlock(habits, journalEntries);
@@ -287,21 +326,43 @@ export default function AiHubPage() {
       contextMsgs.slice(-20).forEach((m) => {
         history.push({ role: m.role, content: m.content });
       });
-      history.push({ role: 'user', content: text });
+      history.push({ role: 'user', content: sentText });
 
       const client = new OpenRouterClient(openRouterKey);
       let fullReply = '';
 
       const model = currentModel;
+      // 7.1 — pass signal so fetch is cancelled on abort
       await client.chatCompletionStream(history, model, (chunk) => {
         fullReply += chunk;
         setStreamingText(fullReply);
-      });
+      }, controller.signal);
 
       await insertMessageMutation.mutateAsync({ role: 'assistant', content: fullReply });
     } catch (e) {
-      console.error(e);
-      alert(t('aiChatErrorGeneric'));
+      // 7.1 — AbortError = user navigated away / chat switched; silent cleanup
+      if (e instanceof Error && e.name === 'AbortError') {
+        return;
+      }
+      // 7.2 — restore input on error if user hadn't typed anything new
+      if (!textToSend) {
+        setInputText((current) => current || sentText);
+      }
+      // 7.5 — show a specific message based on HTTP status
+      if (e instanceof OpenRouterError) {
+        if (e.status === 401) {
+          alert(t('aiErrorUnauthorized'));
+        } else if (e.status === 402) {
+          alert(t('aiErrorPaymentRequired'));
+        } else if (e.status === 429) {
+          alert(t('aiErrorRateLimited'));
+        } else {
+          alert(t('aiChatErrorGeneric'));
+        }
+      } else {
+        console.error(e);
+        alert(t('aiChatErrorGeneric'));
+      }
     } finally {
       setIsStreaming(false);
       setStreamingText('');
@@ -338,9 +399,9 @@ export default function AiHubPage() {
       const newChat = await createChatMutation.mutateAsync(title);
       setSelectedChatId(newChat.id);
       setActiveTab('chat');
-      setTimeout(() => {
-        handleSend(desc);
-      }, 500);
+      // 7.3 — pass chatIdOverride so handleSend uses the freshly created chat
+      // without waiting for React to re-render selectedChatId
+      await handleSend(desc, newChat.id);
     } catch (e) {
       console.error(e);
     }

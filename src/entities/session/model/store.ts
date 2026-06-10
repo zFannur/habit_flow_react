@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/shared/api';
+import { showToast } from '@/shared/ui';
+import { translate } from '@/shared/lib/i18n';
 import type { AuthUser, AuthState } from './types';
 import { signInWithTelegram, syncTimeZone } from '../api/api';
 
@@ -16,7 +18,10 @@ const USER_KEY = 'auth.user';
 
 const isJwtExpired = (jwt: string): boolean => {
   try {
-    const payload = JSON.parse(atob(jwt.split('.')[1] || ''));
+    const segment = jwt.split('.')[1] || '';
+    // Normalize base64url → base64 so atob() doesn't throw on `-` and `_`
+    const base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
     if (!payload || !payload.exp) return true;
     // Current time in seconds + 10s leeway
     return Math.floor(Date.now() / 1000) > (payload.exp - 10);
@@ -48,6 +53,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         // signing key проекта): без установленной сессии все запросы к БД уходят
         // как anon, и RLS возвращает пусто (привычки/журнал не появляются).
         console.error('Supabase setSession rejected the JWT:', sessionError.message);
+        showToast({ title: translate('authSessionWarning'), message: '', variant: 'warning' });
       }
 
       // Best effort timezone sync
@@ -95,6 +101,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         // signing key проекта): без установленной сессии все запросы к БД уходят
         // как anon, и RLS возвращает пусто (привычки/журнал не появляются).
         console.error('Supabase setSession rejected the JWT:', sessionError.message);
+        showToast({ title: translate('authSessionWarning'), message: '', variant: 'warning' });
       }
 
       // Best effort timezone sync
@@ -107,8 +114,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   devLogin: async () => {
+    if (import.meta.env.PROD) return;
     const fakeUser: AuthUser = {
-      id: 'dev-user-00000000-0000-0000-0000-000000000000',
+      id: '00000000-0000-0000-0000-000000000000',
       first_name: 'Dev',
       language: 'en',
     };

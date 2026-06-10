@@ -2,26 +2,25 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
-import { useCreateHabitMutation } from '@/entities/habit';
+import { useCreateHabitMutation, dateOnly } from '@/entities/habit';
 import { showToast } from '@/shared/ui';
 
 interface OnboardingTemplate {
   emoji: string;
-  nameRu: string;
-  nameEn: string;
-  subRu: string;
-  subEn: string;
+  nameKey: string;
+  subKey: string;
+  isAnti?: boolean;
 }
 
 const TEMPLATES: OnboardingTemplate[] = [
-  { emoji: '💧', nameRu: 'Пить воду', nameEn: 'Drink water', subRu: '8 раз в день', subEn: '8 times a day' },
-  { emoji: '🧘', nameRu: 'Медитация', nameEn: 'Meditation', subRu: '10 мин утром', subEn: '10 min morning' },
-  { emoji: '🚶', nameRu: 'Прогулка', nameEn: 'Walk', subRu: '30 мин', subEn: '30 min' },
-  { emoji: '🚭', nameRu: 'Без курения', nameEn: 'No smoking', subRu: 'Анти-привычка', subEn: 'Anti-habit' },
-  { emoji: '📚', nameRu: 'Чтение', nameEn: 'Reading', subRu: '20 мин перед сном', subEn: '20 min before bed' },
-  { emoji: '✍️', nameRu: 'Дневник', nameEn: 'Journal', subRu: 'Каждый вечер', subEn: 'Every evening' },
-  { emoji: '💪', nameRu: 'Спорт', nameEn: 'Exercise', subRu: '3 раза в неделю', subEn: '3x per week' },
-  { emoji: '🌅', nameRu: 'Ранний подъём', nameEn: 'Early rise', subRu: 'до 7:00', subEn: 'Before 7:00' },
+  { emoji: '💧', nameKey: 'onboardingTpl1Name', subKey: 'onboardingTpl1Sub' },
+  { emoji: '🧘', nameKey: 'onboardingTpl2Name', subKey: 'onboardingTpl2Sub' },
+  { emoji: '🚶', nameKey: 'onboardingTpl3Name', subKey: 'onboardingTpl3Sub' },
+  { emoji: '🚭', nameKey: 'onboardingTpl4Name', subKey: 'onboardingTpl4Sub', isAnti: true },
+  { emoji: '📚', nameKey: 'onboardingTpl5Name', subKey: 'onboardingTpl5Sub' },
+  { emoji: '✍️', nameKey: 'onboardingTpl6Name', subKey: 'onboardingTpl6Sub' },
+  { emoji: '💪', nameKey: 'onboardingTpl7Name', subKey: 'onboardingTpl7Sub' },
+  { emoji: '🌅', nameKey: 'onboardingTpl8Name', subKey: 'onboardingTpl8Sub' },
 ];
 
 const TOTAL = 5;
@@ -39,56 +38,59 @@ export default function OnboardingPage() {
 
   const createHabitMutation = useCreateHabitMutation(userId || '');
 
-  const dateOnly = (d: Date) => d.toISOString().split('T')[0]!;
 
   const handleNext = async () => {
+    if (submitting) return;
+
     if (step === 0) {
       setLocale(lang);
     }
 
-    if (step === 3 && selectedTemplates.size > 0 && !submitting) {
+    if (step === 3 && selectedTemplates.size > 0) {
       if (!userId) {
         showToast({
           title: t('onboardingHabitsError'),
           message: 'No active session (userId missing).',
           variant: 'warning',
         });
-      } else {
-        setSubmitting(true);
-        const failures: string[] = [];
-        try {
-          const toCreate = Array.from(selectedTemplates).map((i) => TEMPLATES[i]!);
-          for (const tpl of toCreate) {
-            try {
-              await createHabitMutation.mutateAsync({
-                name: lang === 'en' ? tpl.nameEn : tpl.nameRu,
-                habit_type: tpl.emoji === '🚭' ? 'anti' : 'binary',
-                icon_emoji: tpl.emoji,
-                color: '#3B82F6',
-                schedule_type: 'daily',
-                schedule_config: {},
-                reminder_times: [],
-                start_date: dateOnly(new Date()),
-                is_archived: false,
-                position: 0,
-              });
-            } catch (err) {
-              failures.push(err instanceof Error ? err.message : String(err));
-              console.error('Failed to create template habit:', err);
-            }
+        return;
+      }
+      setSubmitting(true);
+      const failures: string[] = [];
+      try {
+        const toCreate = Array.from(selectedTemplates).map((i) => TEMPLATES[i]!);
+        for (let i = 0; i < toCreate.length; i++) {
+          const tpl = toCreate[i]!;
+          try {
+            await createHabitMutation.mutateAsync({
+              name: t(tpl.nameKey),
+              habit_type: tpl.isAnti ? 'anti' : 'binary',
+              icon_emoji: tpl.emoji,
+              color: '#3B82F6',
+              schedule_type: 'daily',
+              schedule_config: {},
+              reminder_times: [],
+              start_date: dateOnly(new Date()),
+              is_archived: false,
+              position: i,
+            });
+          } catch (err) {
+            failures.push(err instanceof Error ? err.message : String(err));
+            console.error('Failed to create template habit:', err);
           }
-        } finally {
-          setSubmitting(false);
         }
-        if (failures.length > 0) {
-          // Показываем реальную ошибку Supabase вместо молчаливого провала —
-          // обычно это RLS/JWT (см. setSession в session store).
-          showToast({
-            title: t('onboardingHabitsError'),
-            message: failures[0]!,
-            variant: 'warning',
-          });
-        }
+      } finally {
+        setSubmitting(false);
+      }
+      if (failures.length > 0) {
+        // Показываем реальную ошибку Supabase вместо молчаливого провала —
+        // обычно это RLS/JWT (см. setSession в session store).
+        showToast({
+          title: t('onboardingHabitsError'),
+          message: failures[0]!,
+          variant: 'warning',
+        });
+        return;
       }
     }
 
@@ -376,10 +378,10 @@ export default function OnboardingPage() {
                   >
                     <span className="text-[28px] leading-none">{tpl.emoji}</span>
                     <span className="text-hf-body-sm font-semibold text-hf-text-primary">
-                      {lang === 'en' ? tpl.nameEn : tpl.nameRu}
+                      {t(tpl.nameKey)}
                     </span>
                     <span className="text-hf-label-sm text-hf-text-tertiary text-[10px]">
-                      {lang === 'en' ? tpl.subEn : tpl.subRu}
+                      {t(tpl.subKey)}
                     </span>
                     {isSelected && (
                       <span className="absolute top-[6px] right-[6px] w-[18px] h-[18px] bg-hf-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -393,9 +395,9 @@ export default function OnboardingPage() {
 
             <button
               onClick={handleNext}
-              disabled={selectedTemplates.size === 0}
+              disabled={selectedTemplates.size === 0 || submitting}
               className={`w-full font-bold text-[16px] py-[15px] px-6 rounded-[14px] transition-all tracking-[-0.01em] mt-3 shrink-0 ${
-                selectedTemplates.size === 0
+                selectedTemplates.size === 0 || submitting
                   ? 'bg-hf-accent/30 text-white/50 cursor-not-allowed'
                   : 'bg-hf-accent active:scale-[0.99] text-white'
               }`}

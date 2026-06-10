@@ -25,10 +25,7 @@ export default defineConfig({
           if (id.includes('@tanstack')) return 'query';
           if (
             id.includes('lucide-react') ||
-            id.includes('react-markdown') ||
-            id.includes('react-virtuoso') ||
-            id.includes('react-hook-form') ||
-            id.includes('zod')
+            id.includes('react-markdown')
           ) {
             return 'ui-vendor';
           }

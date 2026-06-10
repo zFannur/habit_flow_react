@@ -1,3 +1,12 @@
+export class OpenRouterError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'OpenRouterError';
+    this.status = status;
+  }
+}
+
 export interface OpenRouterMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -92,7 +101,10 @@ export class OpenRouterClient {
 
     if (!response.ok) {
       const errorJson = await response.json().catch(() => ({}));
-      throw new Error(errorJson?.error?.message || `Chat completion failed: ${response.status}`);
+      throw new OpenRouterError(
+        errorJson?.error?.message || `Chat completion failed: ${response.status}`,
+        response.status,
+      );
     }
 
     const json = await response.json();
@@ -106,11 +118,13 @@ export class OpenRouterClient {
   async chatCompletionStream(
     messages: OpenRouterMessage[],
     model: string = 'google/gemini-2.5-flash',
-    onChunk: (text: string) => void
+    onChunk: (text: string) => void,
+    signal?: AbortSignal,
   ): Promise<void> {
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: this.headers,
+      signal,
       body: JSON.stringify({
         model,
         messages,
@@ -120,7 +134,10 @@ export class OpenRouterClient {
 
     if (!response.ok) {
       const errorJson = await response.json().catch(() => ({}));
-      throw new Error(errorJson?.error?.message || `Chat completion failed: ${response.status}`);
+      throw new OpenRouterError(
+        errorJson?.error?.message || `Chat completion failed: ${response.status}`,
+        response.status,
+      );
     }
 
     const reader = response.body?.getReader();
@@ -131,35 +148,39 @@ export class OpenRouterClient {
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-
+    try {
       while (true) {
-        const sepIndex = buffer.indexOf('\n\n');
-        if (sepIndex === -1) break;
+        const { done, value } = await reader.read();
+        if (done) break;
 
-        const event = buffer.substring(0, sepIndex);
-        buffer = buffer.substring(sepIndex + 2);
+        buffer += decoder.decode(value, { stream: true });
 
-        for (const line of event.split('\n')) {
-          if (!line.startsWith('data:')) continue;
-          const payload = line.substring(5).trim();
-          if (payload === '' || payload === '[DONE]') continue;
+        while (true) {
+          const sepIndex = buffer.indexOf('\n\n');
+          if (sepIndex === -1) break;
 
-          try {
-            const json = JSON.parse(payload);
-            const delta = json.choices?.[0]?.delta?.content;
-            if (delta) {
-              onChunk(delta);
+          const event = buffer.substring(0, sepIndex);
+          buffer = buffer.substring(sepIndex + 2);
+
+          for (const line of event.split('\n')) {
+            if (!line.startsWith('data:')) continue;
+            const payload = line.substring(5).trim();
+            if (payload === '' || payload === '[DONE]') continue;
+
+            try {
+              const json = JSON.parse(payload);
+              const delta = json.choices?.[0]?.delta?.content;
+              if (delta) {
+                onChunk(delta);
+              }
+            } catch {
+              // Ignore broken json chunks
             }
-          } catch {
-            // Ignore broken json chunks
           }
         }
       }
+    } finally {
+      await reader.cancel().catch(() => {});
     }
   }
 }

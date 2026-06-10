@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
-import { useJournalEntriesQuery } from '@/entities/journal';
+import { useJournalEntriesQuery, useJournalRealtimeSync } from '@/entities/journal';
+import { parseLocalDate } from '@/entities/habit';
 import { EmptyState, Button, Chip } from '@/shared/ui';
 import { Plus } from 'lucide-react';
 
@@ -38,7 +39,7 @@ function energyDots(energy: number | undefined): number {
 
 function formatDateShort(dateStr: string, locale: string): string {
   try {
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(d);
   } catch {
     return dateStr;
@@ -53,6 +54,9 @@ export default function JournalListPage() {
 
   const [filter, setFilter] = useState<FilterType>('all');
 
+  // Single realtime channel for the journal list (9.2).
+  useJournalRealtimeSync(userId);
+
   const { data: entries, isLoading } = useJournalEntriesQuery(userId);
 
   const filteredEntries = useMemo(() => {
@@ -63,7 +67,7 @@ export default function JournalListPage() {
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       list = list.filter((e) => {
-        const d = new Date(e.entry_date);
+        const d = parseLocalDate(e.entry_date);
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       });
     } else if (filter === 'lowMood') {

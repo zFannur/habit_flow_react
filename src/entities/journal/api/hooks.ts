@@ -11,67 +11,21 @@ import {
 } from './api';
 import type { JournalEntryModel } from '../model/types';
 
-export function useJournalEntriesQuery(userId?: string) {
+/**
+ * Single shared realtime channel for the journal entity.
+ * Any change on `journal_entries` invalidates all ['journal', …] query keys.
+ * Mount this once per screen that needs live sync; query hooks themselves no
+ * longer create their own channels.
+ */
+export function useJournalRealtimeSync(userId?: string) {
   const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: ['journal_entries', userId],
-    queryFn: () => fetchJournalEntries(userId!),
-    enabled: !!userId,
-  });
 
   useEffect(() => {
     if (!userId) return;
 
     const subscription = subscribeToJournal(userId, () => {
       queryClient.invalidateQueries({ queryKey: ['journal_entries', userId] });
-    });
-
-    return () => {
-      unsubscribeFromJournal(subscription);
-    };
-  }, [userId, queryClient]);
-
-  return query;
-}
-
-export function useJournalEntryByDateQuery(userId?: string, dateStr?: string) {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: ['journal_entry', userId, dateStr],
-    queryFn: () => fetchJournalEntryByDate(userId!, dateStr!),
-    enabled: !!userId && !!dateStr,
-  });
-
-  useEffect(() => {
-    if (!userId || !dateStr) return;
-
-    const subscription = subscribeToJournal(userId, () => {
-      queryClient.invalidateQueries({ queryKey: ['journal_entry', userId, dateStr] });
-    });
-
-    return () => {
-      unsubscribeFromJournal(subscription);
-    };
-  }, [userId, dateStr, queryClient]);
-
-  return query;
-}
-
-export function useJournalEntryCountQuery(userId?: string) {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: ['journal_entry_count', userId],
-    queryFn: () => fetchJournalEntryCount(userId!),
-    enabled: !!userId,
-  });
-
-  useEffect(() => {
-    if (!userId) return;
-
-    const subscription = subscribeToJournal(userId, () => {
+      queryClient.invalidateQueries({ queryKey: ['journal_entry', userId] });
       queryClient.invalidateQueries({ queryKey: ['journal_entry_count', userId] });
     });
 
@@ -79,8 +33,30 @@ export function useJournalEntryCountQuery(userId?: string) {
       unsubscribeFromJournal(subscription);
     };
   }, [userId, queryClient]);
+}
 
-  return query;
+export function useJournalEntriesQuery(userId?: string) {
+  return useQuery({
+    queryKey: ['journal_entries', userId],
+    queryFn: () => fetchJournalEntries(userId!),
+    enabled: !!userId,
+  });
+}
+
+export function useJournalEntryByDateQuery(userId?: string, dateStr?: string) {
+  return useQuery({
+    queryKey: ['journal_entry', userId, dateStr],
+    queryFn: () => fetchJournalEntryByDate(userId!, dateStr!),
+    enabled: !!userId && !!dateStr,
+  });
+}
+
+export function useJournalEntryCountQuery(userId?: string) {
+  return useQuery({
+    queryKey: ['journal_entry_count', userId],
+    queryFn: () => fetchJournalEntryCount(userId!),
+    enabled: !!userId,
+  });
 }
 
 export function useUpsertJournalEntryMutation(userId: string) {

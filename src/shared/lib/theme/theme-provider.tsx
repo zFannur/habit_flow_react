@@ -38,7 +38,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [accent, setAccentState] = useState<AccentColor>(() => {
     return (localStorage.getItem('appearance.accent') as AccentColor) || 'blue';
   });
-  const [isDark, setIsDark] = useState(() => computeIsDark(mode));
+  const [isDark, setIsDark] = useState(() => {
+    // Применяем класс синхронно до первого рендера, чтобы избежать FOUC
+    const dark = computeIsDark(mode);
+    applyDarkClass(dark);
+    return dark;
+  });
 
   const setMode = useCallback((newMode: ThemeMode) => {
     setModeState(newMode);

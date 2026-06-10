@@ -10,6 +10,7 @@ import {
   currentStreak,
   isHabitActiveOnDay,
   dateOnly,
+  parseLocalDate,
 } from '@/entities/habit';
 import type { HabitModel, HabitLogModel, HabitLogStatus } from '@/entities/habit';
 import { BottomSheet } from '@/shared/ui';
@@ -32,7 +33,7 @@ import {
 function computeStats(habit: HabitModel, logs: HabitLogModel[], today: string) {
   const currentStreakVal = currentStreak({ habit, logs, today });
 
-  const start = new Date(habit.start_date);
+  const start = parseLocalDate(habit.start_date);
   const end = new Date(today);
   const cursor = new Date(start);
 
@@ -64,6 +65,9 @@ function computeStats(habit: HabitModel, logs: HabitLogModel[], today: string) {
     cursor.setDate(cursor.getDate() + 1);
   }
 
+  // Capture a best streak that runs up to (or through) today
+  if (runningStreak > bestStreak) bestStreak = runningStreak;
+
   return {
     currentStreakVal,
     bestStreak,
@@ -76,7 +80,7 @@ function build90DayHeatmap(
   logs: HabitLogModel[],
   today: string,
 ): { date: string; status: HabitLogStatus | null }[][] {
-  const todayDate = new Date(today);
+  const todayDate = parseLocalDate(today);
   const cols = 10;
 
   const logsByDate: Record<string, HabitLogStatus> = {};
@@ -103,7 +107,7 @@ function build12WeekChart(
   habit: HabitModel,
   today: string,
 ): number[] {
-  const todayDate = new Date(today);
+  const todayDate = parseLocalDate(today);
   const weeks = 12;
   const result: number[] = [];
 
@@ -289,7 +293,7 @@ function HistoryItem({ log, t, locale }: HistoryItemProps) {
   const [expanded, setExpanded] = useState(false);
   const hasComment = !!log.comment;
 
-  const d = new Date(log.log_date);
+  const d = parseLocalDate(log.log_date);
   const dateLabel = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',

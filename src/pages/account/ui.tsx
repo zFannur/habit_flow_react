@@ -4,6 +4,8 @@ import { useTranslation } from '@/shared/lib/i18n';
 import { useSessionStore } from '@/entities/session';
 import { HeaderBar } from '@/shared/ui';
 
+const FIRST_DAY_KEY = 'account.firstDayOfWeek';
+
 function SectionLabel({ text }: { text: string }) {
   return (
     <p className="text-[11px] uppercase tracking-[0.08em] text-hf-text-tertiary font-semibold px-1 pb-2.5">
@@ -33,7 +35,10 @@ export default function AccountPage() {
   const { state: session } = useSessionStore();
   const user = session.status === 'authenticated' ? session.user : null;
 
-  const [firstDayOfWeek, setFirstDayOfWeek] = useState<1 | 7>(1);
+  const savedFirstDay = localStorage.getItem(FIRST_DAY_KEY);
+  const [firstDayOfWeek, setFirstDayOfWeek] = useState<1 | 7>(
+    savedFirstDay === '7' ? 7 : 1,
+  );
 
   const avatarLetter = user ? (user.first_name || 'U').charAt(0).toUpperCase() : 'U';
   const displayName = user
@@ -78,9 +83,9 @@ export default function AccountPage() {
           {/* First Day of Week */}
           <SectionLabel text={t('accountFirstDaySection')} />
           <div className="bg-hf-card border border-hf-border rounded-hf-lg shadow-hf-card p-4 mb-4">
-            <RadioRow label={t('accountFirstDayMonday')} selected={firstDayOfWeek === 1} onTap={() => setFirstDayOfWeek(1)} />
+            <RadioRow label={t('accountFirstDayMonday')} selected={firstDayOfWeek === 1} onTap={() => { setFirstDayOfWeek(1); localStorage.setItem(FIRST_DAY_KEY, '1'); }} />
             <div className="h-px bg-hf-border" />
-            <RadioRow label={t('accountFirstDaySunday')} selected={firstDayOfWeek === 7} onTap={() => setFirstDayOfWeek(7)} />
+            <RadioRow label={t('accountFirstDaySunday')} selected={firstDayOfWeek === 7} onTap={() => { setFirstDayOfWeek(7); localStorage.setItem(FIRST_DAY_KEY, '7'); }} />
           </div>
 
         </div>

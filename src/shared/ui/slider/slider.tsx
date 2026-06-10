@@ -26,7 +26,13 @@ export const Slider: React.FC<SliderProps> = ({
   };
 
   return (
-    <div className={`w-full py-2 flex items-center ${className}`}>
+    // touchAction:'none' + stopPropagation предотвращают срабатывание swipeBehavior SDK
+    // при горизонтальном драге по слайдеру, не ломая вертикальный скролл страницы
+    <div
+      className={`w-full py-2 flex items-center ${className}`}
+      style={{ touchAction: 'pan-y' }}
+      onTouchMove={(e) => e.stopPropagation()}
+    >
       <input
         type="range"
         min={min}

@@ -3,12 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '@/shared/lib/i18n';
 import { HeaderBar } from '@/shared/ui';
 import { Clock, Bell, BellOff } from 'lucide-react';
+import { supabase } from '@/shared/api';
+import { useSessionStore } from '@/entities/session';
 
 function pad(n: number) { return n.toString().padStart(2, '0'); }
+
+/** Format HH and MM as a Postgres TIME string "HH:MM:00" */
+function toTimeString(h: number, m: number): string {
+  return `${pad(h)}:${pad(m)}:00`;
+}
 
 export default function NotificationsSettingsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { state: session } = useSessionStore();
+  const userId = session.status === 'authenticated' ? session.user.id : null;
 
   const [reflectionOn, setReflectionOn] = useState(true);
   const [reflHour, setReflHour] = useState(21);
@@ -30,37 +39,150 @@ export default function NotificationsSettingsPage() {
   const [pickerDraftH, setPickerDraftH] = useState(0);
   const [pickerDraftM, setPickerDraftM] = useState(0);
 
-  useEffect(() => {
-    setReflectionOn(localStorage.getItem('notify.reflection') !== 'false');
-    const rh = parseInt(localStorage.getItem('notify.reflectionHour') || '21');
-    const rm = parseInt(localStorage.getItem('notify.reflectionMin') || '30');
-    setReflHour(rh); setReflMin(rm);
-    setQuietOn(localStorage.getItem('notify.quietHours') === 'true');
-    const qfh = parseInt(localStorage.getItem('notify.quietFromH') || '23');
-    const qfm = parseInt(localStorage.getItem('notify.quietFromM') || '0');
-    const qth = parseInt(localStorage.getItem('notify.quietToH') || '7');
-    const qtm = parseInt(localStorage.getItem('notify.quietToM') || '0');
-    setQuietFromH(qfh); setQuietFromM(qfm);
-    setQuietToH(qth); setQuietToM(qtm);
-    setSound(localStorage.getItem('notify.sound') || 'on');
-    setWeeklyOn(localStorage.getItem('notify.weekly') !== 'false');
-    setAiSummaryOn(localStorage.getItem('notify.aiSummary') !== 'false');
-    setRecoveryOn(localStorage.getItem('notify.recovery') !== 'false');
-  }, []);
+  // Track whether we've loaded initial values (avoid overwriting DB with stale
+  // defaults on first render before the load effect fires).
+  const [loaded, setLoaded] = useState(false);
 
-  const persist = () => {
-    localStorage.setItem('notify.reflection', reflectionOn ? 'true' : 'false');
-    localStorage.setItem('notify.reflectionHour', String(reflHour));
-    localStorage.setItem('notify.reflectionMin', String(reflMin));
-    localStorage.setItem('notify.quietHours', quietOn ? 'true' : 'false');
-    localStorage.setItem('notify.quietFromH', String(quietFromH));
-    localStorage.setItem('notify.quietFromM', String(quietFromM));
-    localStorage.setItem('notify.quietToH', String(quietToH));
-    localStorage.setItem('notify.quietToM', String(quietToM));
-    localStorage.setItem('notify.sound', sound);
-    localStorage.setItem('notify.weekly', weeklyOn ? 'true' : 'false');
-    localStorage.setItem('notify.aiSummary', aiSummaryOn ? 'true' : 'false');
-    localStorage.setItem('notify.recovery', recoveryOn ? 'true' : 'false');
+  // ---------------------------------------------------------------------------
+  // Load from DB (primary) → fall back to localStorage
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!userId) {
+      // Not authenticated — init purely from localStorage
+      setReflectionOn(localStorage.getItem('notify.reflection') !== 'false');
+      setReflHour(parseInt(localStorage.getItem('notify.reflectionHour') || '21'));
+      setReflMin(parseInt(localStorage.getItem('notify.reflectionMin') || '30'));
+      setQuietOn(localStorage.getItem('notify.quietHours') === 'true');
+      setQuietFromH(parseInt(localStorage.getItem('notify.quietFromH') || '23'));
+      setQuietFromM(parseInt(localStorage.getItem('notify.quietFromM') || '0'));
+      setQuietToH(parseInt(localStorage.getItem('notify.quietToH') || '7'));
+      setQuietToM(parseInt(localStorage.getItem('notify.quietToM') || '0'));
+      setSound(localStorage.getItem('notify.sound') || 'on');
+      setWeeklyOn(localStorage.getItem('notify.weekly') !== 'false');
+      setAiSummaryOn(localStorage.getItem('notify.aiSummary') !== 'false');
+      setRecoveryOn(localStorage.getItem('notify.recovery') !== 'false');
+      setLoaded(true);
+      return;
+    }
+
+    supabase
+      .from('users')
+      .select('evening_reflection_time, quiet_hours_enabled, quiet_hours_from, quiet_hours_to')
+      .eq('id', userId)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          // evening_reflection_time arrives as "HH:MM:SS"
+          if (data.evening_reflection_time) {
+            const [h, m] = data.evening_reflection_time.split(':').map(Number);
+            setReflHour(h);
+            setReflMin(m);
+            // Persist into localStorage so offline fallback is fresh
+            localStorage.setItem('notify.reflectionHour', String(h));
+            localStorage.setItem('notify.reflectionMin', String(m));
+          }
+          if (data.quiet_hours_enabled != null) {
+            setQuietOn(data.quiet_hours_enabled);
+            localStorage.setItem('notify.quietHours', data.quiet_hours_enabled ? 'true' : 'false');
+          }
+          if (data.quiet_hours_from) {
+            const [fh, fm] = data.quiet_hours_from.split(':').map(Number);
+            setQuietFromH(fh); setQuietFromM(fm);
+            localStorage.setItem('notify.quietFromH', String(fh));
+            localStorage.setItem('notify.quietFromM', String(fm));
+          }
+          if (data.quiet_hours_to) {
+            const [th, tm] = data.quiet_hours_to.split(':').map(Number);
+            setQuietToH(th); setQuietToM(tm);
+            localStorage.setItem('notify.quietToH', String(th));
+            localStorage.setItem('notify.quietToM', String(tm));
+          }
+        } else {
+          // DB returned nothing — fall back to localStorage
+          setReflHour(parseInt(localStorage.getItem('notify.reflectionHour') || '21'));
+          setReflMin(parseInt(localStorage.getItem('notify.reflectionMin') || '30'));
+          setQuietOn(localStorage.getItem('notify.quietHours') === 'true');
+          setQuietFromH(parseInt(localStorage.getItem('notify.quietFromH') || '23'));
+          setQuietFromM(parseInt(localStorage.getItem('notify.quietFromM') || '0'));
+          setQuietToH(parseInt(localStorage.getItem('notify.quietToH') || '7'));
+          setQuietToM(parseInt(localStorage.getItem('notify.quietToM') || '0'));
+        }
+
+        // These keys have no DB counterpart — always from localStorage
+        setReflectionOn(localStorage.getItem('notify.reflection') !== 'false');
+        setSound(localStorage.getItem('notify.sound') || 'on');
+        setWeeklyOn(localStorage.getItem('notify.weekly') !== 'false');
+        setAiSummaryOn(localStorage.getItem('notify.aiSummary') !== 'false');
+        setRecoveryOn(localStorage.getItem('notify.recovery') !== 'false');
+        setLoaded(true);
+      });
+  }, [userId]);
+
+  // ---------------------------------------------------------------------------
+  // Persist: write to localStorage + DB (only fields that have DB columns)
+  // 11.1 fix: called with explicit next-values so there is no stale-closure issue.
+  // ---------------------------------------------------------------------------
+  const persist = (next?: {
+    reflectionOn?: boolean;
+    reflHour?: number;
+    reflMin?: number;
+    quietOn?: boolean;
+    quietFromH?: number;
+    quietFromM?: number;
+    quietToH?: number;
+    quietToM?: number;
+    sound?: string;
+    weeklyOn?: boolean;
+    aiSummaryOn?: boolean;
+    recoveryOn?: boolean;
+  }) => {
+    if (!loaded) return; // Don't persist before initial load completes
+
+    const rOn    = next?.reflectionOn  ?? reflectionOn;
+    const rH     = next?.reflHour      ?? reflHour;
+    const rM     = next?.reflMin       ?? reflMin;
+    const qOn    = next?.quietOn       ?? quietOn;
+    const qFH    = next?.quietFromH    ?? quietFromH;
+    const qFM    = next?.quietFromM    ?? quietFromM;
+    const qTH    = next?.quietToH      ?? quietToH;
+    const qTM    = next?.quietToM      ?? quietToM;
+    const snd    = next?.sound         ?? sound;
+    const wOn    = next?.weeklyOn      ?? weeklyOn;
+    const aiOn   = next?.aiSummaryOn   ?? aiSummaryOn;
+    const recOn  = next?.recoveryOn    ?? recoveryOn;
+
+    // localStorage (all fields)
+    localStorage.setItem('notify.reflection',    rOn ? 'true' : 'false');
+    localStorage.setItem('notify.reflectionHour', String(rH));
+    localStorage.setItem('notify.reflectionMin',  String(rM));
+    localStorage.setItem('notify.quietHours',     qOn ? 'true' : 'false');
+    localStorage.setItem('notify.quietFromH',     String(qFH));
+    localStorage.setItem('notify.quietFromM',     String(qFM));
+    localStorage.setItem('notify.quietToH',       String(qTH));
+    localStorage.setItem('notify.quietToM',       String(qTM));
+    localStorage.setItem('notify.sound',          snd);
+    localStorage.setItem('notify.weekly',         wOn ? 'true' : 'false');
+    localStorage.setItem('notify.aiSummary',      aiOn ? 'true' : 'false');
+    localStorage.setItem('notify.recovery',       recOn ? 'true' : 'false');
+
+    // DB sync: only fields that exist in users table
+    // evening_reflection_time, quiet_hours_enabled, quiet_hours_from, quiet_hours_to
+    if (userId) {
+      supabase
+        .from('users')
+        .update({
+          evening_reflection_time: toTimeString(rH, rM),
+          quiet_hours_enabled:     qOn,
+          quiet_hours_from:        toTimeString(qFH, qFM),
+          quiet_hours_to:          toTimeString(qTH, qTM),
+        })
+        .eq('id', userId)
+        .then(({ error }) => {
+          if (error) {
+            console.warn('Failed to sync notification settings to DB:', error.message);
+          }
+        });
+    }
   };
 
   const openTimePicker = (type: 'refl' | 'quietFrom' | 'quietTo') => {
@@ -71,21 +193,38 @@ export default function NotificationsSettingsPage() {
   };
 
   const confirmTimePicker = () => {
-    if (timePickerOpen === 'refl') { setReflHour(pickerDraftH); setReflMin(pickerDraftM); }
-    else if (timePickerOpen === 'quietFrom') { setQuietFromH(pickerDraftH); setQuietFromM(pickerDraftM); }
-    else if (timePickerOpen === 'quietTo') { setQuietToH(pickerDraftH); setQuietToM(pickerDraftM); }
+    // 11.1 fix: apply new values to state AND immediately pass them to persist()
+    // so the DB/localStorage update uses the freshly confirmed values, not the
+    // previous render's stale state.
+    if (timePickerOpen === 'refl') {
+      setReflHour(pickerDraftH);
+      setReflMin(pickerDraftM);
+      persist({ reflHour: pickerDraftH, reflMin: pickerDraftM });
+    } else if (timePickerOpen === 'quietFrom') {
+      setQuietFromH(pickerDraftH);
+      setQuietFromM(pickerDraftM);
+      persist({ quietFromH: pickerDraftH, quietFromM: pickerDraftM });
+    } else if (timePickerOpen === 'quietTo') {
+      setQuietToH(pickerDraftH);
+      setQuietToM(pickerDraftM);
+      persist({ quietToH: pickerDraftH, quietToM: pickerDraftM });
+    }
     setTimePickerOpen(null);
-    setTimeout(persist, 0);
   };
 
   const bubbleParts = t('notificationsPreviewBubble').split('\n');
   const mainLine = bubbleParts[0] || '';
   const streakLine = bubbleParts.length > 1 ? bubbleParts.slice(1).join('\n') : '';
 
-  // Persist on toggle changes
-  const toggleAndPersist = (setter: (v: boolean) => void) => (val: boolean) => {
+  type PersistKey = 'reflectionOn' | 'quietOn' | 'weeklyOn' | 'aiSummaryOn' | 'recoveryOn';
+
+  // Toggle handler: pass new value directly to persist to avoid stale closure
+  const toggleAndPersist = (
+    setter: (v: boolean) => void,
+    key: PersistKey,
+  ) => (val: boolean) => {
     setter(val);
-    setTimeout(persist, 0);
+    persist({ [key]: val });
   };
 
   return (
@@ -114,7 +253,7 @@ export default function NotificationsSettingsPage() {
           <ToggleRow
             title={t('notificationsReflectionToggle')}
             value={reflectionOn}
-            onChanged={toggleAndPersist(setReflectionOn)}
+            onChanged={toggleAndPersist(setReflectionOn, 'reflectionOn')}
             showBottomBorder={reflectionOn}
           />
           {reflectionOn && (
@@ -139,7 +278,7 @@ export default function NotificationsSettingsPage() {
           <ToggleRow
             title={t('notificationsQuietToggle')}
             value={quietOn}
-            onChanged={toggleAndPersist(setQuietOn)}
+            onChanged={toggleAndPersist(setQuietOn, 'quietOn')}
             showBottomBorder={quietOn}
           />
           {quietOn && (
@@ -184,7 +323,7 @@ export default function NotificationsSettingsPage() {
             subtitle={t('notificationsSoundOnSubtitle')}
             muted={false}
             selected={sound === 'on'}
-            onTap={() => { setSound('on'); setTimeout(persist, 0); }}
+            onTap={() => { setSound('on'); persist({ sound: 'on' }); }}
             showBottomBorder
           />
           <SoundRow
@@ -192,7 +331,7 @@ export default function NotificationsSettingsPage() {
             subtitle={t('notificationsSoundOffSubtitle')}
             muted
             selected={sound === 'off'}
-            onTap={() => { setSound('off'); setTimeout(persist, 0); }}
+            onTap={() => { setSound('off'); persist({ sound: 'off' }); }}
             showBottomBorder={false}
           />
         </div>
@@ -240,7 +379,7 @@ export default function NotificationsSettingsPage() {
             title={t('notificationsWeeklyTitle')}
             subtitle={t('notificationsWeeklySubtitle')}
             value={weeklyOn}
-            onChanged={toggleAndPersist(setWeeklyOn)}
+            onChanged={toggleAndPersist(setWeeklyOn, 'weeklyOn')}
             showBottomBorder
           />
           <RareNotifRow
@@ -249,7 +388,7 @@ export default function NotificationsSettingsPage() {
             title={t('notificationsAiSummaryTitle')}
             subtitle={t('notificationsAiSummarySubtitle')}
             value={aiSummaryOn}
-            onChanged={toggleAndPersist(setAiSummaryOn)}
+            onChanged={toggleAndPersist(setAiSummaryOn, 'aiSummaryOn')}
             showBottomBorder
           />
           <RareNotifRow
@@ -258,7 +397,7 @@ export default function NotificationsSettingsPage() {
             title={t('notificationsRecoveryTitle')}
             subtitle={t('notificationsRecoverySubtitle')}
             value={recoveryOn}
-            onChanged={toggleAndPersist(setRecoveryOn)}
+            onChanged={toggleAndPersist(setRecoveryOn, 'recoveryOn')}
             showBottomBorder={false}
           />
         </div>

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from '@/shared/lib/i18n';
+import { useTranslation, translate } from '@/shared/lib/i18n';
+import { dateOnly } from '@/entities/habit';
 import { BottomSheet } from '@/shared/ui';
 import { OpenRouterClient } from '@/shared/api';
 import { supabase } from '@/shared/api';
+import { useSessionStore } from '@/entities/session';
 import { hapticFeedback } from '@telegram-apps/sdk-react';
 import {
   Search,
@@ -192,15 +194,14 @@ export default function AiSettingsPage() {
   useEffect(() => {
     const fetchUsage = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session) {
+        const { state } = useSessionStore.getState();
+        const userId = state.status === 'authenticated' ? state.user.id : null;
+        if (userId) {
           const { data } = await supabase
             .from('ai_daily_usage')
             .select('count')
-            .eq('user_id', session.user.id)
-            .eq('date', new Date().toISOString().slice(0, 10))
+            .eq('user_id', userId)
+            .eq('date', dateOnly(new Date()))
             .maybeSingle();
           if (data?.count) {
             setTodayCount(data.count);
@@ -213,7 +214,7 @@ export default function AiSettingsPage() {
       const local = localStorage.getItem('ai_usage_today');
       if (local) {
         const parsed = JSON.parse(local);
-        const today = new Date().toISOString().slice(0, 10);
+        const today = dateOnly(new Date());
         if (parsed.date === today) {
           setTodayCount(parsed.count || 0);
         }
@@ -232,7 +233,7 @@ export default function AiSettingsPage() {
       const mapped: ModelItem[] = fetched.map((m) => ({
         id: m.id,
         name: m.name,
-        provider: m.id.split('/')[0] || 'Unknown',
+        provider: m.id.split('/')[0] || translate('commonUnknown'),
         free: m.id.includes(':free'),
         context: m.contextLength ? `${Math.round(m.contextLength / 1024)}K` : '—',
         price:
@@ -285,11 +286,15 @@ export default function AiSettingsPage() {
     setInputKey('');
     setEditing(false);
     setStatus('unchecked');
+    // 7.4 — notify ai-hub to reload key/model without a full page reload
+    window.dispatchEvent(new Event('openrouter-settings-changed'));
   };
 
   const handleSelectModel = (id: string) => {
     setModel(id);
     localStorage.setItem('openrouter_model', id);
+    // 7.4 — notify ai-hub to reload key/model without a full page reload
+    window.dispatchEvent(new Event('openrouter-settings-changed'));
   };
 
   const handleSelectStyle = (id: string) => {
